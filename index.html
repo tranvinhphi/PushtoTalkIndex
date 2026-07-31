@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<title>Bộ Đàm Web - Walkie Talkie</title>
+<style>
+  :root {
+    --bg: #0e1116;
+    --card: #161b22;
+    --accent: #22c55e;
+    --accent-dark: #16a34a;
+    --danger: #ef4444;
+    --text: #e6edf3;
+    --muted: #8b949e;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    height: 100%;
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    overscroll-behavior: none;
+  }
+  body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding: 20px;
+    user-select: none;
+  }
+  .card {
+    width: 100%;
+    max-width: 420px;
+    background: var(--card);
+    border-radius: 18px;
+    padding: 28px 22px;
+    box-shadow: 0 10px 30px rgba(0,0,0,.4);
+  }
+  h1 {
+    font-size: 22px;
+    text-align: center;
+    margin: 0 0 6px;
+  }
+  p.subtitle {
+    text-align: center;
+    color: var(--muted);
+    font-size: 13px;
+    margin: 0 0 24px;
+  }
+  label {
+    display: block;
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 6px;
+    margin-top: 14px;
+  }
+  input[type="text"] {
+    width: 100%;
+    padding: 14px 16px;
+    font-size: 16px; /* >=16px để Safari iOS không tự zoom khi focus */
+    border-radius: 12px;
+    border: 1px solid #30363d;
+    background: #0d1117;
+    color: var(--text);
+    outline: none;
+  }
+  input[type="text"]:focus { border-color: var(--accent); }
+  button {
+    font-family: inherit;
+    cursor: pointer;
+    border: none;
+  }
+  #joinBtn {
+    width: 100%;
+    margin-top: 22px;
+    padding: 15px;
+    font-size: 16px;
+    font-weight: 600;
+    border-radius: 12px;
+    background: var(--accent);
+    color: #04220f;
+  }
+  #joinBtn:active { background: var(--accent-dark); }
+  #joinError {
+    color: var(--danger);
+    font-size: 13px;
+    text-align: center;
+    margin-top: 12px;
+    min-height: 16px;
+  }
+
+  /* ===== Room Screen ===== */
+  #roomScreen { display: none; width: 100%; max-width: 420px; }
+  .room-header {
+    text-align: center;
+    margin-bottom: 18px;
+  }
+  .room-header .code {
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: 2px;
+  }
+  .room-header .me {
+    color: var(--muted);
+    font-size: 13px;
+    margin-top: 4px;
+  }
+  #status {
+    text-align: center;
+    min-height: 26px;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--accent);
+    margin-bottom: 18px;
+    transition: opacity .15s;
+  }
+  #userList {
+    background: var(--card);
+    border-radius: 14px;
+    padding: 12px 16px;
+    margin-bottom: 24px;
+    font-size: 13px;
+    color: var(--muted);
+    max-height: 90px;
+    overflow-y: auto;
+  }
+  #userList .title { color: var(--text); font-weight: 600; margin-bottom: 4px; }
+
+  .ptt-wrap {
+    display: flex;
+    justify-content: center;
+    margin: 10px 0 24px;
+  }
+  #pttBtn {
+    width: 180px;
+    height: 180px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #2b323c, #161b22 70%);
+    border: 4px solid #30363d;
+    color: var(--text);
+    font-size: 16px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    line-height: 1.3;
+    transition: transform .08s ease, background .15s, border-color .15s;
+    touch-action: none;
+  }
+  #pttBtn.active {
+    background: radial-gradient(circle at 35% 30%, #ff5c5c, var(--danger) 70%);
+    border-color: #ff8080;
+    transform: scale(0.94);
+    box-shadow: 0 0 0 14px rgba(239,68,68,.15);
+  }
+  #pttBtn.locked {
+    opacity: 0.45;
+    pointer-events: none;
+  }
+  .hint {
+    text-align: center;
+    color: var(--muted);
+    font-size: 12px;
+    margin-bottom: 6px;
+  }
+  #leaveBtn {
+    width: 100%;
+    padding: 12px;
+    border-radius: 12px;
+    background: transparent;
+    border: 1px solid #30363d;
+    color: var(--muted);
+    font-size: 14px;
+    margin-top: 8px;
+  }
+  #audioUnlockNotice {
+    text-align: center;
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 10px;
+  }
+</style>
+</head>
+<body>
+
+  <!-- ============ MÀN HÌNH VÀO PHÒNG ============ -->
+  <div class="card" id="joinScreen">
+    <h1>📻 Bộ Đàm Web</h1>
+    <p class="subtitle">Nhập Mã phòng do quản trị viên cấp và tên hiển thị của bạn</p>
+
+    <label for="roomCodeInput">Mã phòng</label>
+    <input type="text" id="roomCodeInput" placeholder="VD: DANANG01" autocomplete="off" autocapitalize="characters" />
+
+    <label for="usernameInput">Tên hiển thị</label>
+    <input type="text" id="usernameInput" placeholder="VD: Anh Nguyên" autocomplete="off" />
+
+    <button id="joinBtn">Vào phòng</button>
+    <div id="joinError"></div>
+  </div>
+
+  <!-- ============ MÀN HÌNH TRONG PHÒNG ============ -->
+  <div id="roomScreen">
+    <div class="room-header">
+      <div class="code" id="roomCodeLabel"></div>
+      <div class="me" id="myNameLabel"></div>
+    </div>
+
+    <div id="status">&nbsp;</div>
+
+    <div class="ptt-wrap">
+      <button id="pttBtn" class="locked">
+        Đang kết nối...
+      </button>
+    </div>
+    <div class="hint">Giữ để nói - Thả để dừng</div>
+    <div id="audioUnlockNotice"></div>
+
+    <div id="userList">
+      <div class="title">Thành viên trong phòng</div>
+      <div id="userListContent">-</div>
+    </div>
+
+    <button id="leaveBtn">Rời phòng</button>
+  </div>
+
+  <!-- Socket.io client (CDN) -->
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  <script>
+    // =====================================================================
+    // CẤU HÌNH: đổi giá trị này thành URL server Render của bạn sau khi deploy
+    // Ví dụ: "https://walkie-talkie-server.onrender.com"
+    // =====================================================================
+    const SERVER_URL = "https://pushtotalk-anqr.onrender.com";
+
+    // ------------------ DOM refs ------------------
+    const joinScreen = document.getElementById('joinScreen');
+    const roomScreen = document.getElementById('roomScreen');
+    const roomCodeInput = document.getElementById('roomCodeInput');
+    const usernameInput = document.getElementById('usernameInput');
+    const joinBtn = document.getElementById('joinBtn');
+    const joinError = document.getElementById('joinError');
+
+    const roomCodeLabel = document.getElementById('roomCodeLabel');
+    const myNameLabel = document.getElementById('myNameLabel');
+    const statusEl = document.getElementById('status');
+    const pttBtn = document.getElementById('pttBtn');
+    const userListContent = document.getElementById('userListContent');
+    const leaveBtn = document.getElementById('leaveBtn');
+    const audioUnlockNotice = document.getElementById('audioUnlockNotice');
+
+    // ------------------ State ------------------
+    let socket = null;
+    let mediaStream = null;
+    let mediaRecorder = null;
+    let recordedChunks = [];
+    let mimeType = '';
+    let isRecording = false;
+    let currentRoom = '';
+    let currentUsername = '';
+
+    // Audio playback (Web Audio API) - bắt buộc cho Safari iOS
+    let audioCtx = null;
+    let audioUnlocked = false;
+    const playQueue = [];
+    let isPlaying = false;
+
+    // =====================================================================
+    // 1) KÍCH HOẠT ÂM THANH TRÊN iOS SAFARI
+    // Phải được gọi bên trong 1 sự kiện chạm/click trực tiếp của người dùng.
+    // =====================================================================
+    function unlockAudio() {
+      if (audioUnlocked) return;
+      try {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        audioCtx = new AudioContextClass();
+
+        // Phát 1 buffer câm (silent) để "mở khóa" audio trên iOS
+        const buffer = audioCtx.createBuffer(1, 1, 22050);
+        const source = audioCtx.createBufferSource();
+        source.buffer = buffer;
+        source.connect(audioCtx.destination);
+        source.start(0);
+
+        if (audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
+        audioUnlocked = true;
+        console.log('Đã kích hoạt AudioContext cho iOS.');
+      } catch (err) {
+        console.error('Không thể khởi tạo AudioContext:', err);
+      }
+    }
+
+    // =====================================================================
+    // 2) VÀO PHÒNG
+    // =====================================================================
+    joinBtn.addEventListener('click', () => {
+      // Kích hoạt audio NGAY trong cú chạm này (bắt buộc với Safari iOS)
+      unlockAudio();
+
+      const roomCode = roomCodeInput.value.trim();
+      const username = usernameInput.value.trim();
+
+      joinError.textContent = '';
+
+      if (!roomCode || !username) {
+        joinError.textContent = 'Vui lòng nhập đầy đủ Mã phòng và Tên hiển thị.';
+        return;
+      }
+
+      currentRoom = roomCode.toUpperCase();
+      currentUsername = username;
+
+      joinBtn.disabled = true;
+      joinBtn.textContent = 'Đang kết nối...';
+
+      connectToServer(currentRoom, currentUsername);
+    });
+
+    function connectToServer(roomCode, username) {
+      socket = io(SERVER_URL, {
+        transports: ['websocket', 'polling'],
+      });
+
+      socket.on('connect', () => {
+        socket.emit('join-room', { roomCode, username });
+      });
+
+      socket.on('joined', ({ roomCode, username }) => {
+        showRoomScreen(roomCode, username);
+        requestMicPermission();
+      });
+
+      socket.on('join-error', (msg) => {
+        joinError.textContent = msg;
+        joinBtn.disabled = false;
+        joinBtn.textContent = 'Vào phòng';
+      });
+
+      socket.on('user-list', (users) => {
+        userListContent.textContent = users.length ? users.join(', ') : '-';
+      });
+
+      socket.on('system-message', (msg) => {
+        console.log('[Hệ thống]', msg);
+      });
+
+      socket.on('speaking-start', ({ username }) => {
+        setStatus(`🔊 Đang nói: ${username}`);
+      });
+
+      socket.on('speaking-stop', ({ username }) => {
+        clearStatusIfMatches(`🔊 Đang nói: ${username}`);
+      });
+
+      socket.on('audio-data', ({ username, audio }) => {
+        enqueueAudio(audio, username);
+      });
+
+      socket.on('disconnect', () => {
+        setStatus('⚠️ Mất kết nối, đang thử lại...');
+      });
+
+      socket.on('connect_error', (err) => {
+        console.error('Lỗi kết nối:', err.message);
+        joinError.textContent = 'Không kết nối được máy chủ. Kiểm tra lại SERVER_URL.';
+        joinBtn.disabled = false;
+        joinBtn.textContent = 'Vào phòng';
+      });
+    }
+
+    function showRoomScreen(roomCode, username) {
+      joinScreen.style.display = 'none';
+      roomScreen.style.display = 'block';
+      roomCodeLabel.textContent = roomCode;
+      myNameLabel.textContent = `Bạn: ${username}`;
+    }
+
+    let statusTimeout = null;
+    function setStatus(text) {
+      statusEl.textContent = text;
+    }
+    function clearStatusIfMatches(expected) {
+      if (statusEl.textContent === expected) {
+        statusEl.textContent = '\u00A0';
+      }
+    }
+
+    // =====================================================================
+    // 3) XIN QUYỀN MICRO + CHUẨN BỊ MediaRecorder
+    // =====================================================================
+    function pickSupportedMimeType() {
+      const candidates = [
+        'audio/mp4',                 // Safari iOS (14.3+)
+        'audio/webm;codecs=opus',    // Chrome / Android / Desktop
+        'audio/webm',
+        'audio/ogg;codecs=opus',
+      ];
+      for (const type of candidates) {
+        if (window.MediaRecorder && MediaRecorder.isTypeSupported(type)) {
+          return type;
+        }
+      }
+      return ''; // để trình duyệt tự chọn mặc định
+    }
+
+    async function requestMicPermission() {
+      try {
+        mediaStream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+          },
+        });
+
+        mimeType = pickSupportedMimeType();
+
+        pttBtn.classList.remove('locked');
+        pttBtn.textContent = 'GIỮ ĐỂ NÓI';
+        setStatus('\u00A0');
+      } catch (err) {
+        console.error('Không lấy được quyền micro:', err);
+        pttBtn.textContent = 'Không có quyền Micro';
+        joinError.textContent = 'Vui lòng cấp quyền Micro cho trình duyệt rồi tải lại trang.';
+      }
+    }
+
+    // =====================================================================
+    // 4) PUSH-TO-TALK: ghi âm khi giữ nút, gửi khi nhả nút
+    // =====================================================================
+    function startTalking(e) {
+      if (e) e.preventDefault();
+      if (isRecording || !mediaStream) return;
+      if (!audioUnlocked) unlockAudio();
+
+      recordedChunks = [];
+      try {
+        mediaRecorder = mimeType
+          ? new MediaRecorder(mediaStream, { mimeType })
+          : new MediaRecorder(mediaStream);
+      } catch (err) {
+        console.error('Không thể khởi tạo MediaRecorder:', err);
+        return;
+      }
+
+      mediaRecorder.ondataavailable = (ev) => {
+        if (ev.data && ev.data.size > 0) recordedChunks.push(ev.data);
+      };
+
+      mediaRecorder.onstop = async () => {
+        if (recordedChunks.length === 0) return;
+        const blob = new Blob(recordedChunks, { type: mimeType || 'audio/webm' });
+        const arrayBuffer = await blob.arrayBuffer();
+        if (socket && socket.connected) {
+          socket.emit('audio-data', arrayBuffer);
+        }
+      };
+
+      mediaRecorder.start();
+      isRecording = true;
+
+      pttBtn.classList.add('active');
+      pttBtn.textContent = 'ĐANG NÓI...';
+      if (socket) socket.emit('start-speaking');
+    }
+
+    function stopTalking(e) {
+      if (e) e.preventDefault();
+      if (!isRecording) return;
+
+      isRecording = false;
+      pttBtn.classList.remove('active');
+      pttBtn.textContent = 'GIỮ ĐỂ NÓI';
+
+      if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+        mediaRecorder.stop();
+      }
+      if (socket) socket.emit('stop-speaking');
+    }
+
+    // Sự kiện chuột (desktop)
+    pttBtn.addEventListener('mousedown', startTalking);
+    pttBtn.addEventListener('mouseup', stopTalking);
+    pttBtn.addEventListener('mouseleave', stopTalking);
+
+    // Sự kiện chạm (mobile/iOS) - dùng touch thay vì click để bắt giữ/nhả chính xác
+    pttBtn.addEventListener('touchstart', startTalking, { passive: false });
+    pttBtn.addEventListener('touchend', stopTalking, { passive: false });
+    pttBtn.addEventListener('touchcancel', stopTalking, { passive: false });
+
+    // =====================================================================
+    // 5) PHÁT ÂM THANH NHẬN ĐƯỢC (hàng đợi, phát tuần tự, dùng AudioContext)
+    // =====================================================================
+    function enqueueAudio(arrayBuffer, username) {
+      playQueue.push({ arrayBuffer, username });
+      if (!isPlaying) playNext();
+    }
+
+    async function playNext() {
+      if (playQueue.length === 0) {
+        isPlaying = false;
+        return;
+      }
+      isPlaying = true;
+      const { arrayBuffer, username } = playQueue.shift();
+
+      if (!audioUnlocked) unlockAudio();
+
+      try {
+        // Copy buffer vì decodeAudioData sẽ "detach" ArrayBuffer gốc
+        const bufferCopy = arrayBuffer.slice(0);
+        const audioBuffer = await audioCtx.decodeAudioData(bufferCopy);
+
+        const source = audioCtx.createBufferSource();
+        source.buffer = audioBuffer;
+        source.connect(audioCtx.destination);
+
+        source.onended = () => {
+          playNext();
+        };
+        source.start(0);
+      } catch (err) {
+        console.error('Lỗi phát âm thanh:', err);
+        playNext(); // bỏ qua đoạn lỗi, phát tiếp đoạn sau
+      }
+    }
+
+    // =====================================================================
+    // 6) RỜI PHÒNG
+    // =====================================================================
+    leaveBtn.addEventListener('click', () => {
+      if (socket) socket.disconnect();
+      if (mediaStream) mediaStream.getTracks().forEach((t) => t.stop());
+
+      roomScreen.style.display = 'none';
+      joinScreen.style.display = 'block';
+      joinBtn.disabled = false;
+      joinBtn.textContent = 'Vào phòng';
+      pttBtn.classList.add('locked');
+      pttBtn.textContent = 'Đang kết nối...';
+    });
+
+    // Ngăn cuộn trang khi giữ nút PTT trên mobile
+    document.body.addEventListener('touchmove', (e) => {
+      if (isRecording) e.preventDefault();
+    }, { passive: false });
+  </script>
+</body>
+</html>
