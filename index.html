@@ -5,684 +5,612 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover"/>
 <title>Bộ Đàm Web</title>
 <link rel="manifest" href="manifest.json"/>
-<meta name="theme-color" content="#f0f4ff"/>
+<meta name="theme-color" content="#0d1117"/>
 <link rel="icon" href="icon-192.png"/>
 <link rel="apple-touch-icon" href="icon-192.png"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
-<meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="apple-mobile-web-app-title" content="Bộ Đàm"/>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <style>
 :root{
-  --bg:#f0f4ff;
-  --bg2:#e8edf8;
-  --surface:#ffffff;
-  --surface-2:#f5f7ff;
-  --border:#d4daf0;
-  --border-2:#c2cae8;
-  --accent:#1a56db;
-  --accent-light:#e8efff;
-  --accent-2:#0ea5e9;
-  --green:#16a34a;
-  --green-light:#dcfce7;
-  --red:#dc2626;
-  --red-light:#fee2e2;
-  --orange:#ea580c;
-  --orange-light:#ffedd5;
-  --text:#1e2a4a;
-  --text-2:#4a5680;
-  --text-3:#8896b8;
+  --bg:#0d1117;
+  --bg2:#161b22;
+  --surface:#1c2333;
+  --surface2:#21262d;
+  --border:#30363d;
+  --accent:#2ea043;
+  --accent-soft:rgba(46,160,67,.18);
+  --accent2:#58a6ff;
+  --accent2-soft:rgba(88,166,255,.15);
+  --warn:#d29922;
+  --warn-soft:rgba(210,153,34,.15);
+  --danger:#f85149;
+  --danger-soft:rgba(248,81,73,.15);
+  --text:#e6edf3;
+  --text2:#8b949e;
+  --text3:#484f58;
   --safe-b:env(safe-area-inset-bottom,0px);
   --safe-t:env(safe-area-inset-top,0px);
-  --radius:14px;
-  --shadow:0 2px 12px rgba(30,42,74,.10);
-  --shadow-lg:0 8px 32px rgba(30,42,74,.14);
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;padding:0}
-html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Inter","Segoe UI",Roboto,sans-serif;overscroll-behavior:none;overflow-x:hidden}
-body{width:100%;min-height:100dvh;user-select:none}
-::-webkit-scrollbar{width:5px}::-webkit-scrollbar-thumb{background:var(--border-2);border-radius:6px}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Inter","Segoe UI",sans-serif;overscroll-behavior:none;overflow-x:hidden}
+body{min-height:100dvh;user-select:none}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
 button{font-family:inherit;border:none;cursor:pointer;background:none;color:inherit}
 input,textarea{font-family:inherit}
 
-/* ── SHARED COMPONENTS ───────────────────────────────── */
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px 18px;border-radius:10px;font-size:14px;font-weight:600;transition:all .15s;cursor:pointer;border:none}
-.btn-primary{background:var(--accent);color:#fff}
-.btn-primary:active{background:#1444b8;transform:scale(.98)}
-.btn-secondary{background:var(--surface-2);color:var(--text);border:1px solid var(--border)}
-.btn-secondary:active{background:var(--bg2)}
-.btn-danger{background:var(--red-light);color:var(--red);border:1px solid #fca5a5}
-.btn-danger:active{background:#fecaca}
-.btn-green{background:var(--green-light);color:var(--green);border:1px solid #86efac}
-.btn-green:active{background:#bbf7d0}
-.btn-full{width:100%}
-.btn-lg{padding:13px 20px;font-size:15px;border-radius:12px}
-.btn-sm{padding:6px 12px;font-size:12px;border-radius:8px}
-.btn:disabled{opacity:.5;pointer-events:none}
-
-.input-field{width:100%;padding:11px 14px;font-size:14px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface);color:var(--text);outline:none;transition:border-color .15s,box-shadow .15s}
-.input-field:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(26,86,219,.12)}
-.input-field::placeholder{color:var(--text-3)}
-
-.label{font-size:12px;font-weight:600;color:var(--text-2);margin-bottom:5px;display:block;text-transform:uppercase;letter-spacing:.04em}
-
-.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:11px 0}
-.toggle-row .t-label{font-size:14px;font-weight:600;color:var(--text)}
-.toggle-row .t-sub{font-size:11.5px;color:var(--text-3);margin-top:1px}
-.toggle{width:42px;height:24px;border-radius:999px;background:var(--border);position:relative;cursor:pointer;transition:background .2s;flex-shrink:0;border:none}
-.toggle.on{background:var(--accent)}
-.toggle::after{content:'';position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:transform .2s;box-shadow:0 1px 4px rgba(0,0,0,.15)}
-.toggle.on::after{transform:translateX(18px)}
-
-.divider{height:1px;background:var(--border);margin:8px 0}
-.section-title{font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;padding:0 4px;margin-bottom:6px}
-
-.badge{display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;border-radius:999px;padding:2px 6px}
-.badge-red{background:var(--red-light);color:var(--red)}
-.badge-green{background:var(--green-light);color:var(--green)}
-.badge-blue{background:var(--accent-light);color:var(--accent)}
-.badge-orange{background:var(--orange-light);color:var(--orange)}
-
-.card{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);box-shadow:var(--shadow)}
-
-.avatar{border-radius:12px;display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;flex-shrink:0}
-.avatar-sm{width:36px;height:36px;font-size:13px;border-radius:10px}
-.avatar-md{width:44px;height:44px;font-size:15px}
-.avatar-lg{width:56px;height:56px;font-size:20px;border-radius:16px}
-
-/* ── LAYOUT WRAPPERS ─────────────────────────────────── */
+/* ── SCREENS ── */
 .screen{display:none;min-height:100dvh;flex-direction:column}
 .screen.active{display:flex}
-.page-wrap{flex:1;overflow-y:auto;padding:0 16px 24px}
 
-/* ── TOPBAR ──────────────────────────────────────────── */
-.topbar{display:flex;align-items:center;gap:10px;padding:calc(10px + var(--safe-t)) 16px 10px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;box-shadow:0 1px 4px rgba(30,42,74,.06)}
-.topbar-title{font-size:16px;font-weight:800;color:var(--text);flex:1}
-.topbar-back{width:34px;height:34px;border-radius:50%;background:var(--surface-2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;color:var(--text-2)}
-.topbar-back:active{background:var(--bg2)}
-.icon-action{width:34px;height:34px;border-radius:50%;background:var(--surface-2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
-.icon-action:active{background:var(--bg2);transform:scale(.93)}
-.icon-action.on{background:var(--accent-light);border-color:rgba(26,86,219,.3);color:var(--accent)}
-
-/* ── LANDING / JOIN ──────────────────────────────────── */
-#joinScreen{background:linear-gradient(160deg,#e8efff 0%,#f0f4ff 50%,#e4f0ff 100%)}
-.join-hero{padding:calc(32px + var(--safe-t)) 24px 24px;display:flex;flex-direction:column;align-items:center;text-align:center}
-.join-logo-wrap{width:80px;height:80px;border-radius:24px;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:36px;margin-bottom:16px;box-shadow:0 8px 24px rgba(26,86,219,.3)}
-.join-title{font-size:24px;font-weight:900;color:var(--text);letter-spacing:-.02em;margin-bottom:6px}
-.join-sub{font-size:14px;color:var(--text-2);margin-bottom:32px}
-.join-card{background:var(--surface);border-radius:20px;border:1px solid var(--border);box-shadow:var(--shadow-lg);padding:20px;margin:0 16px;width:calc(100% - 32px);max-width:380px}
-.join-card h2{font-size:15px;font-weight:800;color:var(--text);margin-bottom:14px}
-.form-group{margin-bottom:12px}
-.form-row{display:flex;gap:8px}
-.hint-text{font-size:11px;color:var(--text-3);margin-top:4px;line-height:1.5}
-.join-divider{display:flex;align-items:center;gap:10px;margin:16px 0;color:var(--text-3);font-size:12px;font-weight:600}
+/* ── JOIN ── */
+#joinScreen{background:radial-gradient(ellipse at top,#1a2332 0%,var(--bg) 60%)}
+.join-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px}
+.join-logo{width:76px;height:76px;border-radius:22px;background:linear-gradient(145deg,#1f6feb,#388bfd);display:flex;align-items:center;justify-content:center;font-size:34px;margin-bottom:18px;box-shadow:0 8px 28px rgba(56,139,253,.35)}
+.join-title{font-size:22px;font-weight:800;margin-bottom:4px;letter-spacing:-.02em}
+.join-sub{font-size:13px;color:var(--text2);margin-bottom:28px}
+.join-card{width:100%;max-width:360px;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px}
+.join-card h3{font-size:14px;font-weight:700;margin-bottom:14px;color:var(--text2)}
+.fg{margin-bottom:12px}
+.lbl{font-size:11px;font-weight:600;color:var(--text2);margin-bottom:5px;display:block;text-transform:uppercase;letter-spacing:.04em}
+.inp{width:100%;padding:10px 13px;font-size:14px;border-radius:9px;border:1px solid var(--border);background:var(--bg2);color:var(--text);outline:none;transition:border-color .15s,box-shadow .15s}
+.inp:focus{border-color:var(--accent2);box-shadow:0 0 0 3px var(--accent2-soft)}
+.inp::placeholder{color:var(--text3)}
+.hint{font-size:11px;color:var(--text3);margin-top:4px;line-height:1.5}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px 18px;border-radius:9px;font-size:14px;font-weight:600;cursor:pointer;border:none;transition:all .14s}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:active{background:#238636}
+.btn-secondary{background:var(--surface2);color:var(--text);border:1px solid var(--border)}
+.btn-secondary:active{background:var(--bg2)}
+.btn-danger{background:var(--danger-soft);color:var(--danger);border:1px solid rgba(248,81,73,.3)}
+.btn-warn{background:var(--warn-soft);color:var(--warn);border:1px solid rgba(210,153,34,.3)}
+.btn-full{width:100%}
+.btn-lg{padding:12px 20px;font-size:15px;border-radius:10px}
+.btn-sm{padding:5px 11px;font-size:12px;border-radius:7px}
+.btn:disabled{opacity:.5;pointer-events:none}
+.join-err{color:var(--danger);font-size:12.5px;text-align:center;margin-top:10px;font-weight:600;min-height:16px}
+.join-divider{display:flex;align-items:center;gap:10px;margin:16px 0;color:var(--text3);font-size:12px}
 .join-divider::before,.join-divider::after{content:'';flex:1;height:1px;background:var(--border)}
-#joinError{color:var(--red);font-size:12.5px;text-align:center;margin-top:10px;min-height:16px;font-weight:600}
+.create-toggle{display:flex;align-items:center;gap:8px;padding:12px 14px;cursor:pointer;font-size:13px;font-weight:700;color:var(--text2);background:var(--surface2);border:1px solid var(--border);border-radius:10px;width:100%;text-align:left}
+.create-toggle .arr{margin-left:auto;transition:transform .2s;font-size:11px}
+.create-toggle.open .arr{transform:rotate(180deg)}
+.create-body{display:none;padding-top:14px;flex-direction:column;gap:10px}
+.create-body.open{display:flex}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0}
+.toggle-row .tl{font-size:13px;font-weight:600}
+.toggle-row .ts{font-size:11px;color:var(--text3);margin-top:1px}
+.tog{width:40px;height:22px;border-radius:999px;background:var(--border);position:relative;cursor:pointer;transition:background .18s;flex-shrink:0;border:none}
+.tog.on{background:var(--accent)}
+.tog::after{content:'';position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;transition:transform .18s;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+.tog.on::after{transform:translateX(18px)}
 
-/* create room expand */
-.create-room-card{background:var(--surface-2);border-radius:14px;border:1px solid var(--border);margin:0 16px;width:calc(100% - 32px);max-width:380px;overflow:hidden}
-.create-room-toggle{display:flex;align-items:center;gap:10px;padding:14px 16px;cursor:pointer;font-size:14px;font-weight:700;color:var(--text);background:transparent;width:100%;border:none}
-.create-room-toggle .arrow{margin-left:auto;font-size:12px;color:var(--text-3);transition:transform .2s}
-.create-room-toggle.open .arrow{transform:rotate(180deg)}
-.create-room-body{display:none;padding:0 16px 16px;flex-direction:column;gap:10px}
-.create-room-body.open{display:flex}
-
-/* ── DISCOVER SCREEN ─────────────────────────────────── */
-#discoverScreen .page-wrap{padding-top:12px}
+/* ── DISCOVER (standalone) ── */
+#discoverScreen .page-wrap{flex:1;overflow-y:auto;padding:12px 16px 24px}
+.topbar{display:flex;align-items:center;gap:10px;padding:calc(10px + var(--safe-t)) 16px 10px;background:var(--bg2);border-bottom:1px solid var(--border);flex-shrink:0}
+.topbar-title{font-size:16px;font-weight:800;flex:1}
+.icon-btn{width:34px;height:34px;border-radius:50%;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;transition:all .13s}
+.icon-btn:active{transform:scale(.91)}
+.icon-btn.on{background:var(--accent-soft);border-color:rgba(46,160,67,.4)}
 .search-wrap{position:relative;margin-bottom:12px}
-.search-wrap .search-icon{position:absolute;left:11px;top:50%;transform:translateY(-50%);font-size:15px;color:var(--text-3);pointer-events:none}
-.search-wrap input{padding-left:36px}
-.spinner-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:48px 0;gap:12px;color:var(--text-3);font-size:13px}
+.search-icon{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:14px;pointer-events:none}
+.search-inp{padding-left:34px}
+.room-card{display:flex;align-items:center;gap:11px;padding:12px;border-radius:12px;background:var(--surface);border:1px solid var(--border);margin-bottom:8px;cursor:pointer;transition:border-color .15s}
+.room-card:active,.room-card:hover{border-color:var(--accent2)}
+.room-card-ico{width:42px;height:42px;border-radius:12px;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.room-card-info{flex:1;min-width:0}
+.rc-name{font-size:14px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rc-sub{font-size:11.5px;color:var(--text2);margin-top:2px}
+.rc-badges{display:flex;gap:4px;margin-top:4px;flex-wrap:wrap}
+.badge{display:inline-flex;align-items:center;font-size:10px;font-weight:600;border-radius:999px;padding:2px 7px;border:1px solid}
+.badge-green{background:var(--accent-soft);color:var(--accent);border-color:rgba(46,160,67,.3)}
+.badge-blue{background:var(--accent2-soft);color:var(--accent2);border-color:rgba(88,166,255,.3)}
+.badge-warn{background:var(--warn-soft);color:var(--warn);border-color:rgba(210,153,34,.3)}
+.spinner-wrap{display:flex;flex-direction:column;align-items:center;padding:48px 0;gap:12px;color:var(--text2);font-size:13px}
 .spinner{width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
-.discover-empty{text-align:center;padding:48px 16px;color:var(--text-3);font-size:13px}
-.room-card-item{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:var(--radius);background:var(--surface);border:1px solid var(--border);margin-bottom:8px;cursor:pointer;transition:box-shadow .15s,border-color .15s}
-.room-card-item:active{background:var(--surface-2)}
-.room-card-item:hover{border-color:var(--accent);box-shadow:0 2px 12px rgba(26,86,219,.1)}
-.room-card-icon-wrap{width:44px;height:44px;border-radius:12px;background:var(--accent-light);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
-.room-card-info{flex:1;min-width:0}
-.room-card-name{font-size:14px;font-weight:700;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.room-card-sub{font-size:12px;color:var(--text-3);margin-top:2px}
-.room-badges{display:flex;gap:4px;flex-wrap:wrap;margin-top:4px}
+.discover-empty{text-align:center;padding:48px 16px;color:var(--text2);font-size:13px;line-height:1.7}
 
-/* ── WAITING SCREEN ──────────────────────────────────── */
-#waitingScreen{background:var(--bg);align-items:center;justify-content:center;padding:24px;text-align:center}
-.waiting-icon{font-size:56px;margin-bottom:14px;animation:wPulse 2s ease-in-out infinite}
+/* ── WAITING ── */
+#waitingScreen{background:var(--bg);align-items:center;justify-content:center;padding:32px;text-align:center}
+.wait-icon{font-size:56px;margin-bottom:16px;animation:wPulse 2s ease-in-out infinite}
 @keyframes wPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.07)}}
-.waiting-title{font-size:20px;font-weight:800;margin-bottom:8px;color:var(--text)}
-.waiting-sub{font-size:13.5px;color:var(--text-2);line-height:1.7;margin-bottom:24px;white-space:pre-wrap}
+.wait-title{font-size:20px;font-weight:800;margin-bottom:8px}
+.wait-sub{font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:24px;white-space:pre-wrap}
 
-/* ── ROOM SCREEN ─────────────────────────────────────── */
-#roomScreen{background:var(--bg)}
-/* room topbar */
-.room-topbar{display:flex;align-items:center;gap:8px;padding:calc(8px + var(--safe-t)) 14px 8px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;box-shadow:0 1px 4px rgba(30,42,74,.06)}
-.room-chip{display:inline-flex;align-items:center;gap:6px;font-weight:800;font-size:13px;padding:5px 10px;border-radius:999px;background:var(--accent-light);border:1.5px solid rgba(26,86,219,.2);color:var(--accent);cursor:pointer;flex-shrink:0}
-.room-chip .online-dot{width:6px;height:6px;border-radius:50%;background:var(--green);flex-shrink:0}
-.room-chip .online-dot.blink{animation:dotBlink .8s ease-in-out infinite;background:var(--orange)}
+/* ══════════════════════════════════════════════════════════
+   ROOM SCREEN  —  layout: Map | Avatar row | Chat log | PTT | Tabbar
+   ══════════════════════════════════════════════════════════ */
+#roomScreen{background:var(--bg);height:100dvh;overflow:hidden}
+
+/* top strip: room name + action icons */
+.room-header{display:flex;align-items:center;gap:8px;padding:calc(8px + var(--safe-t)) 12px 8px;background:var(--bg2);border-bottom:1px solid var(--border);flex-shrink:0}
+.room-name-chip{display:inline-flex;align-items:center;gap:6px;font-weight:800;font-size:13px;padding:5px 10px;border-radius:999px;background:var(--surface2);border:1px solid var(--border);cursor:pointer;flex-shrink:0}
+.room-name-chip .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);box-shadow:0 0 6px var(--accent);flex-shrink:0;transition:background .3s}
+.room-name-chip .dot.warn{background:var(--warn);box-shadow:0 0 6px var(--warn);animation:dotBlink .8s ease-in-out infinite}
 @keyframes dotBlink{0%,100%{opacity:1}50%{opacity:.3}}
+.room-actions{display:flex;align-items:center;gap:5px;margin-left:auto}
+.ra-btn{width:32px;height:32px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;transition:all .13s;position:relative}
+.ra-btn:active{transform:scale(.9)}
+.ra-btn.on{background:var(--accent-soft);border-color:rgba(46,160,67,.4);color:var(--accent)}
+.ra-btn.danger{background:var(--danger-soft);border-color:rgba(248,81,73,.3);color:var(--danger)}
+.ra-btn .rbadge{position:absolute;top:-3px;right:-3px;width:8px;height:8px;border-radius:50%;background:var(--danger);border:1.5px solid var(--bg2);display:none}
+.ra-btn.has-badge .rbadge{display:block}
 
-/* ── MENU BAR (replaces icon strip) ─────────────────── */
-.menu-bar{display:flex;align-items:center;gap:4px;padding:6px 14px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;overflow-x:auto;-webkit-overflow-scrolling:touch}
-.menu-bar::-webkit-scrollbar{display:none}
-.menu-item{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 10px;border-radius:10px;cursor:pointer;border:none;background:transparent;flex-shrink:0;transition:background .15s;min-width:52px}
-.menu-item:active{background:var(--bg2)}
-.menu-item.active{background:var(--accent-light)}
-.menu-item .mi-icon{font-size:18px;line-height:1}
-.menu-item .mi-label{font-size:9.5px;font-weight:600;color:var(--text-2);white-space:nowrap}
-.menu-item.active .mi-label{color:var(--accent)}
-.menu-item.danger .mi-label{color:var(--red)}
-.menu-item.danger .mi-icon{filter:grayscale(0)}
-.menu-item.danger:active{background:var(--red-light)}
-.menu-item .mi-badge{position:relative}
-.menu-item .mi-dot{position:absolute;top:-3px;right:-5px;width:8px;height:8px;border-radius:50%;background:var(--red);border:1.5px solid var(--surface);display:none}
-.menu-item.has-badge .mi-dot{display:block}
-
-/* ── STATUS LINE ─────────────────────────────────────── */
-.status-bar{padding:6px 14px;background:var(--surface-2);border-bottom:1px solid var(--border);flex-shrink:0}
-#statusLine{font-size:12.5px;font-weight:600;color:var(--text-3);text-align:center}
-#statusLine.talking{color:var(--green);font-weight:700}
-#statusLine.preparing{color:var(--orange);font-weight:700}
-#statusLine.remote{color:var(--accent);font-weight:700}
-
-/* ── RECONNECT BANNER ────────────────────────────────── */
-#reconnectBanner{display:none;padding:7px 14px;background:var(--orange-light);border-bottom:1px solid #fdba74;font-size:12px;font-weight:600;color:var(--orange);text-align:center;flex-shrink:0}
-#reconnectBanner.show{display:block}
-
-/* ── MAP ─────────────────────────────────────────────── */
-.map-wrap{flex:0 0 22%;margin:8px 12px;border-radius:var(--radius);overflow:hidden;border:1px solid var(--border);box-shadow:var(--shadow);position:relative}
+/* ── MAP (always visible, fixed height) ── */
+.map-section{flex:0 0 220px;position:relative;overflow:hidden;border-bottom:1px solid var(--border)}
 #map{width:100%;height:100%}
-.map-empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--text-3);font-size:12px;background:rgba(240,244,255,.7);pointer-events:none;text-align:center;padding:12px}
-.map-pin{position:relative;width:32px;height:32px}
-.map-pin .ping{position:absolute;inset:-8px;border-radius:50%;background:var(--pin-color,var(--accent));opacity:.4;animation:pingAnim 1.8s cubic-bezier(.2,.6,.4,1) infinite}
-.map-pin .avatar-pin{position:relative;width:32px;height:32px;border-radius:50%;border:2.5px solid #fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;box-shadow:0 2px 8px rgba(0,0,0,.25)}
-.map-pin.sos-pin .ping{background:var(--red);animation:pingAnim .5s cubic-bezier(.2,.6,.4,1) infinite}
-@keyframes pingAnim{0%{transform:scale(.6);opacity:.4}100%{transform:scale(2.2);opacity:0}}
+.map-overlay-empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--text2);font-size:12px;background:rgba(13,17,23,.5);pointer-events:none;text-align:center;padding:16px}
+.map-pin{position:relative;width:36px;height:44px}
+.map-pin .pin-body{position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:36px;height:36px;border-radius:50%;border:2.5px solid #fff;overflow:hidden;box-shadow:0 3px 10px rgba(0,0,0,.45)}
+.map-pin .pin-body img,.map-pin .pin-body .pin-initials{width:100%;height:100%;object-fit:cover;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff}
+.map-pin .pin-tail{position:absolute;bottom:-6px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent}
+.map-pin .pin-label{position:absolute;top:-18px;left:50%;transform:translateX(-50%);font-size:10px;font-weight:700;white-space:nowrap;color:#fff;background:rgba(0,0,0,.55);padding:1px 5px;border-radius:6px}
+.map-pin.speaking .pin-body{animation:pinPulse 1s ease-in-out infinite}
+@keyframes pinPulse{0%,100%{box-shadow:0 0 0 0 rgba(46,160,67,.6),0 3px 10px rgba(0,0,0,.45)}50%{box-shadow:0 0 0 8px rgba(46,160,67,0),0 3px 10px rgba(0,0,0,.45)}}
 
-/* ── VIDEO GRID ──────────────────────────────────────── */
-#videoGrid{display:none;flex-wrap:wrap;gap:6px;padding:0 12px 6px;flex-shrink:0}
-#videoGrid.visible{display:flex}
-.video-tile{position:relative;border-radius:10px;overflow:hidden;background:var(--surface-2);border:1px solid var(--border);flex:1;min-width:80px;max-width:calc(50% - 3px);aspect-ratio:4/3}
-.video-tile canvas{width:100%;height:100%;object-fit:cover;display:block}
-.vtile-name{position:absolute;bottom:0;left:0;right:0;padding:4px 6px;font-size:10px;font-weight:700;background:linear-gradient(0deg,rgba(30,42,74,.75),transparent);color:#fff}
-.vtile-cam-btn{position:absolute;top:4px;right:4px;background:rgba(220,38,38,.85);border:none;color:#fff;font-size:9px;border-radius:6px;padding:2px 5px;cursor:pointer;font-weight:700}
+/* ── AVATAR ROW ── */
+.avatar-row{flex:0 0 auto;display:flex;gap:0;overflow-x:auto;padding:10px 10px;border-bottom:1px solid var(--border);background:var(--bg2);-webkit-overflow-scrolling:touch;scroll-snap-type:x mandatory}
+.avatar-row::-webkit-scrollbar{display:none}
+.av-item{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:68px;flex-shrink:0;scroll-snap-align:start;cursor:pointer;padding:2px 4px}
+.av-ring{width:52px;height:52px;border-radius:50%;padding:2px;flex-shrink:0;position:relative;background:var(--surface)}
+.av-ring.speaking{background:conic-gradient(var(--accent) 0%,var(--accent) 100%);animation:ringRotate 1.5s linear infinite}
+.av-ring.listening{background:var(--border)}
+.av-ring.me-ring{background:conic-gradient(var(--accent2) 0%,var(--accent2) 100%)}
+@keyframes ringRotate{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+.av-ring-inner{width:100%;height:100%;border-radius:50%;overflow:hidden;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:#fff;border:2px solid var(--bg2)}
+.av-name{font-size:10px;font-weight:600;color:var(--text2);text-align:center;max-width:64px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.av-status{font-size:9px;font-weight:700;color:var(--text3)}
+.av-status.speaking{color:var(--accent)}
+.av-status.me{color:var(--accent2)}
 
-/* ── TABS ────────────────────────────────────────────── */
-.tab-bar{display:flex;margin:6px 12px;gap:4px;flex-shrink:0;background:var(--surface-2);border-radius:10px;padding:3px;border:1px solid var(--border)}
-.tab-btn{flex:1;padding:7px;border-radius:8px;font-size:12px;font-weight:700;color:var(--text-3);background:transparent;border:none;transition:all .18s}
-.tab-btn.active{background:var(--surface);color:var(--accent);box-shadow:0 1px 4px rgba(30,42,74,.1)}
-.tab-btn .badge{display:inline-block;background:var(--red);color:#fff;font-size:9px;border-radius:999px;padding:1px 4px;margin-left:3px}
-
-/* ── MEMBER LIST ─────────────────────────────────────── */
-.member-scroll{flex:1;min-height:0;overflow-y:auto;padding:0 12px 8px;display:flex;flex-direction:column;gap:5px}
-.member-row{display:flex;align-items:center;gap:10px;padding:9px 11px;border-radius:12px;background:var(--surface);border:1px solid var(--border);transition:all .2s}
-.member-row.new-join{animation:rowIn .35s ease}
-@keyframes rowIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
-.member-row.speaking{background:var(--green-light);border-color:#86efac;box-shadow:0 2px 10px rgba(22,163,74,.12)}
-.member-row.muted-row{opacity:.6}
-.member-av-wrap{position:relative;flex-shrink:0}
-.member-av-online{position:absolute;right:-2px;bottom:-2px;width:9px;height:9px;border-radius:50%;background:var(--green);border:2px solid var(--surface)}
-.member-crown{position:absolute;left:-5px;top:-6px;font-size:12px}
-.member-info{flex:1;min-width:0}
-.member-name{font-size:13.5px;font-weight:700;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.member-sub{font-size:11px;color:var(--text-3);margin-top:2px;display:flex;align-items:center;gap:5px;flex-wrap:wrap}
-.member-row.speaking .member-sub{color:var(--green);font-weight:600}
-.qbadge{font-size:9.5px;padding:1px 5px;border-radius:5px;border:1px solid var(--border);background:var(--surface-2);color:var(--text-2)}
-.qbadge.good{border-color:#86efac;color:var(--green);background:var(--green-light)}
-.qbadge.ok{border-color:#fdba74;color:var(--orange);background:var(--orange-light)}
-.qbadge.bad{border-color:#fca5a5;color:var(--red);background:var(--red-light)}
-.mic-wave{width:20px;height:20px;flex-shrink:0;color:var(--green);opacity:0;transform:scale(.5);transition:opacity .15s,transform .15s}
-.member-row.speaking .mic-wave{opacity:1;transform:scale(1);animation:mBlink 1s ease-in-out infinite}
-@keyframes mBlink{0%,100%{opacity:1}50%{opacity:.45}}
-.owner-btns{display:flex;gap:3px;flex-shrink:0}
-.owner-btn{width:26px;height:26px;border-radius:7px;background:var(--surface-2);border:1px solid var(--border);font-size:12px;display:flex;align-items:center;justify-content:center;transition:all .12s}
-.owner-btn:active{transform:scale(.9)}
-
-/* ── CHAT ────────────────────────────────────────────── */
-.chat-wrap{flex:1;min-height:0;display:none;flex-direction:column}
-.chat-wrap.visible{display:flex}
-.chat-scroll{flex:1;min-height:0;overflow-y:auto;padding:8px 12px;display:flex;flex-direction:column;gap:6px}
-.chat-msg{display:flex;flex-direction:column;max-width:80%}
+/* ── CHAT LOG ── */
+.chat-log{flex:1;min-height:0;overflow-y:auto;padding:10px 12px;display:flex;flex-direction:column;gap:5px;background:var(--bg)}
+.chat-system{align-self:center;font-size:11px;color:var(--text3);padding:3px 10px;background:var(--surface2);border-radius:999px;border:1px solid var(--border)}
+.chat-msg{display:flex;flex-direction:column;max-width:78%}
 .chat-msg.me{align-self:flex-end;align-items:flex-end}
 .chat-msg.other{align-self:flex-start}
-.chat-bubble{padding:8px 12px;border-radius:14px;font-size:13.5px;line-height:1.45;word-break:break-word}
-.chat-msg.me .chat-bubble{background:var(--accent);color:#fff;border-bottom-right-radius:3px;font-weight:500}
-.chat-msg.other .chat-bubble{background:var(--surface);border:1px solid var(--border);border-bottom-left-radius:3px;color:var(--text)}
-.chat-meta{font-size:10px;color:var(--text-3);margin-top:2px;padding:0 3px}
-.chat-system{align-self:center;font-size:11px;color:var(--text-3);padding:3px 10px;background:var(--surface-2);border-radius:8px;border:1px solid var(--border)}
-.chat-input-row{display:flex;gap:7px;padding:7px 12px calc(8px + var(--safe-b));flex-shrink:0;border-top:1px solid var(--border);background:var(--surface)}
-.chat-input{flex:1;padding:9px 13px;border-radius:20px;border:1.5px solid var(--border);background:var(--surface-2);color:var(--text);font-size:14px;outline:none}
-.chat-input:focus{border-color:var(--accent);background:var(--surface)}
-.chat-send{width:38px;height:38px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
-.chat-send:active{transform:scale(.92);background:#1444b8}
+.chat-bubble{padding:8px 11px;border-radius:14px;font-size:13.5px;line-height:1.45;word-break:break-word}
+.chat-msg.me .chat-bubble{background:var(--accent2);color:#fff;border-bottom-right-radius:3px}
+.chat-msg.other .chat-bubble{background:var(--surface);border:1px solid var(--border);color:var(--text);border-bottom-left-radius:3px}
+.chat-meta{font-size:10px;color:var(--text3);margin-top:2px;padding:0 3px}
+.chat-status-msg{font-size:12px;color:var(--text2);padding:6px 10px;background:var(--surface2);border-radius:10px;border:1px solid var(--border);margin:2px 0}
 
-/* ── APPROVAL PANEL ──────────────────────────────────── */
-#approvalPanel{display:none;margin:6px 12px;border-radius:12px;background:var(--orange-light);border:1px solid #fdba74;overflow:hidden;flex-shrink:0}
-.approval-header{padding:7px 12px;font-size:12px;font-weight:800;color:var(--orange);border-bottom:1px solid #fdba74;display:flex;align-items:center;gap:6px}
-.approval-item{display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid rgba(253,186,116,.4)}
-.approval-item:last-child{border-bottom:none}
-.approval-name{flex:1;font-size:13px;font-weight:600;color:var(--text)}
-#voicMemoBanner{display:none;margin:6px 12px;padding:8px 12px;border-radius:10px;background:var(--orange-light);border:1px solid #fdba74;flex-shrink:0}
-.vmemo-row{display:flex;align-items:center;gap:8px}
-.vmemo-play{padding:5px 11px;border-radius:8px;background:var(--orange);color:#fff;font-size:11px;font-weight:700}
-.vmemo-info{flex:1;font-size:11px;color:var(--text-2)}
-.vmemo-dismiss{font-size:13px;color:var(--text-3);padding:4px}
+/* ── BOTTOM TABBAR ── */
+.room-tabbar{display:flex;background:var(--bg2);border-top:1px solid var(--border);flex-shrink:0;padding-bottom:var(--safe-b)}
+.tab-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:8px 4px 6px;cursor:pointer;border:none;background:transparent;transition:all .15s;position:relative}
+.tab-item .ti-icon{font-size:20px;line-height:1;transition:transform .15s}
+.tab-item .ti-label{font-size:9.5px;font-weight:600;color:var(--text3);white-space:nowrap}
+.tab-item.active .ti-label{color:var(--accent)}
+.tab-item.active .ti-icon{transform:scale(1.1)}
+.tab-item .ti-badge{position:absolute;top:6px;right:calc(50% - 18px);min-width:16px;height:16px;border-radius:999px;background:var(--danger);color:#fff;font-size:9px;font-weight:700;display:none;align-items:center;justify-content:center;padding:0 4px;border:1.5px solid var(--bg2)}
+.tab-item.has-badge .ti-badge{display:flex}
 
-/* ── PTT ZONE ────────────────────────────────────────── */
-.ptt-zone{flex-shrink:0;position:relative;padding:10px 16px calc(12px + var(--safe-b));background:var(--surface);border-top:1px solid var(--border);display:flex;align-items:center;justify-content:center;gap:20px}
-#reactionLayer{position:absolute;left:0;right:0;bottom:90px;height:40px;pointer-events:none;overflow:visible;z-index:40}
-.reaction-bubble{position:absolute;bottom:0;display:flex;flex-direction:column;align-items:center;animation:floatUp 2.5s ease-out forwards}
-.reaction-bubble .re-emoji{font-size:24px}
-.reaction-bubble .re-who{font-size:10px;color:var(--text-3);margin-top:1px;background:var(--surface-2);padding:1px 5px;border-radius:7px;border:1px solid var(--border)}
-@keyframes floatUp{0%{transform:translateY(0) scale(.6);opacity:0}12%{transform:translateY(-14px) scale(1.05);opacity:1}85%{opacity:1}100%{transform:translateY(-180px) scale(.9);opacity:0}}
-
-.ptt-side-btn{width:44px;height:44px;border-radius:50%;background:var(--surface-2);border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;position:relative;transition:all .15s}
-.ptt-side-btn:active{transform:scale(.92)}
-.ptt-side-btn .dot-badge{position:absolute;top:-2px;right:-2px;width:9px;height:9px;border-radius:50%;background:var(--red);border:2px solid var(--surface);display:none}
-.ptt-side-btn.has-new .dot-badge{display:block}
-
-.ptt-outer{position:relative;width:86px;height:86px;flex-shrink:0;display:flex;align-items:center;justify-content:center}
-.ptt-ring{position:absolute;border-radius:50%;border:2px solid var(--green);opacity:0}
-.ptt-outer.talking .ptt-ring{opacity:1}
-.ptt-ring.r1{inset:-5px;animation:rPulse 1.5s ease-out infinite}
-.ptt-ring.r2{inset:-13px;animation:rPulse 1.5s ease-out infinite .28s}
-.ptt-ring.r3{inset:-21px;animation:rPulse 1.5s ease-out infinite .56s}
-@keyframes rPulse{0%{transform:scale(.85);opacity:.5}100%{transform:scale(1.2);opacity:0}}
-#pttBtn{width:72px;height:72px;border-radius:50%;border:3px solid var(--border-2);background:var(--surface);display:flex;align-items:center;justify-content:center;transition:all .15s;box-shadow:0 4px 16px rgba(30,42,74,.1);z-index:2;position:relative}
-#pttBtn svg{width:26px;height:26px;color:var(--text-2);transition:color .15s}
+/* PTT tab special */
+.tab-item.ptt-tab{flex:0 0 80px}
+.ptt-outer{width:60px;height:60px;border-radius:50%;display:flex;align-items:center;justify-content:center;position:relative;margin-bottom:2px}
+.ptt-ring{position:absolute;inset:0;border-radius:50%;border:2.5px solid var(--accent);opacity:0}
+.ptt-outer.talking .ptt-ring{opacity:1;animation:pttRing 1.4s ease-out infinite}
+@keyframes pttRing{0%{transform:scale(.9);opacity:.6}100%{transform:scale(1.5);opacity:0}}
+#pttBtn{width:56px;height:56px;border-radius:50%;background:var(--surface2);border:2.5px solid var(--border);display:flex;align-items:center;justify-content:center;transition:all .15s;z-index:1;position:relative}
+#pttBtn svg{width:24px;height:24px;color:var(--text2);transition:color .15s}
 #pttBtn.locked{opacity:.4;pointer-events:none}
-#pttBtn.preparing{border-color:var(--orange);box-shadow:0 0 0 6px var(--orange-light)}
-#pttBtn.preparing svg{color:var(--orange)}
-#pttBtn.talking{border-color:var(--green);background:var(--green-light);box-shadow:0 0 0 6px rgba(22,163,74,.15),0 4px 20px rgba(22,163,74,.2)}
-#pttBtn.talking svg{color:var(--green)}
+#pttBtn.preparing{border-color:var(--warn);background:var(--warn-soft);box-shadow:0 0 0 5px rgba(210,153,34,.15)}
+#pttBtn.preparing svg{color:var(--warn)}
+#pttBtn.talking{border-color:var(--accent);background:var(--accent-soft);box-shadow:0 0 0 5px rgba(46,160,67,.2),0 0 20px rgba(46,160,67,.25)}
+#pttBtn.talking svg{color:var(--accent)}
 #pttBtn:active:not(.locked){transform:scale(.93)}
-.ptt-hint{font-size:10px;color:var(--text-3);text-align:center;position:absolute;bottom:-18px;left:50%;transform:translateX(-50%);white-space:nowrap}
 
-/* ── MODALS (bottom sheets) ──────────────────────────── */
-.modal-overlay{display:none;position:fixed;inset:0;z-index:80;background:rgba(30,42,74,.4);align-items:flex-end;justify-content:center;backdrop-filter:blur(2px)}
+/* MEMBERS TAB PANEL */
+.tab-panel{display:none;flex:1;min-height:0;overflow-y:auto;padding:8px 12px;flex-direction:column;gap:5px}
+.tab-panel.active{display:flex}
+.member-row{display:flex;align-items:center;gap:10px;padding:9px 11px;border-radius:12px;background:var(--surface);border:1px solid var(--border);transition:all .2s}
+.member-row.speaking{background:rgba(46,160,67,.08);border-color:rgba(46,160,67,.4)}
+.member-row.muted-row{opacity:.6}
+.member-row.new-join{animation:rowIn .3s ease}
+@keyframes rowIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+.mem-av-wrap{position:relative;flex-shrink:0}
+.mem-av{width:38px;height:38px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;color:#fff;flex-shrink:0}
+.mem-online{position:absolute;right:-2px;bottom:-2px;width:9px;height:9px;border-radius:50%;background:var(--accent);border:2px solid var(--surface)}
+.mem-crown{position:absolute;left:-5px;top:-6px;font-size:12px}
+.mem-info{flex:1;min-width:0}
+.mem-name{font-size:13.5px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mem-sub{font-size:11px;color:var(--text3);margin-top:2px;display:flex;align-items:center;gap:4px;flex-wrap:wrap}
+.member-row.speaking .mem-sub{color:var(--accent)}
+.qb{font-size:9.5px;padding:1px 5px;border-radius:5px;border:1px solid var(--border);background:var(--surface2)}
+.qb.good{border-color:rgba(46,160,67,.4);color:var(--accent);background:var(--accent-soft)}
+.qb.ok{border-color:rgba(210,153,34,.4);color:var(--warn);background:var(--warn-soft)}
+.qb.bad{border-color:rgba(248,81,73,.4);color:var(--danger);background:var(--danger-soft)}
+.mic-anim{width:18px;height:18px;flex-shrink:0;color:var(--accent);opacity:0;transform:scale(.5);transition:opacity .15s,transform .15s}
+.member-row.speaking .mic-anim{opacity:1;transform:scale(1);animation:mBlink 1s ease-in-out infinite}
+@keyframes mBlink{0%,100%{opacity:1}50%{opacity:.4}}
+.owner-btns{display:flex;gap:3px;flex-shrink:0}
+.ow-btn{width:26px;height:26px;border-radius:7px;background:var(--surface2);border:1px solid var(--border);font-size:12px;display:flex;align-items:center;justify-content:center}
+.ow-btn:active{transform:scale(.88)}
+
+/* CHAT INPUT PANEL */
+.chat-input-panel{display:none;flex-direction:column;flex:1;min-height:0}
+.chat-input-panel.active{display:flex}
+.chat-msgs{flex:1;min-height:0;overflow-y:auto;padding:8px 12px;display:flex;flex-direction:column;gap:5px}
+.chat-input-row{display:flex;gap:7px;padding:8px 12px calc(2px);border-top:1px solid var(--border);background:var(--bg2);flex-shrink:0}
+.chat-inp{flex:1;padding:9px 13px;border-radius:18px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:14px;outline:none}
+.chat-inp:focus{border-color:var(--accent2)}
+.chat-send{width:38px;height:38px;border-radius:50%;background:var(--accent2);color:#fff;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+.chat-send:active{transform:scale(.91);background:#1f6feb}
+
+/* SETTINGS PANEL */
+.settings-panel{display:none;flex-direction:column;flex:1;overflow-y:auto;padding:8px 12px 16px}
+.settings-panel.active{display:flex}
+.set-section{margin-bottom:16px}
+.set-section-title{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;padding:0 4px}
+.set-item{display:flex;align-items:flex-start;gap:12px;padding:12px;border-radius:12px;background:var(--surface);border:1px solid var(--border);margin-bottom:6px}
+.set-icon{width:34px;height:34px;border-radius:9px;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+.set-body{flex:1;min-width:0}
+.set-label{font-size:13.5px;font-weight:600}
+.set-sub{font-size:11.5px;color:var(--text3);margin-top:2px;line-height:1.45}
+.set-ctrl{margin-left:auto;flex-shrink:0;padding-top:2px}
+.approval-item{display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:10px;background:var(--warn-soft);border:1px solid rgba(210,153,34,.3);margin-bottom:6px}
+.approval-name{flex:1;font-size:13px;font-weight:600}
+
+/* MAP tab */
+.map-tab-panel{display:none;flex:1;min-height:0;position:relative}
+.map-tab-panel.active{display:block}
+#mapFull{width:100%;height:100%}
+
+/* VIDEO GRID (small strip, shown in chat tab) */
+#videoGrid{display:none;flex-wrap:wrap;gap:5px;padding:6px 12px;flex-shrink:0;border-bottom:1px solid var(--border)}
+#videoGrid.visible{display:flex}
+.video-tile{position:relative;border-radius:9px;overflow:hidden;background:var(--surface2);border:1px solid var(--border);flex:1;min-width:80px;max-width:calc(50% - 3px);aspect-ratio:4/3}
+.video-tile canvas{width:100%;height:100%;object-fit:cover;display:block}
+.vtile-name{position:absolute;bottom:0;left:0;right:0;padding:3px 6px;font-size:10px;font-weight:700;background:linear-gradient(0deg,rgba(0,0,0,.7),transparent);color:#fff}
+.vtile-cam-btn{position:absolute;top:3px;right:3px;background:rgba(248,81,73,.85);color:#fff;font-size:9px;border-radius:5px;padding:2px 5px;cursor:pointer;font-weight:700;border:none}
+
+/* ── MODALS ── */
+.modal-overlay{display:none;position:fixed;inset:0;z-index:80;background:rgba(0,0,0,.6);align-items:flex-end;justify-content:center;backdrop-filter:blur(3px)}
 .modal-overlay.show{display:flex}
 .modal-backdrop{position:absolute;inset:0}
-.modal-sheet{position:relative;background:var(--surface);border-top-left-radius:22px;border-top-right-radius:22px;border:1px solid var(--border);border-bottom:none;padding:0 20px calc(20px + var(--safe-b));width:100%;max-width:440px;box-shadow:0 -4px 24px rgba(30,42,74,.12);max-height:85dvh;overflow-y:auto}
+.modal-sheet{position:relative;background:var(--bg2);border-top-left-radius:20px;border-top-right-radius:20px;border:1px solid var(--border);border-bottom:none;padding:0 18px calc(18px + var(--safe-b));width:100%;max-width:440px;max-height:88dvh;overflow-y:auto;box-shadow:0 -8px 32px rgba(0,0,0,.4)}
 .modal-handle{width:36px;height:4px;border-radius:2px;background:var(--border);margin:12px auto 16px}
-.modal-title{font-size:16px;font-weight:800;color:var(--text);margin-bottom:16px}
-.modal-section{margin-bottom:14px}
-
-/* settings rows */
-.setting-item{display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-bottom:1px solid var(--border)}
-.setting-item:last-child{border-bottom:none}
-.setting-icon{width:36px;height:36px;border-radius:10px;background:var(--surface-2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;margin-top:1px}
-.setting-body{flex:1;min-width:0}
-.setting-label{font-size:14px;font-weight:600;color:var(--text)}
-.setting-sub{font-size:12px;color:var(--text-3);margin-top:2px;line-height:1.45}
-.setting-ctrl{margin-left:auto;flex-shrink:0;margin-top:2px}
-
-/* SOS */
-#sosOverlay{display:none;position:fixed;inset:0;z-index:100;background:rgba(220,38,38,.92);align-items:center;justify-content:center;flex-direction:column;gap:14px}
-#sosOverlay.show{display:flex}
-.sos-card{background:#fff;border-radius:24px;padding:28px 24px;width:calc(100% - 40px);max-width:320px;text-align:center;box-shadow:0 20px 60px rgba(220,38,38,.35)}
-.sos-emoji{font-size:52px;margin-bottom:8px;animation:sosBounce .5s ease-in-out infinite alternate}
-@keyframes sosBounce{from{transform:scale(1)}to{transform:scale(1.12)}}
-.sos-title{font-size:20px;font-weight:900;color:var(--red);margin-bottom:6px}
-.sos-body{font-size:13px;color:var(--text-2);line-height:1.6;white-space:pre-wrap}
-.sos-dismiss{padding:12px 28px;border-radius:12px;background:#fff;color:var(--red);font-weight:800;font-size:13px;border:2px solid rgba(255,255,255,.5)}
+.modal-title{font-size:16px;font-weight:800;margin-bottom:16px}
 
 /* QR */
 .qr-canvas-wrap{display:flex;justify-content:center;margin-bottom:14px}
-#qrCanvas{border-radius:12px;border:1px solid var(--border)}
+#qrCanvas{border-radius:12px;background:#fff;padding:10px}
 .qr-link-row{display:flex;gap:8px;margin-bottom:10px}
-.qr-link-box{flex:1;padding:9px 12px;border-radius:9px;background:var(--surface-2);border:1px solid var(--border);font-size:12px;color:var(--text-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-
-/* TOAST */
-#toastLayer{position:fixed;top:calc(10px + var(--safe-t));left:50%;transform:translateX(-50%);z-index:200;display:flex;flex-direction:column;gap:7px;width:calc(100% - 28px);max-width:360px;align-items:center;pointer-events:none}
-.toast{background:var(--text);color:#fff;font-size:13px;font-weight:600;padding:10px 16px;border-radius:12px;box-shadow:var(--shadow-lg);animation:toastIn .22s ease,toastOut .3s ease 2.3s forwards;text-align:center}
-.toast.ok{background:var(--green)}
-.toast.err{background:var(--red)}
-.toast.warn{background:var(--orange)}
-.toast.sos-t{background:var(--red)}
-@keyframes toastIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
-@keyframes toastOut{to{opacity:0;transform:translateY(-8px)}}
+.qr-link-box{flex:1;padding:9px 12px;border-radius:9px;background:var(--surface);border:1px solid var(--border);font-size:12px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 /* EMOJI SHEET */
 .emoji-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
-.emoji-btn{aspect-ratio:1;border-radius:12px;background:var(--surface-2);border:1px solid var(--border);font-size:22px;display:flex;align-items:center;justify-content:center;transition:all .12s}
-.emoji-btn:active{transform:scale(.88);background:var(--accent-light)}
+.emoji-btn{aspect-ratio:1;border-radius:12px;background:var(--surface2);border:1px solid var(--border);font-size:22px;display:flex;align-items:center;justify-content:center}
+.emoji-btn:active{transform:scale(.88);background:var(--accent-soft)}
 
-/* iOS banner */
-#iosBanner{display:none;padding:9px 14px;background:var(--accent-light);border-bottom:1px solid rgba(26,86,219,.2);font-size:12px;color:var(--accent);flex-shrink:0;display:none}
+/* SOS OVERLAY */
+#sosOverlay{display:none;position:fixed;inset:0;z-index:100;background:rgba(248,81,73,.88);align-items:center;justify-content:center;flex-direction:column;gap:14px}
+#sosOverlay.show{display:flex}
+.sos-card{background:#fff;border-radius:22px;padding:26px 22px;width:calc(100% - 40px);max-width:300px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.4)}
+.sos-emoji{font-size:50px;margin-bottom:8px;animation:sosBounce .5s ease-in-out infinite alternate}
+@keyframes sosBounce{from{transform:scale(1)}to{transform:scale(1.1)}}
+.sos-title{font-size:18px;font-weight:900;color:var(--danger);margin-bottom:6px}
+.sos-body{font-size:13px;color:#444;line-height:1.6;white-space:pre-wrap}
+.sos-dismiss{padding:11px 24px;border-radius:11px;background:rgba(255,255,255,.25);color:#fff;font-weight:700;font-size:13px;border:none;cursor:pointer}
+
+/* RECONNECT */
+#reconnectBanner{display:none;padding:6px 12px;background:var(--warn-soft);border-bottom:1px solid rgba(210,153,34,.3);font-size:12px;font-weight:600;color:var(--warn);text-align:center;flex-shrink:0}
+#reconnectBanner.show{display:block}
+
+/* TOAST */
+#toastLayer{position:fixed;top:calc(10px + var(--safe-t));left:50%;transform:translateX(-50%);z-index:200;display:flex;flex-direction:column;gap:6px;width:calc(100% - 28px);max-width:340px;align-items:center;pointer-events:none}
+.toast{background:var(--surface2);border:1px solid var(--border);color:var(--text);font-size:12.5px;font-weight:600;padding:9px 14px;border-radius:11px;box-shadow:0 8px 24px rgba(0,0,0,.5);animation:tIn .2s ease,tOut .3s ease 2.3s forwards;text-align:center}
+.toast.ok{background:rgba(46,160,67,.2);border-color:rgba(46,160,67,.4);color:var(--accent)}
+.toast.err{background:var(--danger-soft);border-color:rgba(248,81,73,.4);color:var(--danger)}
+.toast.warn{background:var(--warn-soft);border-color:rgba(210,153,34,.4);color:var(--warn)}
+@keyframes tIn{from{opacity:0;transform:translateY(-7px)}to{opacity:1;transform:none}}
+@keyframes tOut{to{opacity:0;transform:translateY(-7px)}}
+
+/* REACTIONS */
+#reactionLayer{position:absolute;bottom:80px;left:0;right:0;height:40px;pointer-events:none;overflow:visible;z-index:50}
+.rb{position:absolute;bottom:0;display:flex;flex-direction:column;align-items:center;animation:fUp 2.4s ease-out forwards}
+.rb .re{font-size:24px}
+.rb .rw{font-size:9.5px;color:var(--text3);background:var(--surface2);padding:1px 5px;border-radius:6px;margin-top:1px}
+@keyframes fUp{0%{transform:translateY(0) scale(.6);opacity:0}12%{transform:translateY(-14px) scale(1.05);opacity:1}85%{opacity:1}100%{transform:translateY(-180px) scale(.9);opacity:0}}
+
+/* iOS */
+#iosBanner{display:none;padding:8px 14px;background:var(--accent2-soft);border-bottom:1px solid rgba(88,166,255,.2);font-size:12px;color:var(--accent2);flex-shrink:0}
 #iosBanner b{font-weight:700}
-.ios-close{float:right;font-size:14px;padding:0 3px;cursor:pointer;color:var(--accent);opacity:.7}
-
-/* DISCOVER inside room modal */
-.room-discover-modal .modal-sheet{max-height:92dvh}
+.ios-close{float:right;cursor:pointer;opacity:.7;padding:0 3px}
 
 @media(min-width:600px){
   body{display:flex;align-items:center;justify-content:center}
-  #roomScreen{max-width:440px;max-height:920px;border-radius:24px;border:1px solid var(--border);box-shadow:var(--shadow-lg);overflow:hidden}
-  .screen:not(#roomScreen){max-width:440px;width:100%}
+  #roomScreen{max-width:400px;max-height:880px;border-radius:22px;border:1px solid var(--border);overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.6)}
+  .screen:not(#roomScreen){max-width:400px;width:100%}
 }
 </style>
 </head>
 <body>
 <div id="toastLayer"></div>
 
-<!-- ══ JOIN SCREEN ══════════════════════════════════════ -->
+<!-- ══ JOIN ══════════════════════════════════════════════ -->
 <div id="joinScreen" class="screen">
-  <div class="join-hero">
-    <div class="join-logo-wrap">📻</div>
+  <div class="join-wrap">
+    <div class="join-logo">📻</div>
     <div class="join-title">Bộ Đàm Web</div>
-    <div class="join-sub">Walkie-talkie nhóm qua trình duyệt</div>
-  </div>
+    <div class="join-sub">Walkie-talkie nhóm — ngay trên trình duyệt</div>
 
-  <div class="join-card" style="margin:0 auto 16px">
-    <h2>🚪 Vào phòng có sẵn</h2>
-    <div class="form-group">
-      <label class="label">Mã phòng</label>
-      <input type="text" id="roomCodeInput" class="input-field" autocomplete="off" autocapitalize="off" autocorrect="off" placeholder="Nhập mã phòng..."/>
-      <div class="hint-text">Phân biệt hoa/thường · 3-20 ký tự</div>
+    <div class="join-card" style="margin-bottom:14px">
+      <h3>🚪 Vào phòng</h3>
+      <div class="fg">
+        <label class="lbl">Mã phòng</label>
+        <input type="text" id="roomCodeInput" class="inp" autocomplete="off" autocapitalize="off" autocorrect="off" placeholder="Nhập mã phòng..."/>
+        <div class="hint">Phân biệt hoa/thường · 3-20 ký tự</div>
+      </div>
+      <div class="fg">
+        <label class="lbl">Tên của bạn</label>
+        <input type="text" id="usernameInput" class="inp" autocomplete="off" autocapitalize="words" placeholder="Tên thật..."/>
+      </div>
+      <div class="fg" id="passwordGroup" style="display:none">
+        <label class="lbl">🔒 Mật khẩu phòng</label>
+        <input type="password" id="roomPassword" class="inp" placeholder="Nhập mật khẩu..."/>
+      </div>
+      <button id="joinBtn" class="btn btn-primary btn-full btn-lg" style="margin-top:2px">Vào phòng</button>
+      <div id="joinError" class="join-err"></div>
     </div>
-    <div class="form-group">
-      <label class="label">Tên của bạn</label>
-      <input type="text" id="usernameInput" class="input-field" autocomplete="off" autocapitalize="words" placeholder="Tên thật..."/>
-    </div>
-    <div class="form-group" id="passwordGroup" style="display:none">
-      <label class="label">🔒 Mật khẩu phòng</label>
-      <input type="password" id="roomPassword" class="input-field" placeholder="Nhập mật khẩu..."/>
-    </div>
-    <button id="joinBtn" class="btn btn-primary btn-full btn-lg" style="margin-top:4px">Vào phòng</button>
-    <div id="joinError"></div>
-  </div>
 
-  <div class="join-divider" style="margin:0 16px">hoặc tạo phòng mới</div>
-
-  <div class="create-room-card" style="margin:0 auto 16px">
-    <button class="create-room-toggle" id="createRoomToggle">
-      <span>➕</span> Tạo phòng mới
-      <span class="arrow">▼</span>
-    </button>
-    <div class="create-room-body" id="createRoomBody">
-      <div class="form-group">
-        <label class="label">Mã phòng (tự đặt)</label>
-        <input type="text" id="newRoomCode" class="input-field" autocomplete="off" autocapitalize="off" placeholder="Vd: NhomBanThan"/>
+    <div style="width:100%;max-width:360px">
+      <div class="join-divider">hoặc tạo phòng mới</div>
+      <button class="create-toggle" id="createToggle">
+        <span>➕</span> Tạo phòng mới
+        <span class="arr">▼</span>
+      </button>
+      <div class="create-body" id="createBody">
+        <div class="fg">
+          <label class="lbl">Mã phòng mới</label>
+          <input type="text" id="newCode" class="inp" autocomplete="off" autocapitalize="off" placeholder="Vd: NhomPhượt2026"/>
+        </div>
+        <div class="fg">
+          <label class="lbl">Tên của bạn</label>
+          <input type="text" id="newName" class="inp" autocomplete="off" autocapitalize="words" placeholder="Tên thật..."/>
+        </div>
+        <div class="fg">
+          <label class="lbl">Mật khẩu (tuỳ chọn)</label>
+          <input type="password" id="newPass" class="inp" placeholder="Để trống nếu không cần"/>
+        </div>
+        <div class="fg">
+          <label class="lbl">Mô tả phòng</label>
+          <input type="text" id="newDesc" class="inp" placeholder="Vd: Nhóm phượt miền Trung..." maxlength="80"/>
+        </div>
+        <div class="toggle-row">
+          <div><div class="tl">Phòng công khai</div><div class="ts">Hiện trong danh sách khám phá</div></div>
+          <button class="tog on" id="newPublic"></button>
+        </div>
+        <div class="toggle-row">
+          <div><div class="tl">Duyệt thành viên</div><div class="ts">Chủ phòng phải duyệt từng người</div></div>
+          <button class="tog" id="newApproval"></button>
+        </div>
+        <button id="createBtn" class="btn btn-primary btn-full">🏠 Tạo và vào phòng</button>
       </div>
-      <div class="form-group">
-        <label class="label">Tên của bạn</label>
-        <input type="text" id="newUsername" class="input-field" autocomplete="off" autocapitalize="words" placeholder="Tên thật..."/>
+      <div style="margin-top:12px">
+        <button id="discoverBtn" class="btn btn-secondary btn-full">🔍 Khám phá phòng đang hoạt động</button>
       </div>
-      <div class="form-group">
-        <label class="label">Mật khẩu phòng (tuỳ chọn)</label>
-        <input type="password" id="newRoomPass" class="input-field" placeholder="Để trống nếu không cần mật khẩu"/>
-      </div>
-      <div class="form-group">
-        <label class="label">Mô tả phòng</label>
-        <input type="text" id="newRoomDesc" class="input-field" placeholder="Vd: Nhóm phượt miền Trung..." maxlength="80"/>
-      </div>
-      <div class="toggle-row">
-        <div><div class="t-label">Phòng công khai</div><div class="t-sub">Hiện trong danh sách khám phá</div></div>
-        <button class="toggle on" id="newRoomPublic"></button>
-      </div>
-      <div class="toggle-row">
-        <div><div class="t-label">Duyệt thành viên</div><div class="t-sub">Chủ phòng phải duyệt từng người</div></div>
-        <button class="toggle" id="newRoomApproval"></button>
-      </div>
-      <button id="createRoomBtn" class="btn btn-primary btn-full">🏠 Tạo và vào phòng</button>
     </div>
-  </div>
-
-  <div style="margin:0 auto 32px;width:calc(100% - 32px);max-width:380px">
-    <button id="discoverBtn" class="btn btn-secondary btn-full" style="font-size:14px">🔍 Khám phá phòng đang hoạt động</button>
   </div>
 </div>
 
-<!-- ══ DISCOVER SCREEN ══════════════════════════════════ -->
+<!-- ══ DISCOVER ══════════════════════════════════════════ -->
 <div id="discoverScreen" class="screen">
   <div class="topbar">
-    <button class="topbar-back" id="discoverBackBtn">←</button>
+    <button class="icon-btn" id="discoverBack">←</button>
     <div class="topbar-title">🔍 Khám phá phòng</div>
-    <button class="icon-action" id="discoverRefreshBtn" title="Tải lại">↻</button>
+    <button class="icon-btn" id="discoverRefresh">↻</button>
   </div>
   <div class="page-wrap">
     <div class="search-wrap" style="margin-top:4px">
       <span class="search-icon">🔍</span>
-      <input type="text" class="input-field search-box" id="discoverSearch" placeholder="Tìm theo tên phòng..." style="padding-left:36px"/>
+      <input type="text" class="inp search-inp" id="discoverSearch" placeholder="Tìm theo tên phòng..."/>
     </div>
-    <div id="roomList"></div>
+    <div id="roomListEl"></div>
   </div>
 </div>
 
-<!-- ══ WAITING SCREEN ══════════════════════════════════ -->
+<!-- ══ WAITING ══════════════════════════════════════════ -->
 <div id="waitingScreen" class="screen">
-  <div class="waiting-icon">⏳</div>
-  <div class="waiting-title">Đang chờ duyệt...</div>
-  <div class="waiting-sub" id="waitingSub">Chủ phòng cần phê duyệt yêu cầu của bạn.</div>
-  <button class="btn btn-secondary" id="waitingCancelBtn">Huỷ yêu cầu</button>
+  <div class="wait-icon">⏳</div>
+  <div class="wait-title">Đang chờ duyệt...</div>
+  <div class="wait-sub" id="waitSub">Chủ phòng cần phê duyệt yêu cầu của bạn.</div>
+  <button class="btn btn-secondary" id="waitCancel">Huỷ yêu cầu</button>
 </div>
 
-<!-- ══ ROOM SCREEN ══════════════════════════════════════ -->
-<div id="roomScreen" class="screen">
+<!-- ══ ROOM ══════════════════════════════════════════════ -->
+<div id="roomScreen" class="screen" style="position:relative">
 
-  <!-- Topbar -->
-  <div class="room-topbar">
-    <div class="room-chip" id="shareChip">
-      <span class="online-dot" id="connDot"></span>
-      <span id="roomCodeLabel">--</span>
-      <span style="font-size:11px;color:var(--text-3)">📤</span>
+  <!-- Header -->
+  <div class="room-header">
+    <div class="room-name-chip" id="shareChip">
+      <span class="dot" id="connDot"></span>
+      <span id="roomLabel">--</span>
+      <span style="font-size:11px;color:var(--text3)">📤</span>
     </div>
-    <div style="flex:1"></div>
-    <button class="icon-action" id="roomDiscoverBtn" title="Khám phá phòng khác">🔍</button>
+    <div class="room-actions">
+      <button class="ra-btn" id="raCamera" title="Camera">📷</button>
+      <button class="ra-btn" id="raWakeLock" title="Giữ màn hình">🔆</button>
+      <button class="ra-btn" id="raNotify" title="Thông báo">🔔</button>
+      <button class="ra-btn has-badge danger" id="raSOS" title="SOS">🆘<span class="rbadge"></span></button>
+    </div>
   </div>
 
-  <!-- Menu bar with labels -->
-  <div class="menu-bar">
-    <button class="menu-item" id="menuCamera">
-      <span class="mi-icon">📷</span>
-      <span class="mi-label">Camera</span>
-    </button>
-    <button class="menu-item" id="menuWakeLock">
-      <span class="mi-icon">🔆</span>
-      <span class="mi-label">Sáng màn</span>
-    </button>
-    <button class="menu-item" id="menuNotify">
-      <span class="mi-icon">🔔</span>
-      <span class="mi-label">Thông báo</span>
-    </button>
-    <button class="menu-item" id="menuMap" title="Bản đồ">
-      <span class="mi-icon">🗺️</span>
-      <span class="mi-label">Bản đồ</span>
-    </button>
-    <button class="menu-item" id="menuSettings" style="display:none">
-      <span class="mi-icon">⚙️</span>
-      <span class="mi-label">Cài đặt</span>
-    </button>
-    <button class="menu-item has-badge" id="menuSOS">
-      <span class="mi-icon mi-badge">🆘<span class="mi-dot"></span></span>
-      <span class="mi-label" style="color:var(--red)">SOS</span>
-    </button>
-    <button class="menu-item danger" id="menuLeave">
-      <span class="mi-icon">🚪</span>
-      <span class="mi-label">Rời phòng</span>
-    </button>
-  </div>
-
-  <!-- Status -->
-  <div class="status-bar">
-    <div id="statusLine">Phòng đang trống</div>
-  </div>
-
-  <!-- Reconnect banner -->
+  <!-- Reconnect -->
   <div id="reconnectBanner">⚡ Đang kết nối lại...</div>
+  <!-- iOS -->
+  <div id="iosBanner"><span class="ios-close" id="iosBannerClose">✕</span>📲 Safari → <b>Thêm vào màn hình chính</b> để nhận thông báo.</div>
 
-  <!-- iOS Banner -->
-  <div id="iosBanner">
-    <span class="ios-close" id="iosBannerClose">✕</span>
-    📲 Safari → <b>Thêm vào màn hình chính</b> để nhận thông báo đầy đủ.
+  <!-- MAP — always visible on top -->
+  <div class="map-section" id="mapSection">
+    <div id="map"></div>
+    <div class="map-overlay-empty" id="mapEmptyMsg">📍 Chưa có ai chia sẻ vị trí</div>
   </div>
 
-  <!-- Voice memo -->
-  <div id="voicMemoBanner">
-    <div class="vmemo-row">
-      <button class="vmemo-play" id="vmemoPlayBtn">▶ Phát lại</button>
-      <div class="vmemo-info" id="vmemoInfo">Tin nhắn thoại để lại</div>
-      <button class="vmemo-dismiss" id="vmemorDismiss">✕</button>
+  <!-- AVATAR ROW -->
+  <div class="avatar-row" id="avatarRow"></div>
+
+  <!-- VOICE MEMO -->
+  <div id="voicMemoBanner" style="display:none;flex-shrink:0;padding:6px 12px;background:var(--warn-soft);border-bottom:1px solid rgba(210,153,34,.3)">
+    <div style="display:flex;align-items:center;gap:8px">
+      <button style="padding:4px 10px;border-radius:8px;background:var(--warn);color:#fff;font-size:11px;font-weight:700;border:none;cursor:pointer" id="vmemoPlay">▶ Phát lại</button>
+      <div style="flex:1;font-size:11px;color:var(--text2)" id="vmemoInfo">Tin nhắn thoại</div>
+      <button style="font-size:13px;color:var(--text3);cursor:pointer;border:none;background:none" id="vmemoDismiss">✕</button>
     </div>
   </div>
 
-  <!-- Approval -->
-  <div id="approvalPanel">
-    <div class="approval-header">⏳ Đang chờ duyệt vào phòng</div>
-    <div id="approvalList"></div>
+  <!-- APPROVAL PANEL (owner only) -->
+  <div id="approvalPanel" style="display:none;flex-shrink:0;padding:6px 12px;background:var(--warn-soft);border-bottom:1px solid rgba(210,153,34,.3)">
+    <div style="font-size:11px;font-weight:700;color:var(--warn);margin-bottom:6px">⏳ Đang chờ duyệt vào phòng</div>
+    <div id="approvalListEl"></div>
   </div>
 
-  <!-- Map (toggle) -->
-  <div class="map-wrap" id="mapWrap" style="display:none">
-    <div id="map"></div>
-    <div class="map-empty" id="mapEmptyMsg">Chưa có ai chia sẻ vị trí</div>
-  </div>
-
-  <!-- Video grid -->
+  <!-- VIDEO GRID -->
   <div id="videoGrid"></div>
 
-  <!-- Tabs -->
-  <div class="tab-bar">
-    <button class="tab-btn active" id="tabMembers">👥 Thành viên</button>
-    <button class="tab-btn" id="tabChat">💬 Chat <span class="badge" id="chatBadge" style="display:none">0</span></button>
+  <!-- STATUS BAR -->
+  <div style="padding:5px 12px;background:var(--bg2);border-bottom:1px solid var(--border);flex-shrink:0;text-align:center">
+    <div id="statusLine" style="font-size:12px;font-weight:600;color:var(--text3)">Phòng đang trống</div>
   </div>
 
-  <!-- Member list -->
-  <div class="member-scroll" id="memberList"></div>
-
-  <!-- Chat -->
-  <div class="chat-wrap" id="chatWrap">
-    <div class="chat-scroll" id="chatScroll"></div>
-    <div class="chat-input-row">
-      <input type="text" class="chat-input" id="chatInput" placeholder="Nhắn tin nhanh..." maxlength="300" autocomplete="off"/>
-      <button class="chat-send" id="chatSendBtn">➤</button>
+  <!-- TAB CONTENT AREA -->
+  <div style="flex:1;min-height:0;display:flex;flex-direction:column;position:relative">
+    <!-- CHAT TAB (default active — shows chat log) -->
+    <div id="panelChat" class="tab-panel active">
+      <!-- chat messages -->
+      <div id="chatMsgs" style="flex:1;min-height:0;overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:5px"></div>
+      <div class="chat-input-row" style="padding:7px 10px 7px">
+        <input type="text" class="chat-inp" id="chatInput" placeholder="Nhắn tin..." maxlength="300" autocomplete="off"/>
+        <button class="chat-send" id="chatSend">➤</button>
+      </div>
+    </div>
+    <!-- MEMBERS TAB -->
+    <div id="panelMembers" class="tab-panel">
+      <div id="memberListEl" style="flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:5px;padding:4px 0"></div>
+    </div>
+    <!-- MAP TAB -->
+    <div id="panelMap" class="map-tab-panel">
+      <div id="mapFull" style="width:100%;height:100%"></div>
+      <div class="map-overlay-empty" id="mapFullEmpty" style="display:none">📍 Chưa có ai chia sẻ vị trí</div>
+    </div>
+    <!-- SETTINGS TAB -->
+    <div id="panelSettings" class="settings-panel">
+      <!-- Approval queue rendered here -->
+      <div id="approvalSection" style="display:none;margin-bottom:14px">
+        <div class="set-section-title">⏳ Đang chờ duyệt</div>
+        <div id="approvalItems"></div>
+      </div>
+      <div class="set-section">
+        <div class="set-section-title">Phòng & Quyền truy cập</div>
+        <div class="set-item">
+          <div class="set-icon">🌐</div>
+          <div class="set-body"><div class="set-label">Phòng công khai</div><div class="set-sub">Hiện trong danh sách khám phá</div></div>
+          <div class="set-ctrl"><button class="tog on" id="setPublic"></button></div>
+        </div>
+        <div class="set-item">
+          <div class="set-icon">✅</div>
+          <div class="set-body"><div class="set-label">Duyệt thành viên</div><div class="set-sub">Phải được chủ phòng phê duyệt</div></div>
+          <div class="set-ctrl"><button class="tog" id="setApproval"></button></div>
+        </div>
+      </div>
+      <div class="set-section">
+        <div class="set-section-title">Bảo mật</div>
+        <div class="fg" style="padding:0 4px">
+          <label class="lbl">🔒 Mật khẩu phòng</label>
+          <input type="password" class="inp" id="setPass" placeholder="Để trống = không cần mật khẩu"/>
+          <div class="hint">Đặt mật khẩu mới hoặc xoá để bỏ</div>
+        </div>
+      </div>
+      <div class="set-section">
+        <div class="set-section-title">Thông tin phòng</div>
+        <div class="fg" style="padding:0 4px">
+          <label class="lbl">Mô tả</label>
+          <input type="text" class="inp" id="setDesc" placeholder="Vd: Nhóm phượt miền Trung..." maxlength="80"/>
+        </div>
+      </div>
+      <div style="padding:0 4px">
+        <button class="btn btn-primary btn-full" id="setSave">💾 Lưu cài đặt</button>
+        <div style="height:10px"></div>
+        <button class="btn btn-danger btn-full" id="setLeave">🚪 Rời phòng</button>
+      </div>
     </div>
   </div>
 
-  <!-- PTT Zone -->
-  <div class="ptt-zone">
+  <!-- BOTTOM TABBAR -->
+  <div class="room-tabbar" style="position:relative">
     <div id="reactionLayer"></div>
-    <button class="ptt-side-btn" id="reactionFab" title="Cảm xúc">🙂</button>
-    <div class="ptt-outer">
-      <span class="ptt-ring r1"></span>
-      <span class="ptt-ring r2"></span>
-      <span class="ptt-ring r3"></span>
-      <button id="pttBtn" class="locked">
-        <svg viewBox="0 0 24 24" fill="none"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3Z" stroke="currentColor" stroke-width="1.8"/><path d="M19 11a7 7 0 0 1-14 0M12 18v3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-      </button>
-      <span class="ptt-hint">Bấm để nói</span>
-    </div>
-    <button class="ptt-side-btn has-new" id="chatQuickBtn" title="Chat">💬<span class="dot-badge"></span></button>
+    <button class="tab-item" id="tabMap" data-tab="panelMap">
+      <span class="ti-icon">🗺️</span>
+      <span class="ti-label">Bản đồ</span>
+    </button>
+    <button class="tab-item active" id="tabChat" data-tab="panelChat">
+      <span class="ti-icon">💬</span>
+      <span class="ti-label">Chat</span>
+      <span class="ti-badge" id="chatBadge">0</span>
+    </button>
+    <button class="tab-item ptt-tab" id="tabPTT">
+      <div class="ptt-outer" id="pttOuter">
+        <div class="ptt-ring"></div>
+        <button id="pttBtn" class="locked">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3Z" stroke="currentColor" stroke-width="1.8"/><path d="M19 11a7 7 0 0 1-14 0M12 18v3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+      <span class="ti-label">PTT</span>
+    </button>
+    <button class="tab-item" id="tabMembers" data-tab="panelMembers">
+      <span class="ti-icon">👥</span>
+      <span class="ti-label">Thành viên</span>
+    </button>
+    <button class="tab-item" id="tabSettings" data-tab="panelSettings">
+      <span class="ti-icon">⚙️</span>
+      <span class="ti-label">Cài đặt</span>
+    </button>
   </div>
 </div>
 
 <!-- ══ MODALS ════════════════════════════════════════════ -->
-
-<!-- Reaction sheet -->
-<div class="modal-overlay" id="reactionSheet">
-  <div class="modal-backdrop" id="reactionBackdrop"></div>
-  <div class="modal-sheet">
-    <div class="modal-handle"></div>
-    <div class="modal-title">😄 Gửi cảm xúc</div>
-    <div class="emoji-grid" id="emojiGrid"></div>
-    <button class="btn btn-secondary btn-full" style="margin-top:12px" id="reactionClose">Đóng</button>
-  </div>
-</div>
-
-<!-- QR Share sheet -->
+<!-- QR -->
 <div class="modal-overlay" id="qrModal">
-  <div class="modal-backdrop" id="qrBackdrop"></div>
+  <div class="modal-backdrop" id="qrBd"></div>
   <div class="modal-sheet">
     <div class="modal-handle"></div>
     <div class="modal-title">📤 Chia sẻ phòng</div>
     <div class="qr-canvas-wrap"><canvas id="qrCanvas" width="200" height="200"></canvas></div>
-    <div class="qr-link-row">
-      <div class="qr-link-box" id="qrLinkBox"></div>
-      <button class="btn btn-primary btn-sm" id="qrCopyBtn">Sao chép</button>
-    </div>
-    <button class="btn btn-secondary btn-full" id="qrCloseBtn">Đóng</button>
+    <div class="qr-link-row"><div class="qr-link-box" id="qrLink"></div><button class="btn btn-primary btn-sm" id="qrCopy">Sao chép</button></div>
+    <button class="btn btn-secondary btn-full" id="qrClose">Đóng</button>
   </div>
 </div>
-
-<!-- Settings sheet (owner) -->
-<div class="modal-overlay" id="settingsModal">
-  <div class="modal-backdrop" id="settingsBackdrop"></div>
+<!-- Emoji -->
+<div class="modal-overlay" id="emojiModal">
+  <div class="modal-backdrop" id="emojiBd"></div>
   <div class="modal-sheet">
     <div class="modal-handle"></div>
-    <div class="modal-title">⚙️ Cài đặt phòng</div>
-
-    <div class="modal-section">
-      <div class="section-title">Hiển thị & quyền vào</div>
-      <div class="setting-item">
-        <div class="setting-icon">🌐</div>
-        <div class="setting-body">
-          <div class="setting-label">Phòng công khai</div>
-          <div class="setting-sub">Hiện trong danh sách khám phá</div>
-        </div>
-        <div class="setting-ctrl"><button class="toggle on" id="togglePublic"></button></div>
-      </div>
-      <div class="setting-item">
-        <div class="setting-icon">✅</div>
-        <div class="setting-body">
-          <div class="setting-label">Duyệt thành viên</div>
-          <div class="setting-sub">Phải được chủ phòng phê duyệt</div>
-        </div>
-        <div class="setting-ctrl"><button class="toggle" id="toggleApproval"></button></div>
-      </div>
-    </div>
-
-    <div class="modal-section">
-      <div class="section-title">Bảo mật</div>
-      <div class="form-group">
-        <label class="label">🔒 Mật khẩu phòng</label>
-        <input type="password" class="input-field" id="settingsPass" placeholder="Để trống = không cần mật khẩu"/>
-        <div class="hint-text">Đặt mật khẩu mới hoặc xoá để bỏ mật khẩu</div>
-      </div>
-    </div>
-
-    <div class="modal-section">
-      <div class="section-title">Thông tin</div>
-      <div class="form-group">
-        <label class="label">Mô tả phòng</label>
-        <input type="text" class="input-field" id="settingsDesc" placeholder="Vd: Nhóm phượt miền Trung..." maxlength="80"/>
-      </div>
-    </div>
-
-    <button class="btn btn-primary btn-full btn-lg" id="settingsSaveBtn">💾 Lưu cài đặt</button>
-    <button class="btn btn-secondary btn-full" style="margin-top:8px" id="settingsCloseBtn">Đóng</button>
+    <div class="modal-title">😄 Gửi cảm xúc</div>
+    <div class="emoji-grid" id="emojiGrid"></div>
+    <button class="btn btn-secondary btn-full" style="margin-top:12px" id="emojiClose">Đóng</button>
   </div>
 </div>
-
 <!-- Discover inside room -->
-<div class="modal-overlay room-discover-modal" id="roomDiscoverModal">
-  <div class="modal-backdrop" id="rdBackdrop"></div>
+<div class="modal-overlay" id="rdModal">
+  <div class="modal-backdrop" id="rdBd"></div>
   <div class="modal-sheet">
     <div class="modal-handle"></div>
     <div class="modal-title">🔍 Phòng đang hoạt động</div>
-    <div class="search-wrap">
-      <span class="search-icon">🔍</span>
-      <input type="text" class="input-field" id="rdSearch" placeholder="Tìm phòng..." style="padding-left:36px"/>
-    </div>
-    <div id="rdRoomList" style="max-height:55dvh;overflow-y:auto"></div>
-    <button class="btn btn-secondary btn-full" style="margin-top:12px" id="rdCloseBtn">Đóng</button>
+    <div class="search-wrap"><span class="search-icon">🔍</span><input type="text" class="inp search-inp" id="rdSearch" placeholder="Tìm phòng..."/></div>
+    <div id="rdList" style="max-height:50dvh;overflow-y:auto"></div>
+    <button class="btn btn-secondary btn-full" style="margin-top:10px" id="rdClose">Đóng</button>
   </div>
 </div>
-
-<!-- SOS Overlay -->
-<div id="sosOverlay">
-  <div class="sos-card">
-    <div class="sos-emoji">🆘</div>
-    <div class="sos-title" id="sosTitle">SOS!</div>
-    <div class="sos-body" id="sosBody">Thành viên cần hỗ trợ.</div>
-  </div>
-  <button class="sos-dismiss" id="sosDismissBtn">✓ Đã biết, đóng lại</button>
-</div>
+<!-- SOS -->
+<div id="sosOverlay"><div class="sos-card"><div class="sos-emoji">🆘</div><div class="sos-title" id="sosTitle">SOS!</div><div class="sos-body" id="sosBodyEl">Thành viên cần hỗ trợ.</div></div><button class="sos-dismiss" id="sosDismiss">✓ Đã biết, đóng lại</button></div>
 
 <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
 <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 const SERVER_URL='https://pushtotalk-anqr.onrender.com';
-const CHUNK_MS=350,VIDEO_FPS=5,VIDEO_W=160,VIDEO_H=120,SK='botdam_v7';
+const CHUNK_MS=350,VIDEO_FPS=5,VIDEO_W=160,VIDEO_H=120,SK='botdam_v8';
 const EMOJIS=['😂','🤣','😭','😢','😡','😠','😱','😍','🥳','😴','🤔','👍','👎','❤️','🔥','💯','🎉','😅','🙄','🤯'];
 
 const $=id=>document.getElementById(id);
@@ -691,45 +619,51 @@ const joinScreen=$('joinScreen'),discoverScreen=$('discoverScreen'),waitingScree
 // join
 const roomCodeInput=$('roomCodeInput'),usernameInput=$('usernameInput'),roomPassword=$('roomPassword'),passwordGroup=$('passwordGroup');
 const joinBtn=$('joinBtn'),joinError=$('joinError'),discoverBtn=$('discoverBtn');
-const createRoomToggle=$('createRoomToggle'),createRoomBody=$('createRoomBody');
-const newRoomCode=$('newRoomCode'),newUsername=$('newUsername'),newRoomPass=$('newRoomPass'),newRoomDesc=$('newRoomDesc');
-const newRoomPublic=$('newRoomPublic'),newRoomApproval=$('newRoomApproval'),createRoomBtn=$('createRoomBtn');
+const createToggle=$('createToggle'),createBody=$('createBody');
+const newCode=$('newCode'),newName=$('newName'),newPass=$('newPass'),newDesc=$('newDesc');
+const newPublic=$('newPublic'),newApproval=$('newApproval'),createBtn=$('createBtn');
 // discover
-const discoverBackBtn=$('discoverBackBtn'),discoverRefreshBtn=$('discoverRefreshBtn'),discoverSearch=$('discoverSearch'),roomList=$('roomList');
+const discoverBack=$('discoverBack'),discoverRefresh=$('discoverRefresh'),discoverSearch=$('discoverSearch'),roomListEl=$('roomListEl');
 // waiting
-const waitingSub=$('waitingSub'),waitingCancelBtn=$('waitingCancelBtn');
+const waitSub=$('waitSub'),waitCancel=$('waitCancel');
 // room
-const roomCodeLabel=$('roomCodeLabel'),connDot=$('connDot'),shareChip=$('shareChip'),reconnectBanner=$('reconnectBanner');
-const menuCamera=$('menuCamera'),menuWakeLock=$('menuWakeLock'),menuNotify=$('menuNotify'),menuMap=$('menuMap');
-const menuSettings=$('menuSettings'),menuSOS=$('menuSOS'),menuLeave=$('menuLeave'),roomDiscoverBtn=$('roomDiscoverBtn');
-const statusLine=$('statusLine'),iosBanner=$('iosBanner'),iosBannerClose=$('iosBannerClose');
-const voicMemoBanner=$('voicMemoBanner'),vmemoPlayBtn=$('vmemoPlayBtn'),vmemoInfo=$('vmemoInfo'),vmemorDismiss=$('vmemorDismiss');
-const approvalPanel=$('approvalPanel'),approvalList=$('approvalList');
-const mapWrap=$('mapWrap'),mapEmptyMsg=$('mapEmptyMsg');
-const videoGrid=$('videoGrid'),tabMembers=$('tabMembers'),tabChat=$('tabChat'),chatBadge=$('chatBadge');
-const memberList=$('memberList'),chatWrap=$('chatWrap'),chatScroll=$('chatScroll'),chatInput=$('chatInput'),chatSendBtn=$('chatSendBtn');
-const pttBtn=$('pttBtn'),pttOuter=document.querySelector('.ptt-outer'),reactionLayer=$('reactionLayer');
-const reactionFab=$('reactionFab'),chatQuickBtn=$('chatQuickBtn');
+const roomLabel=$('roomLabel'),connDot=$('connDot'),shareChip=$('shareChip'),reconnectBanner=$('reconnectBanner');
+const raCamera=$('raCamera'),raWakeLock=$('raWakeLock'),raNotify=$('raNotify'),raSOS=$('raSOS');
+const iosBanner=$('iosBanner'),iosBannerClose=$('iosBannerClose');
+const mapSection=$('mapSection'),mapEmptyMsg=$('mapEmptyMsg');
+const avatarRow=$('avatarRow');
+const voicMemoBanner=$('voicMemoBanner'),vmemoPlay=$('vmemoPlay'),vmemoInfo=$('vmemoInfo'),vmemoDismiss=$('vmemoDismiss');
+const approvalPanel=$('approvalPanel'),approvalListEl=$('approvalListEl');
+const videoGrid=$('videoGrid'),statusLine=$('statusLine');
+// tabs
+const tabMap=$('tabMap'),tabChat=$('tabChat'),tabMembers=$('tabMembers'),tabSettings=$('tabSettings');
+const panelChat=$('panelChat'),panelMembers=$('panelMembers'),panelMap=$('panelMap'),panelSettings=$('panelSettings');
+const chatMsgs=$('chatMsgs'),chatInput=$('chatInput'),chatSend=$('chatSend'),chatBadge=$('chatBadge');
+const memberListEl=$('memberListEl');
+const mapFull=$('mapFull'),mapFullEmpty=$('mapFullEmpty');
+const setPublic=$('setPublic'),setApproval=$('setApproval'),setPass=$('setPass'),setDesc=$('setDesc'),setSave=$('setSave'),setLeave=$('setLeave');
+const approvalSection=$('approvalSection'),approvalItems=$('approvalItems');
+const pttBtn=$('pttBtn'),pttOuter=$('pttOuter'),reactionLayer=$('reactionLayer');
 // modals
-const reactionSheet=$('reactionSheet'),reactionBackdrop=$('reactionBackdrop'),emojiGrid=$('emojiGrid'),reactionClose=$('reactionClose');
-const qrModal=$('qrModal'),qrBackdrop=$('qrBackdrop'),qrCanvas=$('qrCanvas'),qrLinkBox=$('qrLinkBox'),qrCopyBtn=$('qrCopyBtn'),qrCloseBtn=$('qrCloseBtn');
-const settingsModal=$('settingsModal'),settingsBackdrop=$('settingsBackdrop'),togglePublic=$('togglePublic'),toggleApproval=$('toggleApproval');
-const settingsPass=$('settingsPass'),settingsDesc=$('settingsDesc'),settingsSaveBtn=$('settingsSaveBtn'),settingsCloseBtn=$('settingsCloseBtn');
-const roomDiscoverModal=$('roomDiscoverModal'),rdBackdrop=$('rdBackdrop'),rdSearch=$('rdSearch'),rdRoomList=$('rdRoomList'),rdCloseBtn=$('rdCloseBtn');
-const sosOverlay=$('sosOverlay'),sosTitle=$('sosTitle'),sosBody=$('sosBody'),sosDismissBtn=$('sosDismissBtn');
+const qrModal=$('qrModal'),qrBd=$('qrBd'),qrCanvas=$('qrCanvas'),qrLink=$('qrLink'),qrCopy=$('qrCopy'),qrClose=$('qrClose');
+const emojiModal=$('emojiModal'),emojiBd=$('emojiBd'),emojiGrid=$('emojiGrid'),emojiClose=$('emojiClose');
+const rdModal=$('rdModal'),rdBd=$('rdBd'),rdSearch=$('rdSearch'),rdList=$('rdList'),rdClose=$('rdClose');
+const sosOverlay=$('sosOverlay'),sosTitle=$('sosTitle'),sosBodyEl=$('sosBodyEl'),sosDismiss=$('sosDismiss');
 const toastLayer=$('toastLayer');
 
-// ── STATE ─────────────────────────────────────────────
+// ── STATE ──────────────────────────────────────────────
 let socket=null,mediaStream=null,mimeType='',currentRoom='',currentUsername='',isOwner=false;
 let talkState='idle',chunkRecorder=null,chunkTimer=null;
 let participants=[],knownUsernames=new Set();
 const speakingSet=new Set();let currentSpeakerName=null;
 let audioCtx=null,audioUnlocked=false;
 const playQueue=[];let isPlaying=false;
-let leafletMap=null,mapVisible=false;const mapMarkers={};
+// map — we use TWO map instances: one in map-section strip, one in panelMap tab
+let leafletMapStrip=null,leafletMapFull=null;
+const mapMarkersStrip={},mapMarkersFull={};
 let watchId=null,lastLocSentAt=0,lastKnownLat=null,lastKnownLng=null;
 let wakeLock=null,wakeLockOn=false,notifSubscribed=false;
-let chatUnread=0,activeTab='members';
+let chatUnread=0,activeTab='panelChat';
 let voiceMemoRaw=null;
 let pingInterval=null,pingStartTs=null;
 let cameraStream=null,cameraOn=false,videoSendInterval=null,cameraVideo=null;
@@ -738,12 +672,12 @@ const pendingApprovals={};
 let swRegistration=null;
 let isCreatingRoom=false;
 
-// ── STORAGE ───────────────────────────────────────────
+// ── STORAGE ────────────────────────────────────────────
 function saveSession(r,u){try{localStorage.setItem(SK,JSON.stringify({roomCode:r,username:u}))}catch(e){}}
 function loadSession(){try{const d=localStorage.getItem(SK);return d?JSON.parse(d):null}catch(e){return null}}
 function clearSession(){try{localStorage.removeItem(SK)}catch(e){}}
 
-// ── INIT ──────────────────────────────────────────────
+// ── INIT ───────────────────────────────────────────────
 (function(){
   const p=new URLSearchParams(window.location.search),urlRoom=p.get('room');
   if(urlRoom){roomCodeInput.value=urlRoom}
@@ -751,22 +685,19 @@ function clearSession(){try{localStorage.removeItem(SK)}catch(e){}}
   roomCodeInput.addEventListener('input',updateJoinBtn);
   showScreen('join');
 })();
-
 function updateJoinBtn(){const s=loadSession();joinBtn.textContent=(s&&roomCodeInput.value.trim()===s.roomCode)?`↩ Vào lại "${s.roomCode}"`:'Vào phòng'}
 
-// ── SCREENS ───────────────────────────────────────────
+// ── SCREENS ────────────────────────────────────────────
 function showScreen(name){
-  ['join','discover','waiting','room'].forEach(s=>{
-    const el=$(`${s}Screen`);
-    el.classList.toggle('active',s===name);
-  });
+  [joinScreen,discoverScreen,waitingScreen,roomScreen].forEach(el=>el.classList.remove('active'));
+  $(`${name}Screen`).classList.add('active');
 }
 
-// ── UTILS ─────────────────────────────────────────────
-function colorForName(n){let h=0;for(let i=0;i<n.length;i++)h=n.charCodeAt(i)+((h<<5)-h);const hue=Math.abs(h)%360;return`hsl(${hue},55%,48%)`}
+// ── UTILS ──────────────────────────────────────────────
+function colorForName(n){let h=0;for(let i=0;i<n.length;i++)h=n.charCodeAt(i)+((h<<5)-h);return`hsl(${Math.abs(h)%360},55%,52%)`}
 function initialsForName(n){const p=n.trim().split(/\s+/);return p.length===1?p[0].substring(0,2).toUpperCase():(p[0][0]+p[p.length-1][0]).toUpperCase()}
 function escapeHtml(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML}
-function formatTime(ts){const d=new Date(ts),now=new Date();const hm=d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0');const same=d.getDate()===now.getDate()&&d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();return same?hm:`${d.getDate()}/${d.getMonth()+1} ${hm}`}
+function formatTime(ts){const d=new Date(ts),now=new Date();const hm=d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0');return d.toDateString()===now.toDateString()?hm:`${d.getDate()}/${d.getMonth()+1} ${hm}`}
 
 function beep(f,ms,v=0.15){if(!audioCtx)return;const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type='sine';o.frequency.value=f;g.gain.value=v;o.connect(g);g.connect(audioCtx.destination);o.start();g.gain.exponentialRampToValueAtTime(0.0001,audioCtx.currentTime+ms/1000);o.stop(audioCtx.currentTime+ms/1000+0.02)}
 function cbNoise(dur,vol=0.06,freq=2000){if(!audioCtx)return;try{const sz=audioCtx.sampleRate*dur,nb=audioCtx.createBuffer(1,sz,audioCtx.sampleRate),od=nb.getChannelData(0);for(let i=0;i<sz;i++)od[i]=Math.random()*2-1;const ns=audioCtx.createBufferSource(),ng=audioCtx.createGain(),f=audioCtx.createBiquadFilter();f.type='bandpass';f.frequency.value=freq;f.Q.value=0.8;ns.buffer=nb;ng.gain.setValueAtTime(vol,audioCtx.currentTime);ng.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+dur);ns.connect(f);f.connect(ng);ng.connect(audioCtx.destination);ns.start()}catch(e){}}
@@ -778,60 +709,47 @@ function vibrate(p){if(navigator.vibrate)try{navigator.vibrate(p)}catch(e){}}
 function unlockAudio(){if(audioUnlocked)return;try{const C=window.AudioContext||window.webkitAudioContext;audioCtx=new C();const b=audioCtx.createBuffer(1,1,22050),s=audioCtx.createBufferSource();s.buffer=b;s.connect(audioCtx.destination);s.start(0);if(audioCtx.state==='suspended')audioCtx.resume();audioUnlocked=true}catch(e){}}
 function showToast(text,type){const el=document.createElement('div');el.className='toast'+(type?' '+type:'');el.textContent=text;toastLayer.appendChild(el);setTimeout(()=>el.remove(),2700)}
 
-// ── CREATE ROOM TOGGLE ────────────────────────────────
-createRoomToggle.addEventListener('click',()=>{
-  const open=createRoomBody.classList.toggle('open');
-  createRoomToggle.classList.toggle('open',open);
-});
-newRoomPublic.addEventListener('click',()=>newRoomPublic.classList.toggle('on'));
-newRoomApproval.addEventListener('click',()=>newRoomApproval.classList.toggle('on'));
+// ── CREATE TOGGLE ──────────────────────────────────────
+createToggle.addEventListener('click',()=>{const o=createBody.classList.toggle('open');createToggle.classList.toggle('open',o)});
+newPublic.addEventListener('click',()=>newPublic.classList.toggle('on'));
+newApproval.addEventListener('click',()=>newApproval.classList.toggle('on'));
 
-createRoomBtn.addEventListener('click',()=>{
+createBtn.addEventListener('click',()=>{
   unlockAudio();
-  const code=newRoomCode.value.trim(),uname=newUsername.value.trim();
-  joinError.textContent='';
+  const code=newCode.value.trim(),uname=newName.value.trim();
   if(!code||!uname){showToast('Nhập mã phòng và tên của bạn','err');return}
-  isCreatingRoom=true;
-  currentRoom=code;currentUsername=uname;
-  joinBtn.disabled=true;createRoomBtn.disabled=true;
-  connectToServer(code,uname,'',{
-    isPublic:newRoomPublic.classList.contains('on'),
-    requireApproval:newRoomApproval.classList.contains('on'),
-    password:newRoomPass.value.trim(),
-    description:newRoomDesc.value.trim(),
-  });
+  isCreatingRoom=true;currentRoom=code;currentUsername=uname;
+  createBtn.disabled=true;
+  connectToServer(code,uname,'',{isPublic:newPublic.classList.contains('on'),requireApproval:newApproval.classList.contains('on'),password:newPass.value.trim(),description:newDesc.value.trim()});
 });
 
-// ── JOIN ──────────────────────────────────────────────
+// ── JOIN ───────────────────────────────────────────────
 joinBtn.addEventListener('click',()=>{
   unlockAudio();
   const code=roomCodeInput.value.trim(),uname=usernameInput.value.trim(),pass=roomPassword.value.trim();
   joinError.textContent='';
   if(!code||!uname){joinError.textContent='Nhập đủ Mã phòng và Tên nhé.';return}
-  currentRoom=code;currentUsername=uname;
+  currentRoom=code;currentUsername=uname;isCreatingRoom=false;
   joinBtn.disabled=true;joinBtn.textContent='Đang kết nối...';
-  isCreatingRoom=false;
   connectToServer(code,uname,pass,null);
 });
+function resetJoinBtn(){const s=loadSession();joinBtn.textContent=s?`↩ Vào lại "${s.roomCode}"`:'Vào phòng';joinBtn.disabled=false;createBtn.disabled=false}
 
-function resetJoinBtn(){const s=loadSession();joinBtn.textContent=s?`↩ Vào lại "${s.roomCode}"`:'Vào phòng';joinBtn.disabled=false;createRoomBtn.disabled=false}
-
-// ── DISCOVER (standalone screen) ──────────────────────
-discoverBtn.addEventListener('click',()=>{showScreen('discover');loadRooms(discoverSearch.value,roomList)});
-discoverBackBtn.addEventListener('click',()=>showScreen('join'));
-let rdTo=null;
-discoverRefreshBtn.addEventListener('click',()=>{discoverRefreshBtn.textContent='↻';loadRooms(discoverSearch.value,roomList)});
-discoverSearch.addEventListener('input',()=>{clearTimeout(rdTo);rdTo=setTimeout(()=>loadRooms(discoverSearch.value,roomList),400)});
-
-// Discover inside room
-roomDiscoverBtn.addEventListener('click',()=>{roomDiscoverModal.classList.add('show');loadRooms(rdSearch.value,rdRoomList)});
-rdBackdrop.addEventListener('click',()=>roomDiscoverModal.classList.remove('show'));
-rdCloseBtn.addEventListener('click',()=>roomDiscoverModal.classList.remove('show'));
-rdSearch.addEventListener('input',()=>{clearTimeout(rdTo);rdTo=setTimeout(()=>loadRooms(rdSearch.value,rdRoomList),400)});
+// ── DISCOVER ───────────────────────────────────────────
+discoverBtn.addEventListener('click',()=>{showScreen('discover');loadRooms('',roomListEl)});
+discoverBack.addEventListener('click',()=>showScreen('join'));
+discoverRefresh.addEventListener('click',()=>loadRooms(discoverSearch.value,roomListEl));
+let dTo=null;
+discoverSearch.addEventListener('input',()=>{clearTimeout(dTo);dTo=setTimeout(()=>loadRooms(discoverSearch.value,roomListEl),400)});
+// inside room
+$('raCamera').title='Camera'; // placeholder -- raCamera handled below
+// discover in room via tab settings or a dedicated button... use rdModal
+rdBd.addEventListener('click',()=>rdModal.classList.remove('show'));
+rdClose.addEventListener('click',()=>rdModal.classList.remove('show'));
+rdSearch.addEventListener('input',()=>{clearTimeout(dTo);dTo=setTimeout(()=>loadRooms(rdSearch.value,rdList),400)});
 
 async function loadRooms(q,container){
-  container.innerHTML='<div class="spinner-wrap"><div class="spinner"></div>Đang tải danh sách phòng...</div>';
-  // FIX: retry up to 3 times với timeout 8s (Render free có thể cold start chậm)
+  container.innerHTML='<div class="spinner-wrap"><div class="spinner"></div>Đang tải...</div>';
   for(let attempt=1;attempt<=3;attempt++){
     try{
       const ctrl=new AbortController();
@@ -839,80 +757,56 @@ async function loadRooms(q,container){
       const res=await fetch(SERVER_URL+'/rooms'+(q?'?q='+encodeURIComponent(q.trim()):''),{signal:ctrl.signal});
       clearTimeout(timer);
       if(!res.ok)throw new Error('HTTP '+res.status);
-      renderRoomList(await res.json(),container);
-      return;
+      renderRoomCards(await res.json(),container);return;
     }catch(e){
-      if(attempt===3){
-        container.innerHTML=`<div class="discover-empty">❌ Không kết nối được server.<br><small>Server Render free có thể đang khởi động (30s). Thử lại sau.</small><br><button class="btn btn-secondary" style="margin-top:12px" onclick="loadRooms('',document.getElementById('${container.id}'))">🔄 Thử lại</button></div>`;
-      } else {
-        container.innerHTML=`<div class="spinner-wrap"><div class="spinner"></div>Đang thử lại lần ${attempt+1}/3...</div>`;
-        await new Promise(r=>setTimeout(r,2500));
-      }
+      if(attempt===3){container.innerHTML=`<div class="discover-empty">❌ Không kết nối được server.<br><small>Render free có thể đang khởi động (~30s).</small><br><button class="btn btn-secondary" style="margin-top:10px" onclick="loadRooms('',document.getElementById('${container.id}'))">🔄 Thử lại</button></div>`}
+      else{container.innerHTML=`<div class="spinner-wrap"><div class="spinner"></div>Thử lại lần ${attempt+1}/3...</div>`;await new Promise(r=>setTimeout(r,2500))}
     }
   }
 }
 
-function renderRoomList(rooms,container){
+function renderRoomCards(rooms,container){
   if(!rooms.length){container.innerHTML='<div class="discover-empty">Không có phòng nào đang hoạt động</div>';return}
   container.innerHTML='';
   rooms.forEach(r=>{
-    const card=document.createElement('div');card.className='room-card-item';
-    const badges=`${r.hasPassword?'<span class="badge badge-orange">🔒 Có mật khẩu</span>':''}${r.requireApproval?'<span class="badge badge-blue">⏳ Cần duyệt</span>':'<span class="badge badge-green">✓ Mở</span>'}`;
-    card.innerHTML=`<div class="room-card-icon-wrap">📻</div><div class="room-card-info"><div class="room-card-name">${escapeHtml(r.code)}</div><div class="room-card-sub">${r.description?escapeHtml(r.description)+' · ':''}<b>${r.memberCount}</b> thành viên</div><div class="room-badges">${badges}</div></div>`;
+    const card=document.createElement('div');card.className='room-card';
+    const badges=`${r.hasPassword?'<span class="badge badge-warn">🔒 Mật khẩu</span>':''}${r.requireApproval?'<span class="badge badge-blue">⏳ Cần duyệt</span>':'<span class="badge badge-green">✓ Mở</span>'}`;
+    card.innerHTML=`<div class="room-card-ico">📻</div><div class="room-card-info"><div class="rc-name">${escapeHtml(r.code)}</div><div class="rc-sub">${r.description?escapeHtml(r.description)+' · ':''}<b>${r.memberCount}</b> thành viên</div><div class="rc-badges">${badges}</div></div>`;
     card.addEventListener('click',()=>{
-      roomDiscoverModal.classList.remove('show');
+      rdModal.classList.remove('show');
       if(currentRoom){
-        // đang trong phòng → hỏi có muốn chuyển phòng không
-        if(confirm(`Rời phòng "${currentRoom}" và vào phòng "${r.code}"?`)){
-          doLeaveRoom();
-          setTimeout(()=>{roomCodeInput.value=r.code;roomCodeInput.dispatchEvent(new Event('input'));showScreen('join');if(r.hasPassword)passwordGroup.style.display='block';},300);
-        }
-      } else {
-        roomCodeInput.value=r.code;roomCodeInput.dispatchEvent(new Event('input'));
-        showScreen('join');if(r.hasPassword)passwordGroup.style.display='block';
-      }
+        if(!confirm(`Rời phòng "${currentRoom}" và vào phòng "${r.code}"?`))return;
+        doLeaveRoom();
+        setTimeout(()=>{roomCodeInput.value=r.code;roomCodeInput.dispatchEvent(new Event('input'));if(r.hasPassword)passwordGroup.style.display='block';showScreen('join')},300);
+      }else{roomCodeInput.value=r.code;roomCodeInput.dispatchEvent(new Event('input'));if(r.hasPassword)passwordGroup.style.display='block';showScreen('join')}
     });
     container.appendChild(card);
   });
 }
 
-// ── WAITING ───────────────────────────────────────────
-waitingCancelBtn.addEventListener('click',()=>{if(socket)socket.disconnect();showScreen('join');resetJoinBtn()});
+// ── WAITING ────────────────────────────────────────────
+waitCancel.addEventListener('click',()=>{if(socket)socket.disconnect();showScreen('join');resetJoinBtn()});
 
-// ── CONNECT ───────────────────────────────────────────
+// ── CONNECT ────────────────────────────────────────────
 function connectToServer(roomCode,username,password,createOpts){
   socket=io(SERVER_URL,{transports:['websocket','polling']});
 
-  socket.on('connect',()=>{
-    connDot.classList.remove('blink');reconnectBanner.classList.remove('show');
-    socket.emit('join-room',{roomCode,username,password:password||''});
-  });
-
-  socket.on('reconnect',()=>{
-    if(currentRoom&&currentUsername) socket.emit('rejoin-room',{roomCode:currentRoom,username:currentUsername});
-  });
+  socket.on('connect',()=>{connDot.classList.remove('warn');reconnectBanner.classList.remove('show');socket.emit('join-room',{roomCode,username,password:password||''})});
+  socket.on('reconnect',()=>{if(currentRoom&&currentUsername)socket.emit('rejoin-room',{roomCode:currentRoom,username:currentUsername})});
 
   socket.on('joined',({roomCode:rc,username:un,isOwner:ownerFlag})=>{
     isOwner=!!ownerFlag;
     saveSession(rc,un);
-    // If creating room, send options right after join
-    if(isCreatingRoom&&createOpts&&ownerFlag){
-      socket.emit('create-room-options',createOpts);
-      isCreatingRoom=false;
-    }
+    if(isCreatingRoom&&createOpts&&ownerFlag){socket.emit('create-room-options',createOpts);isCreatingRoom=false}
     showRoomScreen(rc);
-    requestMicPermission();initMap();requestLocationSharing();
+    requestMicPermission();
+    initMaps(); // FIX: init both maps right away
+    requestLocationSharing();
     startPingReporter();startBatteryReporter();
-    if(notifSubscribed&&swRegistration){
-      swRegistration.pushManager.getSubscription().then(s=>{if(s)socket.emit('save-subscription',s)});
-    }
+    if(notifSubscribed&&swRegistration)swRegistration.pushManager.getSubscription().then(s=>{if(s)socket.emit('save-subscription',s)});
   });
 
-  socket.on('waiting-approval',({roomCode})=>{
-    waitingSub.textContent=`Chủ phòng "${roomCode}" cần phê duyệt yêu cầu của bạn.\nVui lòng đợi trong giây lát.`;
-    showScreen('waiting');
-  });
-
+  socket.on('waiting-approval',({roomCode})=>{waitSub.textContent=`Chủ phòng "${roomCode}" cần phê duyệt.\nVui lòng đợi.`;showScreen('waiting')});
   socket.on('approval-granted',()=>showToast('✅ Đã được duyệt vào phòng!','ok'));
   socket.on('approval-rejected',()=>{showToast('❌ Yêu cầu bị từ chối','err');showScreen('join');resetJoinBtn()});
   socket.on('room-closed',()=>{showToast('Phòng đã đóng','warn');showScreen('join');resetJoinBtn()});
@@ -920,19 +814,8 @@ function connectToServer(roomCode,username,password,createOpts){
   socket.on('kicked',({reason})=>{showToast('👢 '+reason,'err');clearSession();doLeaveRoom()});
   socket.on('you-are-muted',({muted})=>showToast(muted?'🔇 Chủ phòng tắt mic của bạn':'🔊 Chủ phòng bật lại mic','warn'));
   socket.on('camera-forced-off',()=>{stopCamera();showToast('📷 Chủ phòng tắt camera của bạn','warn')});
-
-  socket.on('you-are-owner',()=>{
-    isOwner=true;menuSettings.style.display='flex';
-    showToast('👑 Bạn là Chủ phòng','ok');renderMemberList();
-  });
-
-  socket.on('room-settings',s=>{
-    togglePublic.className='toggle'+(s.isPublic?' on':'');
-    toggleApproval.className='toggle'+(s.requireApproval?' on':'');
-    settingsDesc.value=s.description||'';
-    settingsPass.value='';
-  });
-
+  socket.on('you-are-owner',()=>{isOwner=true;showToast('👑 Bạn là Chủ phòng','ok');renderMemberList()});
+  socket.on('room-settings',s=>{setPublic.className='tog'+(s.isPublic?' on':'');setApproval.className='tog'+(s.requireApproval?' on':'');setDesc.value=s.description||'';setPass.value=''});
   socket.on('approval-request',({socketId,username})=>{pendingApprovals[socketId]=username;renderApprovalPanel();showToast(`⏳ ${username} xin vào phòng`)});
   socket.on('approval-done',({socketId})=>{delete pendingApprovals[socketId];renderApprovalPanel()});
 
@@ -940,103 +823,179 @@ function connectToServer(roomCode,username,password,createOpts){
     const prev=knownUsernames,newN=new Set(users.map(u=>u.username));
     const joined=[...newN].filter(n=>!prev.has(n)&&n!==currentUsername);
     knownUsernames=newN;participants=users;
-    renderMemberList(joined);renderMapMarkers();renderVideoGrid();
+    renderMemberList(joined);renderAvatarRow();renderMapMarkers();renderVideoGrid();
   });
 
   socket.on('mic-granted',()=>{beepGranted();vibrate([20,40,20]);setTalkState('talking');startChunked()});
   socket.on('mic-denied',({holder})=>{beepDenied();vibrate(60);setTalkState('idle');showToast(`😅 ${holder} đang giữ mic`,'warn')});
-  socket.on('speaking-start',({username})=>{speakingSet.add(username);currentSpeakerName=username;renderMemberList();setStatus(`🎙️ ${username} đang nói`,'remote');if(username!==currentUsername)showToast(`🎧 ${username} đang nói`)});
-  socket.on('speaking-stop',({username})=>{speakingSet.delete(username);if(currentSpeakerName===username)currentSpeakerName=null;renderMemberList();if(statusLine.textContent===`🎙️ ${username} đang nói`)setStatus('Phòng đang trống','')});
+  socket.on('speaking-start',({username})=>{speakingSet.add(username);currentSpeakerName=username;renderMemberList();renderAvatarRow();setStatus(`🎙️ ${username} đang nói`,'#2ea043');if(username!==currentUsername)showToast(`🎧 ${username} đang nói`)});
+  socket.on('speaking-stop',({username})=>{speakingSet.delete(username);if(currentSpeakerName===username)currentSpeakerName=null;renderMemberList();renderAvatarRow();if(statusLine.textContent===`🎙️ ${username} đang nói`)setStatus('Phòng đang trống','')});
   socket.on('audio-data',({username,audio})=>enqueueAudio(audio,username));
   socket.on('reaction',({username,emoji})=>spawnReaction(username,emoji));
   socket.on('chat-message',({username,text,ts})=>appendChat(username,text,ts,false));
-  socket.on('system-message',msg=>appendChat(null,msg,null,true));
+  socket.on('system-message',msg=>{appendChat(null,msg,null,true);appendSystemToChat(msg)});
   socket.on('video-frame',({username,frame})=>{const c=videoCanvases[username];if(!c)return;const img=new Image();img.onload=()=>c.getContext('2d').drawImage(img,0,0,c.width,c.height);img.src=frame});
   socket.on('sos-alert',({username,lat,lng})=>{
     beepSOS();vibrate([300,100,300,100,300]);
     sosTitle.textContent=`🆘 SOS từ ${username}!`;
-    sosBody.textContent=`${username} cần hỗ trợ khẩn cấp!\n${lat&&lng?`Vị trí: ${lat.toFixed(5)}, ${lng.toFixed(5)}`:'Chưa có vị trí GPS'}`;
+    sosBodyEl.textContent=`${username} cần hỗ trợ!\n${lat&&lng?`Vị trí: ${lat.toFixed(5)}, ${lng.toFixed(5)}`:'Chưa có vị trí GPS'}`;
     sosOverlay.classList.add('show');
-    if(lat&&lng&&leafletMap){const html=`<div class="map-pin sos-pin"><span class="ping" style="--pin-color:#dc2626"></span><div class="avatar-pin" style="background:#dc2626">🆘</div></div>`;L.marker([lat,lng],{icon:L.divIcon({html,className:'',iconSize:[32,32],iconAnchor:[16,16]})}).addTo(leafletMap).bindTooltip(`SOS: ${username}`,{permanent:true});leafletMap.setView([lat,lng],15);if(!mapVisible)toggleMap();}
+    if(lat&&lng){setMapView(lat,lng,15)}
   });
-  socket.on('voice-memo',({username,audio,ts})=>{voiceMemoRaw=audio;vmemoInfo.textContent=`${username} · ${formatTime(ts)}`;voicMemoBanner.style.display='block';vmemoPlayBtn.textContent='▶ Phát lại'});
-  socket.on('disconnect',()=>{connDot.classList.add('blink');reconnectBanner.classList.add('show');setStatus('⚡ Đang kết nối lại...','preparing');if(talkState==='talking')stopTalking()});
+  socket.on('voice-memo',({username,audio,ts})=>{voiceMemoRaw=audio;vmemoInfo.textContent=`${username} · ${formatTime(ts)}`;voicMemoBanner.style.display='block';vmemoPlay.textContent='▶ Phát lại'});
+  socket.on('disconnect',()=>{connDot.classList.add('warn');reconnectBanner.classList.add('show');setStatus('⚡ Đang kết nối lại...','#d29922');if(talkState==='talking')stopTalking()});
   socket.on('connect_error',()=>{if(roomScreen.classList.contains('active'))return;joinError.textContent='Không kết nối được máy chủ.';resetJoinBtn();showScreen('join')});
   socket.on('pong-custom',()=>{if(pingStartTs){const ms=Date.now()-pingStartTs;if(socket?.connected)socket.emit('update-status',{ping:ms});pingStartTs=null}});
 }
 
 function showRoomScreen(rc){
   showScreen('room');
-  roomCodeLabel.textContent=rc;
-  connDot.classList.remove('blink');
+  roomLabel.textContent=rc;
+  connDot.classList.remove('warn');
   reconnectBanner.classList.remove('show');
   if(window.history.replaceState)window.history.replaceState({},'',window.location.pathname);
 }
-function setStatus(t,c){statusLine.textContent=t;statusLine.className=c||''}
+function setStatus(t,color){statusLine.textContent=t;statusLine.style.color=color||'var(--text3)'}
 
-// ── MAP TOGGLE ────────────────────────────────────────
-function toggleMap(){
-  mapVisible=!mapVisible;
-  mapWrap.style.display=mapVisible?'block':'none';
-  menuMap.classList.toggle('active',mapVisible);
-  if(mapVisible){if(!leafletMap)initMap();setTimeout(()=>{leafletMap.invalidateSize();renderMapMarkers()},150)}
+// ── MAPS — FIX: always visible, init immediately ───────
+function initMaps(){
+  // Strip map (in map-section at top of room)
+  if(!leafletMapStrip){
+    leafletMapStrip=L.map('map',{zoomControl:false,attributionControl:false,dragging:true,scrollWheelZoom:false,doubleClickZoom:false}).setView([16.0544,108.2022],12);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(leafletMapStrip);
+  }
+  // Full map tab
+  if(!leafletMapFull){
+    leafletMapFull=L.map('mapFull',{zoomControl:true,attributionControl:false}).setView([16.0544,108.2022],12);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(leafletMapFull);
+  }
+  // FIX: invalidateSize after a short delay so tiles load correctly
+  setTimeout(()=>{
+    try{leafletMapStrip.invalidateSize()}catch(e){}
+    try{leafletMapFull.invalidateSize()}catch(e){}
+  },300);
 }
-menuMap.addEventListener('click',toggleMap);
 
-function initMap(){if(leafletMap)return;leafletMap=L.map('map',{zoomControl:false,attributionControl:false}).setView([16.0544,108.2022],12);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(leafletMap)}
-function renderMapMarkers(){if(!leafletMap||!mapVisible)return;const wl=participants.filter(p=>p.lat!=null&&p.lng!=null);mapEmptyMsg.style.display=wl.length?'none':'flex';const seen=new Set();wl.forEach(p=>{seen.add(p.username);const color=colorForName(p.username),html=`<div class="map-pin"><span class="ping" style="--pin-color:${color}"></span><div class="avatar-pin" style="background:${color}">${initialsForName(p.username)}</div></div>`,icon=L.divIcon({html,className:'',iconSize:[32,32],iconAnchor:[16,16]});if(mapMarkers[p.username])mapMarkers[p.username].setLatLng([p.lat,p.lng]);else mapMarkers[p.username]=L.marker([p.lat,p.lng],{icon}).addTo(leafletMap).bindTooltip(p.username,{permanent:false,direction:'top'})});Object.keys(mapMarkers).forEach(n=>{if(!seen.has(n)){leafletMap.removeLayer(mapMarkers[n]);delete mapMarkers[n]}});if(wl.length){const b=L.latLngBounds(wl.map(p=>[p.lat,p.lng]));leafletMap.fitBounds(b.pad(0.35),{maxZoom:15})}}
-function requestLocationSharing(){if(!navigator.geolocation)return;watchId=navigator.geolocation.watchPosition(pos=>{lastKnownLat=pos.coords.latitude;lastKnownLng=pos.coords.longitude;const now=Date.now();if(now-lastLocSentAt<8000)return;lastLocSentAt=now;if(socket?.connected)socket.emit('update-location',{lat:pos.coords.latitude,lng:pos.coords.longitude})},()=>{},{enableHighAccuracy:false,maximumAge:15000,timeout:10000})}
+function makePinIcon(username,isSpeaking,color){
+  const initials=initialsForName(username);
+  const borderColor=isSpeaking?'#2ea043':'#ffffff';
+  const html=`<div class="map-pin ${isSpeaking?'speaking':''}">
+    <div class="pin-label">${escapeHtml(username)}</div>
+    <div class="pin-body" style="background:${color};border-color:${borderColor}">
+      <div class="pin-initials" style="background:${color}">${initials}</div>
+    </div>
+    <div class="pin-tail" style="border-top-color:${borderColor};border-top:8px solid ${borderColor}"></div>
+  </div>`;
+  return L.divIcon({html,className:'',iconSize:[36,50],iconAnchor:[18,50]});
+}
 
-// ── SETTINGS ──────────────────────────────────────────
-menuSettings.addEventListener('click',()=>settingsModal.classList.add('show'));
-settingsBackdrop.addEventListener('click',()=>settingsModal.classList.remove('show'));
-settingsCloseBtn.addEventListener('click',()=>settingsModal.classList.remove('show'));
-togglePublic.addEventListener('click',()=>togglePublic.classList.toggle('on'));
-toggleApproval.addEventListener('click',()=>toggleApproval.classList.toggle('on'));
-settingsSaveBtn.addEventListener('click',()=>{
-  if(!socket)return;
-  socket.emit('update-room-settings',{isPublic:togglePublic.classList.contains('on'),requireApproval:toggleApproval.classList.contains('on'),password:settingsPass.value,description:settingsDesc.value.trim()});
-  settingsModal.classList.remove('show');showToast('✅ Đã lưu cài đặt phòng','ok');
-});
+function renderMapMarkers(){
+  if(!leafletMapStrip||!leafletMapFull)return;
+  const wl=participants.filter(p=>p.lat!=null&&p.lng!=null);
+  mapEmptyMsg.style.display=wl.length?'none':'flex';
+  mapFullEmpty.style.display=wl.length?'none':'flex';
+  const seen=new Set();
+  wl.forEach(p=>{
+    seen.add(p.username);
+    const color=colorForName(p.username);
+    const isSp=speakingSet.has(p.username);
+    const icon=makePinIcon(p.username,isSp,color);
+    // strip map
+    if(mapMarkersStrip[p.username])mapMarkersStrip[p.username].setLatLng([p.lat,p.lng]).setIcon(icon);
+    else mapMarkersStrip[p.username]=L.marker([p.lat,p.lng],{icon}).addTo(leafletMapStrip);
+    // full map
+    const icon2=makePinIcon(p.username,isSp,color);
+    if(mapMarkersFull[p.username])mapMarkersFull[p.username].setLatLng([p.lat,p.lng]).setIcon(icon2);
+    else mapMarkersFull[p.username]=L.marker([p.lat,p.lng],{icon:icon2}).addTo(leafletMapFull);
+  });
+  // remove gone
+  Object.keys(mapMarkersStrip).forEach(n=>{if(!seen.has(n)){leafletMapStrip.removeLayer(mapMarkersStrip[n]);delete mapMarkersStrip[n]}});
+  Object.keys(mapMarkersFull).forEach(n=>{if(!seen.has(n)){leafletMapFull.removeLayer(mapMarkersFull[n]);delete mapMarkersFull[n]}});
+  // fit
+  if(wl.length){
+    const b=L.latLngBounds(wl.map(p=>[p.lat,p.lng]));
+    try{leafletMapStrip.fitBounds(b.pad(0.4),{maxZoom:14,animate:false})}catch(e){}
+    try{leafletMapFull.fitBounds(b.pad(0.4),{maxZoom:15,animate:false})}catch(e){}
+  }
+}
 
-// ── APPROVAL ──────────────────────────────────────────
-function renderApprovalPanel(){
-  const keys=Object.keys(pendingApprovals);
-  approvalPanel.style.display=keys.length?'block':'none';
-  approvalList.innerHTML='';
-  keys.forEach(id=>{
-    const name=pendingApprovals[id];
-    const item=document.createElement('div');item.className='approval-item';
-    item.innerHTML=`<div class="approval-name">👤 ${escapeHtml(name)}</div><button class="btn btn-green btn-sm" data-id="${id}" data-a="approve">✓ Duyệt</button><button class="btn btn-danger btn-sm" data-id="${id}" data-a="reject">✗</button>`;
-    item.querySelector('[data-a="approve"]').addEventListener('click',()=>socket.emit('approve-user',{targetSocketId:id}));
-    item.querySelector('[data-a="reject"]').addEventListener('click',()=>socket.emit('reject-user',{targetSocketId:id}));
-    approvalList.appendChild(item);
+function setMapView(lat,lng,zoom){
+  try{leafletMapStrip?.setView([lat,lng],zoom,{animate:false})}catch(e){}
+  try{leafletMapFull?.setView([lat,lng],zoom,{animate:false})}catch(e){}
+}
+
+function requestLocationSharing(){
+  if(!navigator.geolocation)return;
+  watchId=navigator.geolocation.watchPosition(pos=>{
+    lastKnownLat=pos.coords.latitude;lastKnownLng=pos.coords.longitude;
+    const now=Date.now();if(now-lastLocSentAt<8000)return;lastLocSentAt=now;
+    if(socket?.connected)socket.emit('update-location',{lat:pos.coords.latitude,lng:pos.coords.longitude});
+  },()=>{},{enableHighAccuracy:false,maximumAge:15000,timeout:10000});
+}
+
+// ── AVATAR ROW ─────────────────────────────────────────
+function renderAvatarRow(){
+  avatarRow.innerHTML='';
+  const sorted=[...participants].sort((a,b)=>{const as=speakingSet.has(a.username)?1:0,bs=speakingSet.has(b.username)?1:0;if(as!==bs)return bs-as;return a.username===currentUsername?-1:b.username===currentUsername?1:0});
+  sorted.forEach(p=>{
+    const isSp=speakingSet.has(p.username),isMe=p.username===currentUsername;
+    const color=colorForName(p.username);
+    const item=document.createElement('div');item.className='av-item';
+    item.innerHTML=`<div class="av-ring ${isSp?'speaking':isMe?'me-ring':'listening'}">
+      <div class="av-ring-inner" style="background:${color}">${initialsForName(p.username)}</div>
+    </div>
+    <div class="av-name">${escapeHtml(isMe?'Bạn':p.username)}</div>
+    <div class="av-status ${isSp?'speaking':isMe?'me':''}">${isSp?'Đang nói':'Online'}</div>`;
+    avatarRow.appendChild(item);
   });
 }
 
-// ── PING & BATTERY ────────────────────────────────────
+// ── APPROVAL PANEL ─────────────────────────────────────
+function renderApprovalPanel(){
+  const keys=Object.keys(pendingApprovals);
+  approvalPanel.style.display=keys.length?'block':'none';
+  approvalSection.style.display=keys.length?'block':'none';
+  approvalListEl.innerHTML='';approvalItems.innerHTML='';
+  keys.forEach(id=>{
+    const name=pendingApprovals[id];
+    // top banner
+    const i1=document.createElement('div');i1.style.cssText='display:flex;align-items:center;gap:8px;margin-bottom:5px';
+    i1.innerHTML=`<span style="flex:1;font-size:12.5px;font-weight:600">👤 ${escapeHtml(name)}</span><button class="btn btn-primary btn-sm" data-id="${id}" data-a="approve">✓</button><button class="btn btn-danger btn-sm" data-id="${id}" data-a="reject">✗</button>`;
+    approvalListEl.appendChild(i1);
+    // settings tab
+    const i2=document.createElement('div');i2.className='approval-item';i2.style.marginBottom='6px';
+    i2.innerHTML=`<div class="approval-name">👤 ${escapeHtml(name)}</div><button class="btn btn-primary btn-sm" data-id="${id}" data-a="approve">✓ Duyệt</button><button class="btn btn-danger btn-sm" data-id="${id}" data-a="reject">✗</button>`;
+    approvalItems.appendChild(i2);
+    [i1,i2].forEach(el=>{
+      el.querySelector('[data-a="approve"]').addEventListener('click',()=>socket.emit('approve-user',{targetSocketId:id}));
+      el.querySelector('[data-a="reject"]').addEventListener('click',()=>socket.emit('reject-user',{targetSocketId:id}));
+    });
+  });
+}
+
+// ── PING & BATTERY ─────────────────────────────────────
 function startPingReporter(){if(pingInterval)clearInterval(pingInterval);pingInterval=setInterval(()=>{if(socket?.connected){pingStartTs=Date.now();socket.emit('ping-custom')}},5000)}
 async function startBatteryReporter(){if(!navigator.getBattery)return;try{const b=await navigator.getBattery();const r=()=>{if(socket?.connected)socket.emit('update-status',{battery:Math.round(b.level*100)})};r();b.addEventListener('levelchange',r)}catch(e){}}
 
-// ── MEMBER LIST ───────────────────────────────────────
-function qBadge(ping,battery){const p=[];if(ping!=null){let c='good';if(ping>300)c='bad';else if(ping>100)c='ok';p.push(`<span class="qbadge ${c}">${ping}ms</span>`)}if(battery!=null){let c='good';if(battery<20)c='bad';else if(battery<40)c='ok';p.push(`<span class="qbadge ${c}">🔋${battery}%</span>`)}return p.join('')}
+// ── MEMBER LIST ────────────────────────────────────────
+function qBadge(ping,battery){const p=[];if(ping!=null){let c='good';if(ping>300)c='bad';else if(ping>100)c='ok';p.push(`<span class="qb ${c}">${ping}ms</span>`)}if(battery!=null){let c='good';if(battery<20)c='bad';else if(battery<40)c='ok';p.push(`<span class="qb ${c}">🔋${battery}%</span>`)}return p.join('')}
 function renderMemberList(justJoined=[]){
   const sorted=[...participants].sort((a,b)=>{const as=speakingSet.has(a.username)?1:0,bs=speakingSet.has(b.username)?1:0;if(as!==bs)return bs-as;return a.username.localeCompare(b.username,'vi')});
-  memberList.innerHTML='';
+  memberListEl.innerHTML='';
   sorted.forEach(p=>{
     const isSp=speakingSet.has(p.username),isMe=p.username===currentUsername;
     const row=document.createElement('div');
     row.className='member-row'+(isSp?' speaking':'')+(justJoined.includes(p.username)?' new-join':'')+(p.muted?' muted-row':'');
     let ownerBtns='';
-    if(isOwner&&!isMe)ownerBtns=`<div class="owner-btns"><button class="owner-btn" data-id="${p.id}" data-a="mute" title="${p.muted?'Bật mic':'Tắt mic'}">${p.muted?'🔊':'🔇'}</button><button class="owner-btn" data-id="${p.id}" data-a="cam" title="Tắt camera">📷✕</button><button class="owner-btn" data-id="${p.id}" data-a="kick" title="Mời ra">👢</button></div>`;
-    row.innerHTML=`<div class="member-av-wrap">${p.isOwner?'<span class="member-crown">👑</span>':''}<div class="avatar avatar-sm" style="background:${colorForName(p.username)}">${initialsForName(p.username)}</div><div class="member-av-online"></div></div>
-    <div class="member-info"><div class="member-name">${p.muted?'🔇 ':''}${escapeHtml(p.username)}${isMe?' <small style="color:var(--text-3);font-weight:400">(bạn)</small>':''}</div>
-    <div class="member-sub">${isSp?'🎙️ Đang nói...':'🎧 Lắng nghe'} ${qBadge(p.ping,p.battery)}${p.cameraOn?' 📷':''}</div></div>
-    <div class="mic-wave"><svg viewBox="0 0 24 24" fill="none"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3Z" stroke="currentColor" stroke-width="2"/><path d="M19 11a7 7 0 0 1-14 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+    if(isOwner&&!isMe)ownerBtns=`<div class="owner-btns"><button class="ow-btn" data-id="${p.id}" data-a="mute">${p.muted?'🔊':'🔇'}</button><button class="ow-btn" data-id="${p.id}" data-a="cam">📷✕</button><button class="ow-btn" data-id="${p.id}" data-a="kick">👢</button></div>`;
+    row.innerHTML=`<div class="mem-av-wrap">${p.isOwner?'<span class="mem-crown">👑</span>':''}<div class="mem-av" style="background:${colorForName(p.username)}">${initialsForName(p.username)}</div><div class="mem-online"></div></div>
+    <div class="mem-info"><div class="mem-name">${p.muted?'🔇 ':''}${escapeHtml(p.username)}${isMe?' <small style="color:var(--text3)">(bạn)</small>':''}</div>
+    <div class="mem-sub">${isSp?'🎙️ Đang nói...':'🎧 Lắng nghe'} ${qBadge(p.ping,p.battery)}${p.cameraOn?' 📷':''}</div></div>
+    <div class="mic-anim"><svg viewBox="0 0 24 24" fill="none"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3Z" stroke="currentColor" stroke-width="2"/><path d="M19 11a7 7 0 0 1-14 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
     ${ownerBtns}`;
-    memberList.appendChild(row);
+    memberListEl.appendChild(row);
   });
-  memberList.querySelectorAll('.owner-btn').forEach(btn=>{
+  memberListEl.querySelectorAll('.ow-btn').forEach(btn=>{
     btn.addEventListener('click',()=>{
       const id=btn.dataset.id,a=btn.dataset.a;
       if(a==='kick'){if(confirm('Mời người này ra?')&&socket)socket.emit('kick-user',{targetId:id})}
@@ -1046,83 +1005,124 @@ function renderMemberList(justJoined=[]){
   });
 }
 
-// ── CAMERA ────────────────────────────────────────────
-menuCamera.addEventListener('click',()=>{if(cameraOn)stopCamera();else startCamera()});
-async function startCamera(){try{cameraStream=await navigator.mediaDevices.getUserMedia({video:{width:VIDEO_W,height:VIDEO_H,facingMode:'user'},audio:false});cameraOn=true;menuCamera.classList.add('active');if(socket?.connected)socket.emit('camera-state',{hasCamera:true,cameraOn:true});renderVideoGrid();startVideoSend();showToast('📷 Camera đã bật','ok')}catch(e){showToast('Không bật được camera','err')}}
-function stopCamera(){if(cameraStream){cameraStream.getTracks().forEach(t=>t.stop());cameraStream=null}if(cameraVideo){cameraVideo.srcObject=null;cameraVideo=null}cameraOn=false;menuCamera.classList.remove('active');if(socket?.connected)socket.emit('camera-state',{hasCamera:false,cameraOn:false});if(videoSendInterval){clearInterval(videoSendInterval);videoSendInterval=null}renderVideoGrid()}
+// ── CAMERA ─────────────────────────────────────────────
+raCamera.addEventListener('click',()=>{if(cameraOn)stopCamera();else startCamera()});
+async function startCamera(){try{cameraStream=await navigator.mediaDevices.getUserMedia({video:{width:VIDEO_W,height:VIDEO_H,facingMode:'user'},audio:false});cameraOn=true;raCamera.classList.add('on');if(socket?.connected)socket.emit('camera-state',{hasCamera:true,cameraOn:true});renderVideoGrid();startVideoSend();showToast('📷 Camera đã bật','ok')}catch(e){showToast('Không bật được camera','err')}}
+function stopCamera(){if(cameraStream){cameraStream.getTracks().forEach(t=>t.stop());cameraStream=null}if(cameraVideo){cameraVideo.srcObject=null;cameraVideo=null}cameraOn=false;raCamera.classList.remove('on');if(socket?.connected)socket.emit('camera-state',{hasCamera:false,cameraOn:false});if(videoSendInterval){clearInterval(videoSendInterval);videoSendInterval=null}renderVideoGrid()}
 function startVideoSend(){if(videoSendInterval)clearInterval(videoSendInterval);cameraVideo=document.createElement('video');cameraVideo.srcObject=cameraStream;cameraVideo.muted=true;cameraVideo.play();videoSendInterval=setInterval(()=>{if(!cameraOn||!socket?.connected||!cameraVideo)return;try{const o=document.createElement('canvas');o.width=VIDEO_W;o.height=VIDEO_H;o.getContext('2d').drawImage(cameraVideo,0,0,VIDEO_W,VIDEO_H);socket.emit('video-frame',{frame:o.toDataURL('image/jpeg',.5)});const mc=videoCanvases[currentUsername];if(mc)mc.getContext('2d').drawImage(cameraVideo,0,0,mc.width,mc.height)}catch(e){}},1000/VIDEO_FPS)}
-function renderVideoGrid(){const vu=participants.filter(p=>p.cameraOn||(p.username===currentUsername&&cameraOn));if(!vu.length){videoGrid.classList.remove('visible');videoGrid.innerHTML='';Object.keys(videoCanvases).forEach(k=>delete videoCanvases[k]);return}videoGrid.classList.add('visible');const needed=new Set(vu.map(p=>p.username));Array.from(videoGrid.querySelectorAll('.video-tile')).forEach(t=>{if(!needed.has(t.dataset.username)){t.remove();delete videoCanvases[t.dataset.username]}});const existing=new Set(Array.from(videoGrid.querySelectorAll('.video-tile')).map(t=>t.dataset.username));vu.forEach(p=>{if(existing.has(p.username))return;const tile=document.createElement('div');tile.className='video-tile';tile.dataset.username=p.username;const canvas=document.createElement('canvas');canvas.width=VIDEO_W;canvas.height=VIDEO_H;videoCanvases[p.username]=canvas;const nameEl=document.createElement('div');nameEl.className='vtile-name';nameEl.textContent=p.username+(p.username===currentUsername?' (Bạn)':'');tile.appendChild(canvas);tile.appendChild(nameEl);if(isOwner&&p.username!==currentUsername){const cb=document.createElement('button');cb.className='vtile-cam-btn';cb.textContent='📷✕';cb.addEventListener('click',()=>{if(socket)socket.emit('force-camera-off',{targetId:p.id})});tile.appendChild(cb)}videoGrid.appendChild(tile)})}
+function renderVideoGrid(){const vu=participants.filter(p=>p.cameraOn||(p.username===currentUsername&&cameraOn));if(!vu.length){videoGrid.classList.remove('visible');videoGrid.innerHTML='';Object.keys(videoCanvases).forEach(k=>delete videoCanvases[k]);return}videoGrid.classList.add('visible');const needed=new Set(vu.map(p=>p.username));Array.from(videoGrid.querySelectorAll('.video-tile')).forEach(t=>{if(!needed.has(t.dataset.username)){t.remove();delete videoCanvases[t.dataset.username]}});const existing=new Set(Array.from(videoGrid.querySelectorAll('.video-tile')).map(t=>t.dataset.username));vu.forEach(p=>{if(existing.has(p.username))return;const tile=document.createElement('div');tile.className='video-tile';tile.dataset.username=p.username;const canvas=document.createElement('canvas');canvas.width=VIDEO_W;canvas.height=VIDEO_H;videoCanvases[p.username]=canvas;const nl=document.createElement('div');nl.className='vtile-name';nl.textContent=p.username+(p.username===currentUsername?' (Bạn)':'');tile.appendChild(canvas);tile.appendChild(nl);if(isOwner&&p.username!==currentUsername){const cb=document.createElement('button');cb.className='vtile-cam-btn';cb.textContent='📷✕';cb.addEventListener('click',()=>{if(socket)socket.emit('force-camera-off',{targetId:p.id})});tile.appendChild(cb)}videoGrid.appendChild(tile)})}
 
-// ── MIC ───────────────────────────────────────────────
+// ── MIC ────────────────────────────────────────────────
 function pickMime(){for(const t of['audio/mp4','audio/webm;codecs=opus','audio/webm','audio/ogg;codecs=opus']){if(window.MediaRecorder&&MediaRecorder.isTypeSupported(t))return t}return''}
-async function requestMicPermission(){try{mediaStream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});mimeType=pickMime();pttBtn.classList.remove('locked');setTalkState('idle')}catch(e){setStatus('Chưa có quyền Micro','err')}}
+async function requestMicPermission(){try{mediaStream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});mimeType=pickMime();pttBtn.classList.remove('locked');setTalkState('idle')}catch(e){setStatus('Chưa có quyền Micro','#f85149')}}
 pttBtn.addEventListener('click',()=>{if(!audioUnlocked)unlockAudio();if(talkState==='idle')requestMic();else if(talkState==='talking')stopTalking()});
 function requestMic(){setTalkState('preparing');if(socket)socket.emit('start-speaking')}
-function setTalkState(s){talkState=s;pttBtn.classList.remove('preparing','talking');pttOuter.classList.remove('talking');if(s==='idle')setStatus(currentSpeakerName?`🎙️ ${currentSpeakerName} đang nói`:'Phòng đang trống',currentSpeakerName?'remote':'');else if(s==='preparing'){pttBtn.classList.add('preparing');setStatus('Đang xin mic...','preparing')}else if(s==='talking'){pttBtn.classList.add('talking');pttOuter.classList.add('talking');setStatus('🎙️ Bạn đang nói — Bấm để dừng','talking')}}
+function setTalkState(s){talkState=s;pttBtn.classList.remove('preparing','talking');pttOuter.classList.remove('talking');if(s==='idle')setStatus(currentSpeakerName?`🎙️ ${currentSpeakerName} đang nói`:'Phòng đang trống',currentSpeakerName?'#2ea043':'');else if(s==='preparing'){pttBtn.classList.add('preparing');setStatus('Đang xin mic...','#d29922')}else if(s==='talking'){pttBtn.classList.add('talking');pttOuter.classList.add('talking');setStatus('🎙️ Bạn đang nói — Bấm để dừng','#2ea043')}}
 function startChunked(){recordNext()}
 function recordNext(){if(talkState!=='talking'||!mediaStream)return;const lc=[];let rec;try{rec=mimeType?new MediaRecorder(mediaStream,{mimeType}):new MediaRecorder(mediaStream)}catch(e){return}chunkRecorder=rec;rec.ondataavailable=ev=>{if(ev.data?.size>0)lc.push(ev.data)};rec.onstop=async()=>{if(lc.length&&socket?.connected){const blob=new Blob(lc,{type:mimeType||'audio/webm'}),buf=await blob.arrayBuffer();socket.emit('audio-data',buf)}if(talkState==='talking')recordNext()};rec.start();chunkTimer=setTimeout(()=>{if(rec.state!=='inactive')rec.stop()},CHUNK_MS)}
 function stopTalking(){setTalkState('idle');beepEnd();vibrate(25);if(chunkTimer)clearTimeout(chunkTimer);if(chunkRecorder?.state!=='inactive')chunkRecorder.stop();if(socket)socket.emit('stop-speaking')}
 
-// ── AUDIO PLAYBACK ────────────────────────────────────
+// ── AUDIO PLAYBACK ─────────────────────────────────────
 function enqueueAudio(buf,u){playQueue.push({arrayBuffer:buf,username:u});if(!isPlaying)playNext()}
 async function playNext(){if(!playQueue.length){isPlaying=false;return}isPlaying=true;const{arrayBuffer}=playQueue.shift();if(!audioUnlocked)unlockAudio();try{const buf=await audioCtx.decodeAudioData(arrayBuffer.slice(0)),src=audioCtx.createBufferSource(),f=audioCtx.createBiquadFilter(),g=audioCtx.createGain();f.type='bandpass';f.frequency.value=1800;f.Q.value=0.7;g.gain.value=1.15;src.buffer=buf;src.connect(f);f.connect(g);g.connect(audioCtx.destination);src.onended=()=>playNext();src.start(0)}catch(e){playNext()}}
 
-// ── TABS ──────────────────────────────────────────────
-tabMembers.addEventListener('click',()=>switchTab('members'));
-tabChat.addEventListener('click',()=>switchTab('chat'));
-chatQuickBtn.addEventListener('click',()=>{switchTab('chat');chatInput.focus()});
-function switchTab(tab){activeTab=tab;if(tab==='members'){tabMembers.classList.add('active');tabChat.classList.remove('active');memberList.style.display='flex';chatWrap.classList.remove('visible');chatQuickBtn.classList.remove('has-new')}else{tabChat.classList.add('active');tabMembers.classList.remove('active');memberList.style.display='none';chatWrap.classList.add('visible');chatUnread=0;chatBadge.style.display='none';chatBadge.textContent='0';chatQuickBtn.classList.remove('has-new');setTimeout(()=>chatScroll.scrollTop=chatScroll.scrollHeight,50)}}
+// ── TABS ───────────────────────────────────────────────
+const tabs=[tabMap,tabChat,tabMembers,tabSettings];
+const panels=[panelMap,panelChat,panelMembers,panelSettings];
+tabs.forEach(t=>{
+  if(t.dataset.tab)t.addEventListener('click',()=>switchTab(t.dataset.tab,t));
+});
+function switchTab(panelId,tabEl){
+  panels.forEach(p=>p.classList.remove('active'));
+  tabs.forEach(t=>t.classList.remove('active'));
+  $(panelId).classList.add('active');
+  if(tabEl)tabEl.classList.add('active');
+  activeTab=panelId;
+  if(panelId==='panelChat'){chatUnread=0;chatBadge.style.display='none';tabChat.classList.remove('has-badge')}
+  // FIX: invalidate map when map tab becomes visible
+  if(panelId==='panelMap')setTimeout(()=>{try{leafletMapFull?.invalidateSize()}catch(e){}},150);
+}
+tabMap.addEventListener('click',()=>switchTab('panelMap',tabMap));
+tabChat.addEventListener('click',()=>switchTab('panelChat',tabChat));
+tabMembers.addEventListener('click',()=>switchTab('panelMembers',tabMembers));
+tabSettings.addEventListener('click',()=>switchTab('panelSettings',tabSettings));
 
-// ── CHAT ──────────────────────────────────────────────
-function appendChat(username,text,ts,isSystem){const el=document.createElement('div');if(isSystem){el.className='chat-system';el.textContent=text}else{const isMe=username===currentUsername;el.className='chat-msg '+(isMe?'me':'other');el.innerHTML=`<div class="chat-bubble">${escapeHtml(text)}</div><div class="chat-meta">${isMe?'Bạn':escapeHtml(username)} · ${formatTime(ts||Date.now())}</div>`}chatScroll.appendChild(el);chatScroll.scrollTop=chatScroll.scrollHeight;if(activeTab!=='chat'&&!isSystem){chatUnread++;chatBadge.textContent=chatUnread;chatBadge.style.display='inline';chatQuickBtn.classList.add('has-new')}}
+// ── CHAT ───────────────────────────────────────────────
+function appendChat(username,text,ts,isSystem){
+  const el=document.createElement('div');
+  if(isSystem){el.className='chat-system';el.textContent=text}
+  else{const isMe=username===currentUsername;el.className='chat-msg '+(isMe?'me':'other');el.innerHTML=`<div class="chat-bubble">${escapeHtml(text)}</div><div class="chat-meta">${isMe?'Bạn':escapeHtml(username)} · ${formatTime(ts||Date.now())}</div>`}
+  chatMsgs.appendChild(el);chatMsgs.scrollTop=chatMsgs.scrollHeight;
+  if(activeTab!=='panelChat'&&!isSystem){chatUnread++;chatBadge.textContent=chatUnread;chatBadge.style.display='flex';tabChat.classList.add('has-badge')}
+}
+function appendSystemToChat(msg){/* already handled in appendChat */}
 function sendChat(){const t=chatInput.value.trim();if(!t||!socket)return;socket.emit('chat-message',{text:t});chatInput.value=''}
-chatSendBtn.addEventListener('click',sendChat);
+chatSend.addEventListener('click',sendChat);
 chatInput.addEventListener('keydown',e=>{if(e.key==='Enter')sendChat()});
 
-// ── VOICE MEMO ────────────────────────────────────────
-vmemorDismiss.addEventListener('click',()=>{voicMemoBanner.style.display='none';voiceMemoRaw=null});
-vmemoPlayBtn.addEventListener('click',async()=>{if(!voiceMemoRaw||!audioCtx)return;try{unlockAudio();const buf=await audioCtx.decodeAudioData(voiceMemoRaw.slice(0)),src=audioCtx.createBufferSource();src.buffer=buf;src.connect(audioCtx.destination);src.start(0);vmemoPlayBtn.textContent='▶ Đang phát...';src.onended=()=>vmemoPlayBtn.textContent='▶ Phát lại'}catch(e){showToast('Không phát được','err')}});
+// ── VOICE MEMO ─────────────────────────────────────────
+vmemoDismiss.addEventListener('click',()=>{voicMemoBanner.style.display='none';voiceMemoRaw=null});
+vmemoPlay.addEventListener('click',async()=>{if(!voiceMemoRaw||!audioCtx)return;try{unlockAudio();const buf=await audioCtx.decodeAudioData(voiceMemoRaw.slice(0)),src=audioCtx.createBufferSource();src.buffer=buf;src.connect(audioCtx.destination);src.start(0);vmemoPlay.textContent='▶ Đang phát...';src.onended=()=>vmemoPlay.textContent='▶ Phát lại'}catch(e){showToast('Không phát được','err')}});
 
-// ── SOS ───────────────────────────────────────────────
+// ── SOS ────────────────────────────────────────────────
 let sosCd=false;
-menuSOS.addEventListener('click',()=>{if(!socket||!currentRoom)return;if(sosCd){showToast('⏳ Đợi trước khi gửi SOS lại','warn');return}unlockAudio();sosCd=true;menuSOS.style.opacity='.5';setTimeout(()=>{sosCd=false;menuSOS.style.opacity=''},10000);socket.emit('sos',{lat:lastKnownLat,lng:lastKnownLng});beepSOS();vibrate([200,100,200,100,200]);showToast('🆘 Đã gửi SOS toàn phòng!','sos-t')});
-sosDismissBtn.addEventListener('click',()=>sosOverlay.classList.remove('show'));
+raSOS.addEventListener('click',()=>{if(!socket||!currentRoom)return;if(sosCd){showToast('⏳ Đợi trước khi gửi SOS lại','warn');return}unlockAudio();sosCd=true;raSOS.style.opacity='.5';setTimeout(()=>{sosCd=false;raSOS.style.opacity=''},10000);socket.emit('sos',{lat:lastKnownLat,lng:lastKnownLng});beepSOS();vibrate([200,100,200,100,200]);showToast('🆘 Đã gửi SOS toàn phòng!','err')});
+sosDismiss.addEventListener('click',()=>sosOverlay.classList.remove('show'));
 
-// ── QR SHARE ──────────────────────────────────────────
+// ── SHARE / QR ─────────────────────────────────────────
 function getRoomUrl(rc){return window.location.origin+window.location.pathname+'?room='+encodeURIComponent(rc)}
-shareChip.addEventListener('click',()=>{if(!currentRoom)return;const url=getRoomUrl(currentRoom);qrLinkBox.textContent=url;drawQR(url);qrModal.classList.add('show');if(navigator.share)navigator.share({title:`Tham gia phòng "${currentRoom}"`,url}).catch(()=>{})});
-qrCopyBtn.addEventListener('click',async()=>{try{await navigator.clipboard.writeText(getRoomUrl(currentRoom));qrCopyBtn.textContent='✓ Đã sao chép';setTimeout(()=>qrCopyBtn.textContent='Sao chép',2000)}catch(e){showToast('Không sao chép được','err')}});
-qrCloseBtn.addEventListener('click',()=>qrModal.classList.remove('show'));
-qrBackdrop.addEventListener('click',()=>qrModal.classList.remove('show'));
-function drawQR(text){const ctx=qrCanvas.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,200,200);if(typeof QRCode!=='undefined'){const d=document.createElement('div');new QRCode(d,{text,width:176,height:176,colorDark:'#1e2a4a',colorLight:'#fff'});const img=d.querySelector('img');if(img){const load=()=>{ctx.fillStyle='#fff';ctx.fillRect(0,0,200,200);ctx.drawImage(img,12,12,176,176)};if(img.complete)load();else img.onload=load}}}
+shareChip.addEventListener('click',()=>{if(!currentRoom)return;const url=getRoomUrl(currentRoom);qrLink.textContent=url;drawQR(url);qrModal.classList.add('show');if(navigator.share)navigator.share({title:`Tham gia phòng "${currentRoom}"`,url}).catch(()=>{})});
+qrBd.addEventListener('click',()=>qrModal.classList.remove('show'));
+qrClose.addEventListener('click',()=>qrModal.classList.remove('show'));
+qrCopy.addEventListener('click',async()=>{try{await navigator.clipboard.writeText(getRoomUrl(currentRoom));qrCopy.textContent='✓ Đã sao chép';setTimeout(()=>qrCopy.textContent='Sao chép',2000)}catch(e){showToast('Không sao chép được','err')}});
+function drawQR(text){const ctx=qrCanvas.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,200,200);if(typeof QRCode!=='undefined'){const d=document.createElement('div');new QRCode(d,{text,width:176,height:176,colorDark:'#0d1117',colorLight:'#fff'});const img=d.querySelector('img');if(img){const load=()=>{ctx.fillStyle='#fff';ctx.fillRect(0,0,200,200);ctx.drawImage(img,12,12,176,176)};if(img.complete)load();else img.onload=load}}}
 
-// ── REACTIONS ─────────────────────────────────────────
-EMOJIS.forEach(emo=>{const btn=document.createElement('button');btn.className='emoji-btn';btn.textContent=emo;btn.addEventListener('click',()=>{if(socket?.connected)socket.emit('reaction',{emoji:emo});spawnReaction(currentUsername,emo);reactionSheet.classList.remove('show')});emojiGrid.appendChild(btn)});
-reactionFab.addEventListener('click',()=>{unlockAudio();reactionSheet.classList.add('show')});
-reactionClose.addEventListener('click',()=>reactionSheet.classList.remove('show'));
-reactionBackdrop.addEventListener('click',()=>reactionSheet.classList.remove('show'));
-function spawnReaction(u,e){const el=document.createElement('div');el.className='reaction-bubble';el.style.left=(10+Math.random()*70)+'%';el.innerHTML=`<div class="re-emoji">${e}</div><div class="re-who">${escapeHtml(u||'')}</div>`;reactionLayer.appendChild(el);setTimeout(()=>el.remove(),2600)}
+// ── REACTIONS ──────────────────────────────────────────
+EMOJIS.forEach(emo=>{const btn=document.createElement('button');btn.className='emoji-btn';btn.textContent=emo;btn.addEventListener('click',()=>{if(socket?.connected)socket.emit('reaction',{emoji:emo});spawnReaction(currentUsername,emo);emojiModal.classList.remove('show')});emojiGrid.appendChild(btn)});
+emojiBd.addEventListener('click',()=>emojiModal.classList.remove('show'));
+emojiClose.addEventListener('click',()=>emojiModal.classList.remove('show'));
+function spawnReaction(u,e){const el=document.createElement('div');el.className='rb';el.style.left=(10+Math.random()*70)+'%';el.innerHTML=`<div class="re">${e}</div><div class="rw">${escapeHtml(u||'')}</div>`;reactionLayer.appendChild(el);setTimeout(()=>el.remove(),2500)}
 
-// ── WAKE LOCK ─────────────────────────────────────────
-async function enableWakeLock(){if(!('wakeLock' in navigator)){showToast('Máy chưa hỗ trợ giữ màn hình sáng','warn');return}try{wakeLock=await navigator.wakeLock.request('screen');wakeLockOn=true;menuWakeLock.classList.add('active');wakeLock.addEventListener('release',()=>{wakeLockOn=false;menuWakeLock.classList.remove('active')})}catch(e){}}
-function disableWakeLock(){if(wakeLock){wakeLock.release().catch(()=>{});wakeLock=null}wakeLockOn=false;menuWakeLock.classList.remove('active')}
-menuWakeLock.addEventListener('click',()=>{if(wakeLockOn)disableWakeLock();else enableWakeLock()});
+// Add emoji FAB to PTT area (long-press or via tab)
+// We'll add emoji option to the discover inside settings tab
+// Actually add a small emoji button near PTT — show in chat row
+const emojiTrigger=document.createElement('button');
+emojiTrigger.style.cssText='position:absolute;right:8px;bottom:8px;background:var(--surface2);border:1px solid var(--border);border-radius:50%;width:30px;height:30px;font-size:16px;display:flex;align-items:center;justify-content:center;cursor:pointer';
+emojiTrigger.textContent='🙂';emojiTrigger.title='Cảm xúc';
+emojiTrigger.addEventListener('click',()=>emojiModal.classList.add('show'));
+panelChat.style.position='relative';panelChat.appendChild(emojiTrigger);
+
+// ── SETTINGS ───────────────────────────────────────────
+setPublic.addEventListener('click',()=>setPublic.classList.toggle('on'));
+setApproval.addEventListener('click',()=>setApproval.classList.toggle('on'));
+setSave.addEventListener('click',()=>{if(!socket)return;socket.emit('update-room-settings',{isPublic:setPublic.classList.contains('on'),requireApproval:setApproval.classList.contains('on'),password:setPass.value,description:setDesc.value.trim()});showToast('✅ Đã lưu cài đặt phòng','ok')});
+setLeave.addEventListener('click',doLeaveRoom);
+
+// Discover rooms button in settings tab
+const rdBtnInSettings=document.createElement('div');rdBtnInSettings.style.cssText='padding:0 4px;margin-top:8px';
+rdBtnInSettings.innerHTML='<button class="btn btn-secondary btn-full" id="rdOpenBtn">🔍 Khám phá phòng khác</button>';
+panelSettings.appendChild(rdBtnInSettings);
+rdBtnInSettings.querySelector('#rdOpenBtn').addEventListener('click',()=>{rdModal.classList.add('show');loadRooms('',rdList)});
+
+// ── WAKE LOCK ──────────────────────────────────────────
+async function enableWakeLock(){if(!('wakeLock' in navigator)){showToast('Máy chưa hỗ trợ giữ màn hình sáng','warn');return}try{wakeLock=await navigator.wakeLock.request('screen');wakeLockOn=true;raWakeLock.classList.add('on');wakeLock.addEventListener('release',()=>{wakeLockOn=false;raWakeLock.classList.remove('on')})}catch(e){}}
+function disableWakeLock(){if(wakeLock){wakeLock.release().catch(()=>{});wakeLock=null}wakeLockOn=false;raWakeLock.classList.remove('on')}
+raWakeLock.addEventListener('click',()=>{if(wakeLockOn)disableWakeLock();else enableWakeLock()});
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&wakeLockOn&&!wakeLock)enableWakeLock()});
 
-// ── NOTIFICATIONS ─────────────────────────────────────
+// ── NOTIFICATIONS ──────────────────────────────────────
 function urlB64(b){const p='='.repeat((4-b.length%4)%4),b64=(b+p).replace(/-/g,'+').replace(/_/g,'/'),r=atob(b64),o=new Uint8Array(r.length);for(let i=0;i<r.length;i++)o[i]=r.charCodeAt(i);return o}
-async function enableNotifications(){if(!('Notification' in window)||!('PushManager' in window)){showToast('Chưa hỗ trợ thông báo đẩy','warn');return}try{if(await Notification.requestPermission()!=='granted'){showToast('Chưa cho phép thông báo','warn');return}if(!swRegistration)swRegistration=await navigator.serviceWorker.ready;const{key}=await(await fetch(SERVER_URL+'/vapid-public-key')).json();let sub=await swRegistration.pushManager.getSubscription();if(!sub)sub=await swRegistration.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:urlB64(key)});if(socket?.connected)socket.emit('save-subscription',sub);notifSubscribed=true;menuNotify.classList.add('active');showToast('🔔 Đã bật thông báo','ok')}catch(e){showToast('Không bật được thông báo','err')}}
-menuNotify.addEventListener('click',()=>{if(!notifSubscribed)enableNotifications()});
+async function enableNotifications(){if(!('Notification' in window)||!('PushManager' in window)){showToast('Chưa hỗ trợ thông báo đẩy','warn');return}try{if(await Notification.requestPermission()!=='granted'){showToast('Chưa cho phép thông báo','warn');return}if(!swRegistration)swRegistration=await navigator.serviceWorker.ready;const{key}=await(await fetch(SERVER_URL+'/vapid-public-key')).json();let sub=await swRegistration.pushManager.getSubscription();if(!sub)sub=await swRegistration.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:urlB64(key)});if(socket?.connected)socket.emit('save-subscription',sub);notifSubscribed=true;raNotify.classList.add('on');showToast('🔔 Đã bật thông báo','ok')}catch(e){showToast('Không bật được thông báo','err')}}
+raNotify.addEventListener('click',()=>{if(!notifSubscribed)enableNotifications()});
 
-// ── iOS BANNER ────────────────────────────────────────
+// ── iOS ─────────────────────────────────────────────────
 (function(){const isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent),isStandalone=window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone===true;if(isIOS&&!isStandalone)iosBanner.style.display='block'})();
 iosBannerClose.addEventListener('click',()=>iosBanner.style.display='none');
 
-// ── SW ────────────────────────────────────────────────
+// ── SW ──────────────────────────────────────────────────
 if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').then(r=>swRegistration=r).catch(()=>{}));
 
-// ── LEAVE ─────────────────────────────────────────────
-menuLeave.addEventListener('click',doLeaveRoom);
+// ── LEAVE ───────────────────────────────────────────────
 function doLeaveRoom(){
   if(talkState!=='idle')stopTalking();
   disableWakeLock();stopCamera();
@@ -1131,13 +1131,13 @@ function doLeaveRoom(){
   if(mediaStream){mediaStream.getTracks().forEach(t=>t.stop());mediaStream=null}
   if(watchId!=null){navigator.geolocation.clearWatch(watchId);watchId=null}
   participants=[];knownUsernames=new Set();speakingSet.clear();currentSpeakerName=null;
-  if(leafletMap){Object.keys(mapMarkers).forEach(k=>{leafletMap.removeLayer(mapMarkers[k]);delete mapMarkers[k]})}
-  chatScroll.innerHTML='';chatUnread=0;isOwner=false;
-  activeTab='members';switchTab('members');
+  // clean maps
+  if(leafletMapStrip){Object.keys(mapMarkersStrip).forEach(k=>{leafletMapStrip.removeLayer(mapMarkersStrip[k]);delete mapMarkersStrip[k]})}
+  if(leafletMapFull){Object.keys(mapMarkersFull).forEach(k=>{leafletMapFull.removeLayer(mapMarkersFull[k]);delete mapMarkersFull[k]})}
+  chatMsgs.innerHTML='';chatUnread=0;isOwner=false;
+  activeTab='panelChat';switchTab('panelChat',tabChat);
   voiceMemoRaw=null;voicMemoBanner.style.display='none';
   approvalPanel.style.display='none';Object.keys(pendingApprovals).forEach(k=>delete pendingApprovals[k]);
-  menuSettings.style.display='none';
-  mapVisible=false;mapWrap.style.display='none';menuMap.classList.remove('active');
   currentRoom='';currentUsername='';
   showScreen('join');resetJoinBtn();
   pttBtn.classList.add('locked');
