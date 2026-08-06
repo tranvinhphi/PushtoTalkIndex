@@ -697,6 +697,95 @@ function beepNo(){beep(280,90);setTimeout(()=>beep(200,130),90)}
 function beepEnd(){beep(520,120,.18);noise(.07,.05,1500)}
 function beepSOS(){for(let i=0;i<3;i++)setTimeout(()=>{beep(900,180,.4);setTimeout(()=>beep(660,130,.3),160)},i*380)}
 function vib(p){if(navigator.vibrate)try{navigator.vibrate(p)}catch(e){}}
+
+// ── CHAT SOUND EFFECTS ──────────────────────────────────
+// Gửi tin: tiếng "whoosh" nhẹ + pop
+function sndSend(){
+  if(!audioCtx)return;
+  try{
+    // Sweep lên nhanh như đang bay đi
+    const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+    o.type='sine';
+    o.frequency.setValueAtTime(300,audioCtx.currentTime);
+    o.frequency.exponentialRampToValueAtTime(900,audioCtx.currentTime+0.12);
+    g.gain.setValueAtTime(0.12,audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.14);
+    o.connect(g);g.connect(audioCtx.destination);o.start();o.stop(audioCtx.currentTime+0.15);
+    // Pop cuối
+    setTimeout(()=>beep(1100,40,.08),100);
+  }catch(e){}
+}
+
+// Nhận tin của người khác: tiếng "ding" 2 nốt dễ chịu
+function sndReceive(){
+  if(!audioCtx)return;
+  try{
+    // Nốt 1
+    const o1=audioCtx.createOscillator(),g1=audioCtx.createGain();
+    o1.type='triangle';o1.frequency.value=880;
+    g1.gain.setValueAtTime(0,audioCtx.currentTime);
+    g1.gain.linearRampToValueAtTime(0.15,audioCtx.currentTime+0.01);
+    g1.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.22);
+    o1.connect(g1);g1.connect(audioCtx.destination);o1.start();o1.stop(audioCtx.currentTime+0.23);
+    // Nốt 2 (cao hơn, trễ 120ms)
+    setTimeout(()=>{
+      const o2=audioCtx.createOscillator(),g2=audioCtx.createGain();
+      o2.type='triangle';o2.frequency.value=1320;
+      g2.gain.setValueAtTime(0,audioCtx.currentTime);
+      g2.gain.linearRampToValueAtTime(0.1,audioCtx.currentTime+0.01);
+      g2.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.3);
+      o2.connect(g2);g2.connect(audioCtx.destination);o2.start();o2.stop(audioCtx.currentTime+0.31);
+    },120);
+  }catch(e){}
+}
+
+// Có người join phòng: tiếng chào vui
+function sndJoin(){
+  if(!audioCtx)return;
+  try{
+    [523,659,784].forEach((freq,i)=>{
+      setTimeout(()=>{
+        const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+        o.type='triangle';o.frequency.value=freq;
+        g.gain.setValueAtTime(0.1,audioCtx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.18);
+        o.connect(g);g.connect(audioCtx.destination);o.start();o.stop(audioCtx.currentTime+0.19);
+      },i*90);
+    });
+  }catch(e){}
+}
+
+// Có người rời phòng: đi xuống buồn buồn
+function sndLeave(){
+  if(!audioCtx)return;
+  try{
+    [659,523,392].forEach((freq,i)=>{
+      setTimeout(()=>{
+        const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+        o.type='sine';o.frequency.value=freq;
+        g.gain.setValueAtTime(0.08,audioCtx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.2);
+        o.connect(g);g.connect(audioCtx.destination);o.start();o.stop(audioCtx.currentTime+0.21);
+      },i*100);
+    });
+  }catch(e){}
+}
+
+// Yêu cầu mic/cam từ admin: chuông cảnh báo nhẹ
+function sndRequest(){
+  if(!audioCtx)return;
+  try{
+    [784,784,988].forEach((freq,i)=>{
+      setTimeout(()=>{
+        const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+        o.type='sine';o.frequency.value=freq;
+        g.gain.setValueAtTime(0.13,audioCtx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.15);
+        o.connect(g);g.connect(audioCtx.destination);o.start();o.stop(audioCtx.currentTime+0.16);
+      },i*140);
+    });
+  }catch(e){}
+}
 function unlockAudio(){if(audioUnlocked)return;try{const C=window.AudioContext||window.webkitAudioContext;audioCtx=new C();const b=audioCtx.createBuffer(1,1,22050),src=audioCtx.createBufferSource();src.buffer=b;src.connect(audioCtx.destination);src.start(0);if(audioCtx.state==='suspended')audioCtx.resume();audioUnlocked=true}catch(e){}}
 function toast(text,type){const el=document.createElement('div');el.className='toast'+(type?' '+type:'');el.textContent=text;toastLayer.appendChild(el);setTimeout(()=>el.remove(),2700)}
 
@@ -827,25 +916,21 @@ function connectServer(roomCode,username,password,createOpts){
   socket.on('camera-on-requested',({fromOwner})=>{
     camReqSub.textContent=`${fromOwner} yêu cầu bạn bật camera`;
     camReqBan.classList.add('show');
-    // Browser notification if page not focused
+    sndRequest();vib([100,50,100]);
     if(document.hidden&&Notification.permission==='granted'){
       new Notification('📷 Yêu cầu bật camera',{body:`${fromOwner} yêu cầu bạn bật camera trong phòng "${currentRoom}"`,icon:'icon-192.png'});
     }
-    vib([100,50,100]);
   });
 
-  // NEW v10: mic on request
   socket.on('mic-on-requested',({fromOwner})=>{
     micReqSub.textContent=`${fromOwner} yêu cầu bạn nói ngay!`;
     micReqBan.classList.add('show');
-    // Browser notification
+    sndRequest();vib([200,100,200]);
+    unlockAudio();
+    toast('🎙️ Chủ phòng yêu cầu bạn nói — bấm PTT!','warn');
     if(document.hidden&&Notification.permission==='granted'){
       new Notification('🎙️ Yêu cầu bật micro',{body:`${fromOwner} yêu cầu bạn phát biểu trong phòng "${currentRoom}"`,icon:'icon-192.png'});
     }
-    vib([200,100,200]);
-    // Auto-unmute locally
-    unlockAudio();
-    toast('🎙️ Chủ phòng yêu cầu bạn nói — bấm PTT!','warn');
   });
 
   socket.on('disconnect',()=>{connDot.classList.add('warn');recon.classList.add('show');setStat('⚡ Đang kết nối lại...','var(--warn)');if(talkState==='talking')stopTalking()});
@@ -1049,12 +1134,24 @@ chatFab.addEventListener('click',()=>switchPanel('panelChat',tabChat));
 // CHAT
 function appendChat(username,text,ts,isSystem){
   const el=document.createElement('div');
-  if(isSystem){el.className='csys';el.textContent=text}
-  else{const isMe=username===currentUsername;el.className='cmsg '+(isMe?'me':'other');el.innerHTML=`<div class="bubble">${esc(text)}</div><div class="cmeta">${isMe?'Bạn':esc(username)} · ${fmtT(ts||Date.now())}</div>`}
+  if(isSystem){
+    el.className='csys';el.textContent=text;
+    // âm thanh join/leave
+    if(audioUnlocked){
+      if(text.includes('đã vào phòng'))sndJoin();
+      else if(text.includes('đã rời phòng')||text.includes('đã bị mời ra'))sndLeave();
+    }
+  }else{
+    const isMe=username===currentUsername;
+    el.className='cmsg '+(isMe?'me':'other');
+    el.innerHTML=`<div class="bubble">${esc(text)}</div><div class="cmeta">${isMe?'Bạn':esc(username)} · ${fmtT(ts||Date.now())}</div>`;
+    // âm thanh nhận tin (chỉ khi tin của người khác)
+    if(!isMe&&audioUnlocked){sndReceive();vib(15)}
+  }
   chatMsgs.appendChild(el);chatMsgs.scrollTop=chatMsgs.scrollHeight;
   if(activePanel!=='panelChat'&&!isSystem){chatUnread++;chatFabDot.style.display='block';tabChat.classList.add('has-dot')}
 }
-function sendChat(){const t=chatInput.value.trim();if(!t||!socket)return;socket.emit('chat-message',{text:t});chatInput.value=''}
+function sendChat(){const t=chatInput.value.trim();if(!t||!socket)return;socket.emit('chat-message',{text:t});chatInput.value='';sndSend();vib(8)}
 chatSend.addEventListener('click',sendChat);
 chatInput.addEventListener('keydown',e=>{if(e.key==='Enter')sendChat()});
 
