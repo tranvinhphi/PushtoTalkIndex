@@ -258,14 +258,32 @@ input{font-family:inherit}
 .mrow.speaking .mwave{opacity:1;transform:scale(1);animation:mBl 1s ease-in-out infinite}
 @keyframes mBl{0%,100%{opacity:1}50%{opacity:.35}}
 .owbtns{display:flex;gap:3px;flex-shrink:0}
-.owb{width:28px;height:28px;border-radius:7px;background:var(--surf2);border:1px solid var(--border);font-size:12px;display:flex;align-items:center;justify-content:center}
-.owb:active{transform:scale(.88)}
-.owb-menu{position:relative}
-.owb-dropdown{display:none;position:absolute;right:0;bottom:32px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.5);z-index:50;min-width:160px;overflow:hidden}
-.owb-dropdown.open{display:block}
-.owb-dropdown button{width:100%;padding:10px 14px;text-align:left;font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border)}
-.owb-dropdown button:last-child{border-bottom:none}
-.owb-dropdown button:active{background:var(--surf)}
+/* ── OWNER DROPDOWN ── */
+.owbtns{position:relative;flex-shrink:0}
+.owb-btn{width:30px;height:30px;border-radius:8px;background:var(--surf2);border:1px solid var(--border);
+  font-size:16px;display:flex;align-items:center;justify-content:center;color:var(--text2);
+  transition:all .13s;cursor:pointer}
+.owb-btn:active{transform:scale(.88);background:var(--surf)}
+.owb-drop{
+  display:none;position:fixed;
+  background:var(--bg2);border:1px solid var(--border2);border-radius:12px;
+  box-shadow:0 12px 32px rgba(0,0,0,.6);
+  z-index:999;min-width:200px;overflow:hidden;
+}
+.owb-drop.open{display:block}
+.owb-drop-item{
+  width:100%;padding:11px 14px;text-align:left;font-size:13px;font-weight:600;
+  display:flex;align-items:center;gap:10px;border:none;background:transparent;color:var(--text);
+  border-bottom:1px solid var(--border);cursor:pointer;transition:background .12s;
+}
+.owb-drop-item:last-child{border-bottom:none}
+.owb-drop-item:active,.owb-drop-item:hover{background:var(--surf)}
+.owb-drop-item.danger{color:var(--red)}
+.owb-drop-item.warn{color:var(--warn)}
+.owb-drop-item.blue{color:var(--blue)}
+.owb-drop-item.green{color:var(--green)}
+.owb-drop-title{padding:8px 14px 6px;font-size:10px;font-weight:700;color:var(--text3);
+  text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--border);background:var(--surf2)}
 
 /* Map panel */
 .map-panel-wrap{flex:1;position:relative;overflow:hidden;min-height:0}
@@ -295,10 +313,11 @@ input{font-family:inherit}
 #reactLayer{position:absolute;bottom:100%;left:0;right:0;height:60px;pointer-events:none;overflow:visible;z-index:50}
 .stat-line{font-size:12.5px;font-weight:600;color:var(--text3);text-align:center;min-height:16px}
 .ptt-row{display:flex;align-items:center;justify-content:center;gap:20px;width:100%}
-.ptt-side{width:46px;height:46px;border-radius:50%;background:var(--surf2);border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0;position:relative}
-.ptt-side:active{transform:scale(.9)}
-.ptt-side .sdot{position:absolute;top:-2px;right:-2px;width:9px;height:9px;border-radius:50%;background:var(--red);border:1.5px solid var(--bg2);display:none}
-.ptt-side.has-dot .sdot{display:block}
+/* ptt-side removed */
+/* emoji chat button hover */
+#emojiFab:active{background:var(--blues)!important;border-color:var(--blue)!important}
+#emojiFab:active svg circle,#emojiFab:active svg path{stroke:var(--blue)!important}
+#chatSend:active{transform:scale(.91);background:#1f6feb!important}
 
 /* PTT button — big, clear, unmistakable */
 .ptt-outer{position:relative;width:90px;height:90px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
@@ -502,10 +521,24 @@ input{font-family:inherit}
     <!-- CHAT (default) -->
     <div class="panel active" id="panelChat">
       <div class="chat-msgs" id="chatMsgs"></div>
-      <div style="display:flex;gap:7px;padding:8px 12px 9px;border-top:1px solid var(--border);background:var(--bg2);flex-shrink:0">
-        <button style="width:38px;height:38px;border-radius:50%;background:var(--surf2);border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0" id="emojiFab">🙂</button>
+      <div style="display:flex;gap:7px;padding:8px 12px 9px;border-top:1px solid var(--border);background:var(--bg2);flex-shrink:0;align-items:center">
+        <!-- Emoji button: icon mặt cười rõ ràng -->
+        <button id="emojiFab" title="Gửi cảm xúc" style="width:40px;height:40px;border-radius:12px;background:var(--surf2);border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .13s">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="12" cy="12" r="10" stroke="#8b949e" stroke-width="1.8"/>
+            <path d="M8 14s1.5 2 4 2 4-2 4-2" stroke="#8b949e" stroke-width="1.8" stroke-linecap="round"/>
+            <circle cx="9" cy="10" r="1.2" fill="#8b949e"/>
+            <circle cx="15" cy="10" r="1.2" fill="#8b949e"/>
+          </svg>
+        </button>
         <input type="text" class="inp" id="chatInput" placeholder="Nhắn tin nhanh..." maxlength="300" autocomplete="off" style="flex:1;padding:9px 13px;border-radius:20px;background:var(--surf2)"/>
-        <button style="width:44px;height:44px;border-radius:50%;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;box-shadow:0 3px 12px rgba(88,166,255,.35)" id="chatSend">➤</button>
+        <!-- Send button: icon mũi tên gửi rõ ràng -->
+        <button id="chatSend" title="Gửi tin nhắn" style="width:44px;height:44px;border-radius:50%;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 3px 12px rgba(88,166,255,.35);transition:all .13s">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M22 2L11 13" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
       </div>
     </div>
 
@@ -560,10 +593,7 @@ input{font-family:inherit}
     <div id="reactLayer"></div>
     <div class="stat-line" id="statLine">Phòng đang trống</div>
     <div class="ptt-row">
-      <!-- left: emoji -->
-      <button class="ptt-side" id="emojiFab2">🙂<span class="sdot"></span></button>
-
-      <!-- center: PTT -->
+      <!-- center: PTT only -->
       <div style="display:flex;flex-direction:column;align-items:center;gap:4px">
         <div class="ptt-outer">
           <div class="ptt-ring" id="pttRing"></div>
@@ -576,9 +606,6 @@ input{font-family:inherit}
         </div>
         <div class="ptt-label" id="pttLabel">PUSH TO TALK</div>
       </div>
-
-      <!-- right: chat shortcut -->
-      <button class="ptt-side has-dot" id="chatFab">💬<span class="sdot" id="chatFabDot" style="display:none"></span></button>
     </div>
   </div>
 
@@ -630,7 +657,7 @@ const camReqBan=$('camReqBan'),camReqSub=$('camReqSub'),camAccept=$('camAccept')
 const micReqBan=$('micReqBan'),micReqSub=$('micReqSub'),micAccept=$('micAccept'),micDecline=$('micDecline');
 const avStrip=$('avStrip'),statLine=$('statLine'),videoGrid=$('videoGrid');
 const panelChat=$('panelChat'),panelMembers=$('panelMembers'),panelMap=$('panelMap'),panelSettings=$('panelSettings');
-const chatMsgs=$('chatMsgs'),chatInput=$('chatInput'),chatSend=$('chatSend'),emojiFab=$('emojiFab'),emojiFab2=$('emojiFab2');
+const chatMsgs=$('chatMsgs'),chatInput=$('chatInput'),chatSend=$('chatSend'),emojiFab=$('emojiFab');
 const memberListEl=$('memberListEl');
 const mapFull=$('mapFull'),mapFullEmpty=$('mapFullEmpty');
 const ownerBlock=$('ownerBlock'),setPublic=$('setPublic'),setApproval=$('setApproval'),setPass=$('setPass'),setDesc=$('setDesc'),setSave=$('setSave');
@@ -638,7 +665,7 @@ const setAprvSec=$('setAprvSec'),setAprvItems=$('setAprvItems');
 const rdOpenRow=$('rdOpenRow'),sosRow=$('sosRow'),setLeave=$('setLeave');
 const tabMap=$('tabMap'),tabChat=$('tabChat'),tabMembers=$('tabMembers'),tabSettings=$('tabSettings');
 const pttBtn=$('pttBtn'),pttOuter=document.querySelector('.ptt-outer'),pttRing=$('pttRing'),pttLabel=$('pttLabel');
-const reactLayer=$('reactLayer'),chatFab=$('chatFab'),chatFabDot=$('chatFabDot');
+const reactLayer=$('reactLayer');
 const qrMov=$('qrMov'),qrBd=$('qrBd'),qrCanvas=$('qrCanvas'),qrLink=$('qrLink'),qrCopy=$('qrCopy'),qrClose=$('qrClose');
 const emojiMov=$('emojiMov'),emojiBd=$('emojiBd'),emojiGrid=$('emojiGrid'),emojiClose=$('emojiClose');
 const rdMov=$('rdMov'),rdBd=$('rdBd'),rdSearch=$('rdSearch'),rdList=$('rdList'),rdClose=$('rdClose');
@@ -1033,6 +1060,53 @@ async function startBattery(){if(!navigator.getBattery)return;try{const b=await 
 // MEMBERS
 function qb(ping,battery){const p=[];if(ping!=null){let c='g';if(ping>300)c='b';else if(ping>100)c='o';p.push(`<span class="qb ${c}">${ping}ms</span>`)}if(battery!=null){let c='g';if(battery<20)c='b';else if(battery<40)c='o';p.push(`<span class="qb ${c}">🔋${battery}%</span>`)}return p.join('')}
 
+// shared dropdown element (single instance, reused for all members)
+const owDrop=document.createElement('div');
+owDrop.className='owb-drop';
+owDrop.id='owDrop';
+document.body.appendChild(owDrop);
+
+let owDropTargetId=null;
+function openOwMenu(btn,targetId,targetName,isMuted,camOn_){
+  owDropTargetId=targetId;
+  // Build menu
+  owDrop.innerHTML=`
+    <div class="owb-drop-title">👤 ${targetName}</div>
+    <button class="owb-drop-item green" data-a="req-mic">🎙️ Yêu cầu bật micro</button>
+    <button class="owb-drop-item ${isMuted?'green':'warn'}" data-a="mute">${isMuted?'🔊 Bật micro lại':'🔇 Tắt micro'}</button>
+    <button class="owb-drop-item blue" data-a="req-cam">📷 Yêu cầu bật camera</button>
+    <button class="owb-drop-item warn" data-a="cam-off">📷✕ Tắt camera</button>
+    <button class="owb-drop-item danger" data-a="kick">👢 Mời ra khỏi phòng</button>`;
+  // Position near button
+  const rect=btn.getBoundingClientRect();
+  const dropW=200,dropH=220;
+  let top=rect.bottom+6;
+  let left=rect.right-dropW;
+  // keep inside viewport
+  if(top+dropH>window.innerHeight)top=rect.top-dropH-6;
+  if(left<8)left=8;
+  owDrop.style.top=top+'px';
+  owDrop.style.left=left+'px';
+  owDrop.classList.add('open');
+}
+function closeOwMenu(){owDrop.classList.remove('open');owDropTargetId=null}
+
+// delegate clicks inside dropdown
+owDrop.addEventListener('click',e=>{
+  const item=e.target.closest('.owb-drop-item');
+  if(!item)return;
+  e.stopPropagation();
+  const a=item.dataset.a,id=owDropTargetId;
+  closeOwMenu();
+  if(!socket||!id)return;
+  if(a==='kick'){if(confirm('Mời người này ra khỏi phòng?'))socket.emit('kick-user',{targetId:id})}
+  else if(a==='mute')socket.emit('toggle-mute',{targetId:id});
+  else if(a==='cam-off')socket.emit('force-camera-off',{targetId:id});
+  else if(a==='req-cam')socket.emit('request-camera-on',{targetId:id});
+  else if(a==='req-mic')socket.emit('request-mic-on',{targetId:id});
+});
+document.addEventListener('click',e=>{if(!owDrop.contains(e.target)&&!e.target.closest('.owb-btn'))closeOwMenu()});
+
 function renderMembers(justJoined=[]){
   const sorted=[...participants].sort((a,b)=>{
     const as=speakingSet.has(a.username)?2:a.isOwner?1:0,bs=speakingSet.has(b.username)?2:b.isOwner?1:0;
@@ -1043,21 +1117,6 @@ function renderMembers(justJoined=[]){
     const isSp=speakingSet.has(p.username),isMe=p.username===currentUsername,isOw=p.isOwner;
     const row=document.createElement('div');
     row.className='mrow'+(isSp?' speaking':'')+(justJoined.includes(p.username)?' new-j':'')+(p.muted?' muted-r':'')+(isOw?' is-owner':'');
-    let ob='';
-    if(isOwner&&!isMe){
-      ob=`<div class="owbtns">
-        <div class="owb-menu">
-          <button class="owb" data-id="${p.id}" onclick="toggleOwMenu(this)" title="Tuỳ chọn">⋮</button>
-          <div class="owb-dropdown">
-            <button data-id="${p.id}" data-a="mute">${p.muted?'🔊 Bật mic':'🔇 Tắt mic'}</button>
-            <button data-id="${p.id}" data-a="req-mic">🎙️ Yêu cầu nói</button>
-            <button data-id="${p.id}" data-a="req-cam">📷 Yêu cầu camera</button>
-            <button data-id="${p.id}" data-a="cam-off">📷✕ Tắt camera</button>
-            <button data-id="${p.id}" data-a="kick" style="color:var(--red)">👢 Mời ra</button>
-          </div>
-        </div>
-      </div>`;
-    }
     const owAvClass=isOw?'owner-av':'';
     row.innerHTML=`<div class="mav-wrap">${isOw?'<span class="mcrown">👑</span>':''}<div class="mav ${owAvClass}" style="background:${colorFor(p.username)}">${ini(p.username)}</div><div class="mol"></div></div>
     <div class="minfo">
@@ -1065,32 +1124,20 @@ function renderMembers(justJoined=[]){
       <div class="msub">${isSp?'🎙️ Đang nói...':'🎧 Lắng nghe'} ${qb(p.ping,p.battery)}${p.cameraOn?' 📷':''}</div>
     </div>
     <div class="mwave"><svg viewBox="0 0 24 24" fill="none"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3Z" stroke="currentColor" stroke-width="2"/><path d="M19 11a7 7 0 0 1-14 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
-    ${ob}`;
+    ${isOwner&&!isMe?`<div class="owbtns"><button class="owb-btn" data-id="${p.id}" data-name="${esc(p.username)}" data-muted="${p.muted}" data-cam="${p.cameraOn}" title="Quản lý thành viên">⋮</button></div>`:''}`;
+    // attach click for this row's menu button
+    if(isOwner&&!isMe){
+      const menuBtn=row.querySelector('.owb-btn');
+      menuBtn.addEventListener('click',e=>{
+        e.stopPropagation();
+        const isMenuOpen=owDrop.classList.contains('open')&&owDropTargetId===p.id;
+        closeOwMenu();
+        if(!isMenuOpen)openOwMenu(menuBtn,p.id,p.username,p.muted,p.cameraOn);
+      });
+    }
     memberListEl.appendChild(row);
   });
-  // dropdown action
-  memberListEl.querySelectorAll('.owb-dropdown button').forEach(btn=>{
-    btn.addEventListener('click',e=>{
-      e.stopPropagation();
-      const id=btn.dataset.id,a=btn.dataset.a;
-      // close dropdown
-      btn.closest('.owb-dropdown').classList.remove('open');
-      if(a==='kick'){if(confirm('Mời người này ra?')&&socket)socket.emit('kick-user',{targetId:id})}
-      else if(a==='mute'&&socket)socket.emit('toggle-mute',{targetId:id});
-      else if(a==='cam-off'&&socket)socket.emit('force-camera-off',{targetId:id});
-      else if(a==='req-cam'&&socket)socket.emit('request-camera-on',{targetId:id});
-      else if(a==='req-mic'&&socket)socket.emit('request-mic-on',{targetId:id});
-    });
-  });
 }
-function toggleOwMenu(btn){
-  const dd=btn.nextElementSibling;
-  const wasOpen=dd.classList.contains('open');
-  // close all
-  document.querySelectorAll('.owb-dropdown.open').forEach(d=>d.classList.remove('open'));
-  if(!wasOpen)dd.classList.add('open');
-}
-document.addEventListener('click',()=>document.querySelectorAll('.owb-dropdown.open').forEach(d=>d.classList.remove('open')));
 
 // CAMERA
 waCam.addEventListener('click',()=>{if(camOn)stopCam();else startCam()});
@@ -1126,10 +1173,10 @@ function switchPanel(pid,tel){
   allPanels.forEach(p=>p.classList.remove('active'));allTabs.forEach(t=>t.classList.remove('active'));
   $(pid).classList.add('active');if(tel)tel.classList.add('active');
   activePanel=pid;
-  if(pid==='panelChat'){chatUnread=0;chatFabDot.style.display='none';tabChat.classList.remove('has-dot')}
+  if(pid==='panelChat'){chatUnread=0;tabChat.classList.remove('has-dot')}
   if(pid==='panelMap')setTimeout(()=>{try{leafletFull?.invalidateSize()}catch(e){}},150);
 }
-chatFab.addEventListener('click',()=>switchPanel('panelChat',tabChat));
+
 
 // CHAT
 function appendChat(username,text,ts,isSystem){
@@ -1149,7 +1196,7 @@ function appendChat(username,text,ts,isSystem){
     if(!isMe&&audioUnlocked){sndReceive();vib(15)}
   }
   chatMsgs.appendChild(el);chatMsgs.scrollTop=chatMsgs.scrollHeight;
-  if(activePanel!=='panelChat'&&!isSystem){chatUnread++;chatFabDot.style.display='block';tabChat.classList.add('has-dot')}
+  if(activePanel!=='panelChat'&&!isSystem){chatUnread++;tabChat.classList.add('has-dot')}
 }
 function sendChat(){const t=chatInput.value.trim();if(!t||!socket)return;socket.emit('chat-message',{text:t});chatInput.value='';sndSend();vib(8)}
 chatSend.addEventListener('click',sendChat);
@@ -1175,7 +1222,7 @@ function drawQR(text){const ctx=qrCanvas.getContext('2d');ctx.fillStyle='#fff';c
 
 // EMOJI
 EMOJIS.forEach(emo=>{const btn=document.createElement('button');btn.className='ebtn';btn.textContent=emo;btn.addEventListener('click',()=>{if(socket?.connected)socket.emit('reaction',{emoji:emo});spawnR(currentUsername,emo);emojiMov.classList.remove('show')});emojiGrid.appendChild(btn)});
-[emojiFab,emojiFab2].forEach(b=>b.addEventListener('click',()=>{unlockAudio();emojiMov.classList.add('show')}));
+emojiFab.addEventListener('click',()=>{unlockAudio();emojiMov.classList.add('show')});
 emojiBd.addEventListener('click',()=>emojiMov.classList.remove('show'));
 emojiClose.addEventListener('click',()=>emojiMov.classList.remove('show'));
 function spawnR(u,e){const el=document.createElement('div');el.className='rb';el.style.left=(10+Math.random()*70)+'%';el.innerHTML=`<div class="re">${e}</div><div class="rw">${esc(u||'')}</div>`;reactLayer.appendChild(el);setTimeout(()=>el.remove(),2400)}
