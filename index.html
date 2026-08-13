@@ -614,7 +614,7 @@ input{font-family:inherit}
                 <option>Đang tải danh sách giọng...</option>
               </select>
               <div class="hint" style="margin-top:6px;line-height:1.6">
-                💡 Dùng giọng Neural của Microsoft Edge — hoàn toàn miễn phí, không cần đăng ký, nhất quán trên mọi thiết bị.
+                💡 Giọng Việt từ Google TTS — miễn phí, không cần đăng ký, nhất quán trên mọi thiết bị.
               </div>
             </div>
           </div>
@@ -672,7 +672,7 @@ input{font-family:inherit}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 const SRV='https://pushtotalk-anqr.onrender.com';
-const CHUNK=350,VFPS=5,VW=160,VH=120,SK='bdv10';
+const CHUNK=350,VFPS=5,VW=160,VH=120,SK='bdv101';
 const EMOJIS=['😂','🤣','😭','😢','😡','😠','😱','😍','🥳','😴','🤔','👍','👎','❤️','🔥','💯','🎉','😅','🙄','🤯'];
 const $=id=>document.getElementById(id);
 
@@ -797,11 +797,8 @@ function buildVoicePicker(voices){
   // Nếu server down, hiện giọng browser
   if(ttsServerOk){
     sel.innerHTML=`
-      <optgroup label="🇻🇳 Giọng Việt Neural — Microsoft Edge TTS (miễn phí)">
-        <option value="nu-nam"  ${ttsVoiceChoice==='nu-nam' ?'selected':''}>🎀 Nữ — Hoài My (vi-VN-HoaiMyNeural)</option>
-        <option value="nu-bac"  ${ttsVoiceChoice==='nu-bac' ?'selected':''}>🎀 Nữ — Hương (vi-VN-HuongNeural)</option>
-        <option value="nam-nam" ${ttsVoiceChoice==='nam-nam'?'selected':''}>🎙️ Nam — Nam Minh (vi-VN-NamMinhNeural)</option>
-        <option value="nam-bac" ${ttsVoiceChoice==='nam-bac'?'selected':''}>🎙️ Nam — Nam Minh 2 (vi-VN-NamMinhNeural)</option>
+      <optgroup label="🇻🇳 Giọng Việt — Google Translate TTS (miễn phí, online)">
+        <option value="nu-nam" selected>🎀 Giọng Việt — Google (vi-VN)</option>
       </optgroup>`;
     sel.onchange=()=>{
       ttsVoiceChoice=sel.value;
