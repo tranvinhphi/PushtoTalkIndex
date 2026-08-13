@@ -614,10 +614,7 @@ input{font-family:inherit}
                 <option>Đang tải danh sách giọng...</option>
               </select>
               <div class="hint" style="margin-top:6px;line-height:1.6">
-                💡 Nếu không có giọng Việt:<br>
-                <b>Android:</b> Cài đặt → Quản lý chung → Chuyển văn bản thành giọng nói → Tải giọng Tiếng Việt<br>
-                <b>Windows 11:</b> Settings → Time & Language → Speech → Add voices → Vietnamese<br>
-                <b>iPhone:</b> Cài đặt → Trợ năng → Nội dung được đọc → Giọng → Tiếng Việt
+                💡 Dùng giọng Neural của Microsoft Edge — hoàn toàn miễn phí, không cần đăng ký, nhất quán trên mọi thiết bị.
               </div>
             </div>
           </div>
@@ -768,8 +765,12 @@ let ttsEnabled=true;
 let ttsVoice=null;
 let ttsSpeaking=false;
 const ttsQueue=[];
-// Buffer tin nhắn khi tab bị ẩn, sẽ đọc khi user quay lại
 const ttsPendingHidden=[];
+// Server TTS state — khai báo sớm để buildVoicePicker dùng được
+let ttsVoiceChoice='nu-nam';
+let ttsServerOk=true;
+let ttsErrCount=0;
+const TTS_FALLBACK_THRESHOLD=3;
 
 function ttsInit(){
   if(!window.speechSynthesis)return;
@@ -796,11 +797,11 @@ function buildVoicePicker(voices){
   // Nếu server down, hiện giọng browser
   if(ttsServerOk){
     sel.innerHTML=`
-      <optgroup label="🇻🇳 Giọng Việt — Zalo AI / ViettelAI">
-        <option value="nu-nam" ${ttsVoiceChoice==='nu-nam'?'selected':''}>🎀 Nữ miền Nam (Điềm My)</option>
-        <option value="nu-bac" ${ttsVoiceChoice==='nu-bac'?'selected':''}>🎀 Nữ miền Bắc (Thanh Hà)</option>
-        <option value="nam-nam" ${ttsVoiceChoice==='nam-nam'?'selected':''}>🎙️ Nam miền Nam (Minh Quang)</option>
-        <option value="nam-bac" ${ttsVoiceChoice==='nam-bac'?'selected':''}>🎙️ Nam miền Bắc (Thanh Long)</option>
+      <optgroup label="🇻🇳 Giọng Việt Neural — Microsoft Edge TTS (miễn phí)">
+        <option value="nu-nam"  ${ttsVoiceChoice==='nu-nam' ?'selected':''}>🎀 Nữ — Hoài My (vi-VN-HoaiMyNeural)</option>
+        <option value="nu-bac"  ${ttsVoiceChoice==='nu-bac' ?'selected':''}>🎀 Nữ — Hương (vi-VN-HuongNeural)</option>
+        <option value="nam-nam" ${ttsVoiceChoice==='nam-nam'?'selected':''}>🎙️ Nam — Nam Minh (vi-VN-NamMinhNeural)</option>
+        <option value="nam-bac" ${ttsVoiceChoice==='nam-bac'?'selected':''}>🎙️ Nam — Nam Minh 2 (vi-VN-NamMinhNeural)</option>
       </optgroup>`;
     sel.onchange=()=>{
       ttsVoiceChoice=sel.value;
@@ -830,11 +831,7 @@ function buildVoicePicker(voices){
 }
 ttsInit();
 
-// ── TTS qua server (Zalo AI → ViettelAI fallback) ─────────
-let ttsVoiceChoice='nu-nam'; // default: giọng nữ miền Nam
-let ttsServerOk=true; // false nếu server TTS lỗi liên tiếp
-let ttsErrCount=0;
-const TTS_FALLBACK_THRESHOLD=3;
+// ── TTS qua server (Microsoft Edge TTS) ─────────────────
 
 // Web Speech API fallback (dùng khi server down)
 function ttsMakeBrowserUtt(text,senderName){
@@ -849,33 +846,33 @@ function ttsMakeBrowserUtt(text,senderName){
 }
 
 async function ttsServerSpeak(text,senderName){
-  // Gọi server /tts endpoint — server lo Zalo→ViettelAI fallback
+  // Gọi server /tts → nhận audio/mpeg binary → phát qua AudioContext
   const fullText=senderName?`${senderName}: ${text}`:text;
   try{
     const res=await fetch(SRV+'/tts',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({text:fullText,voice:ttsVoiceChoice,speed:1.0}),
-      signal:AbortSignal.timeout(12000),
+      signal:AbortSignal.timeout(14000),
     });
     if(!res.ok)throw new Error('HTTP '+res.status);
-    const {audio,source}=await res.json();
-    if(!audio)throw new Error('no audio');
-    // Phát audio base64 qua AudioContext
-    const raw=atob(audio);
-    const bytes=new Uint8Array(raw.length);
-    for(let i=0;i<raw.length;i++)bytes[i]=raw.charCodeAt(i);
+    const arrayBuf=await res.arrayBuffer();
+    if(!arrayBuf||arrayBuf.byteLength<500)throw new Error('audio too short');
     if(!audioUnlocked)unlockAudio();
-    const buf=await audioCtx.decodeAudioData(bytes.buffer);
+    const decoded=await audioCtx.decodeAudioData(arrayBuf);
     const src=audioCtx.createBufferSource();
-    src.buffer=buf;src.connect(audioCtx.destination);
+    src.buffer=decoded;src.connect(audioCtx.destination);
     src.onended=()=>{ttsSpeaking=false;ttsPlayNext()};
     ttsSpeaking=true;src.start(0);
     ttsErrCount=0;ttsServerOk=true;
     return true;
   }catch(e){
+    console.warn('[TTS] Server error:',e.message);
     ttsErrCount++;
-    if(ttsErrCount>=TTS_FALLBACK_THRESHOLD){ttsServerOk=false;console.warn('[TTS] Server down, dùng browser TTS')}
+    if(ttsErrCount>=TTS_FALLBACK_THRESHOLD){
+      ttsServerOk=false;
+      console.warn('[TTS] Chuyển sang browser TTS fallback');
+    }
     return false;
   }
 }
