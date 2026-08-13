@@ -603,6 +603,25 @@ input{font-family:inherit}
           <div class="card-row" id="sosRow" style="cursor:pointer"><div class="card-icon">🆘</div><div class="card-body"><div class="card-label">Gửi SOS khẩn cấp</div><div class="card-sub">Báo động toàn phòng + vị trí GPS</div></div><span style="color:var(--red)">›</span></div>
         </div>
         <button class="btn btn-r btn-full btn-lg" id="setLeave">🚪 Rời phòng</button>
+
+        <!-- TTS Voice Picker -->
+        <div style="margin-top:10px">
+          <div class="sec">🔊 Chọn giọng đọc</div>
+          <div class="card">
+            <div class="set-inp-wrap">
+              <label class="lbl">Giọng nói</label>
+              <select id="ttsVoiceSel" class="inp" style="cursor:pointer">
+                <option>Đang tải danh sách giọng...</option>
+              </select>
+              <div class="hint" style="margin-top:6px;line-height:1.6">
+                💡 Nếu không có giọng Việt:<br>
+                <b>Android:</b> Cài đặt → Quản lý chung → Chuyển văn bản thành giọng nói → Tải giọng Tiếng Việt<br>
+                <b>Windows 11:</b> Settings → Time & Language → Speech → Add voices → Vietnamese<br>
+                <b>iPhone:</b> Cài đặt → Trợ năng → Nội dung được đọc → Giọng → Tiếng Việt
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -756,16 +775,69 @@ function ttsInit(){
   if(!window.speechSynthesis)return;
   function loadVoices(){
     const voices=window.speechSynthesis.getVoices();
-    ttsVoice=voices.find(v=>v.lang==='vi-VN')||
-              voices.find(v=>v.lang.startsWith('vi'))||
-              voices.find(v=>v.default)||voices[0]||null;
+    if(!voices.length)return;
+    // Ưu tiên theo thứ tự: giọng Việt Neural > giọng Việt bất kỳ > mặc định
+    const viNeural=voices.find(v=>v.lang==='vi-VN'&&v.name.includes('Neural'));
+    const viVN=voices.find(v=>v.lang==='vi-VN');
+    const vi=voices.find(v=>v.lang.startsWith('vi'));
+    const def=voices.find(v=>v.default)||voices[0]||null;
+    ttsVoice=viNeural||viVN||vi||def;
+    // Populate voice picker in settings if it exists
+    buildVoicePicker(voices);
   }
   loadVoices();
   window.speechSynthesis.onvoiceschanged=loadVoices;
 }
+
+function buildVoicePicker(voices){
+  const sel=$('ttsVoiceSel');
+  if(!sel)return;
+  // Nếu server TTS OK, hiện giọng server (Zalo/ViettelAI)
+  // Nếu server down, hiện giọng browser
+  if(ttsServerOk){
+    sel.innerHTML=`
+      <optgroup label="🇻🇳 Giọng Việt — Zalo AI / ViettelAI">
+        <option value="nu-nam" ${ttsVoiceChoice==='nu-nam'?'selected':''}>🎀 Nữ miền Nam (Điềm My)</option>
+        <option value="nu-bac" ${ttsVoiceChoice==='nu-bac'?'selected':''}>🎀 Nữ miền Bắc (Thanh Hà)</option>
+        <option value="nam-nam" ${ttsVoiceChoice==='nam-nam'?'selected':''}>🎙️ Nam miền Nam (Minh Quang)</option>
+        <option value="nam-bac" ${ttsVoiceChoice==='nam-bac'?'selected':''}>🎙️ Nam miền Bắc (Thanh Long)</option>
+      </optgroup>`;
+    sel.onchange=()=>{
+      ttsVoiceChoice=sel.value;
+      toast('🔊 Đã chọn giọng: '+sel.options[sel.selectedIndex].text,'ok');
+    };
+    return;
+  }
+  // Fallback: browser voices
+  sel.innerHTML='';
+  const vi=voices.filter(v=>v.lang.startsWith('vi'));
+  const other=voices.filter(v=>!v.lang.startsWith('vi'));
+  if(vi.length){
+    const grp=document.createElement('optgroup');grp.label='🇻🇳 Giọng Việt ('+vi.length+')';
+    vi.forEach(v=>{const o=document.createElement('option');o.value=v.name;o.textContent=v.name;if(ttsVoice&&v.name===ttsVoice.name)o.selected=true;grp.appendChild(o)});
+    sel.appendChild(grp);
+  }
+  if(other.length){
+    const grp=document.createElement('optgroup');grp.label='🌐 Giọng khác';
+    other.slice(0,15).forEach(v=>{const o=document.createElement('option');o.value=v.name;o.textContent=v.name+' ('+v.lang+')';grp.appendChild(o)});
+    sel.appendChild(grp);
+  }
+  sel.onchange=()=>{
+    const voices=window.speechSynthesis.getVoices();
+    ttsVoice=voices.find(v=>v.name===sel.value)||ttsVoice;
+    toast('🔊 Đã chọn giọng: '+sel.value,'ok');
+  };
+}
 ttsInit();
 
-function ttsMakeUtt(text,senderName){
+// ── TTS qua server (Zalo AI → ViettelAI fallback) ─────────
+let ttsVoiceChoice='nu-nam'; // default: giọng nữ miền Nam
+let ttsServerOk=true; // false nếu server TTS lỗi liên tiếp
+let ttsErrCount=0;
+const TTS_FALLBACK_THRESHOLD=3;
+
+// Web Speech API fallback (dùng khi server down)
+function ttsMakeBrowserUtt(text,senderName){
   const fullText=senderName?`${senderName}: ${text}`:text;
   const utt=new SpeechSynthesisUtterance(fullText);
   if(ttsVoice)utt.voice=ttsVoice;
@@ -776,42 +848,85 @@ function ttsMakeUtt(text,senderName){
   return utt;
 }
 
+async function ttsServerSpeak(text,senderName){
+  // Gọi server /tts endpoint — server lo Zalo→ViettelAI fallback
+  const fullText=senderName?`${senderName}: ${text}`:text;
+  try{
+    const res=await fetch(SRV+'/tts',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({text:fullText,voice:ttsVoiceChoice,speed:1.0}),
+      signal:AbortSignal.timeout(12000),
+    });
+    if(!res.ok)throw new Error('HTTP '+res.status);
+    const {audio,source}=await res.json();
+    if(!audio)throw new Error('no audio');
+    // Phát audio base64 qua AudioContext
+    const raw=atob(audio);
+    const bytes=new Uint8Array(raw.length);
+    for(let i=0;i<raw.length;i++)bytes[i]=raw.charCodeAt(i);
+    if(!audioUnlocked)unlockAudio();
+    const buf=await audioCtx.decodeAudioData(bytes.buffer);
+    const src=audioCtx.createBufferSource();
+    src.buffer=buf;src.connect(audioCtx.destination);
+    src.onended=()=>{ttsSpeaking=false;ttsPlayNext()};
+    ttsSpeaking=true;src.start(0);
+    ttsErrCount=0;ttsServerOk=true;
+    return true;
+  }catch(e){
+    ttsErrCount++;
+    if(ttsErrCount>=TTS_FALLBACK_THRESHOLD){ttsServerOk=false;console.warn('[TTS] Server down, dùng browser TTS')}
+    return false;
+  }
+}
+
 function ttsSpeak(text,senderName){
-  if(!ttsEnabled||!window.speechSynthesis)return;
+  if(!ttsEnabled)return;
   if(document.hidden){
-    // Tab đang ẩn: buffer lại, khi quay về sẽ đọc
     ttsPendingHidden.push({text,senderName});
     return;
   }
-  ttsQueue.push(ttsMakeUtt(text,senderName));
+  ttsQueue.push({text,senderName});
   if(!ttsSpeaking)ttsPlayNext();
 }
 
-function ttsPlayNext(){
+async function ttsPlayNext(){
   if(!ttsQueue.length){ttsSpeaking=false;return}
+  if(ttsSpeaking)return;
+  const {text,senderName}=ttsQueue.shift();
   ttsSpeaking=true;
-  window.speechSynthesis.cancel();
-  window.speechSynthesis.speak(ttsQueue.shift());
+  // Ưu tiên server TTS (giọng Việt đẹp)
+  if(ttsServerOk){
+    const ok=await ttsServerSpeak(text,senderName);
+    if(ok)return; // onended sẽ gọi ttsPlayNext tiếp
+  }
+  // Fallback: Web Speech API (giọng tuỳ máy)
+  if(window.speechSynthesis){
+    const utt=ttsMakeBrowserUtt(text,senderName);
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utt);
+  } else {
+    ttsSpeaking=false;ttsPlayNext();
+  }
 }
 
 function ttsFlushPending(){
   if(!ttsEnabled||!ttsPendingHidden.length)return;
-  // Gộp tất cả tin đang chờ thành 1 câu đọc dồn
   const items=[...ttsPendingHidden];
   ttsPendingHidden.length=0;
-  items.forEach(({text,senderName})=>{
-    ttsQueue.push(ttsMakeUtt(text,senderName));
-  });
+  items.forEach(item=>ttsQueue.push(item));
   if(!ttsSpeaking)ttsPlayNext();
 }
 
-function ttsStop(){window.speechSynthesis?.cancel();ttsQueue.length=0;ttsSpeaking=false;ttsPendingHidden.length=0}
+function ttsStop(){
+  window.speechSynthesis?.cancel();
+  ttsQueue.length=0;ttsSpeaking=false;ttsPendingHidden.length=0;
+}
 
 // Đọc 1 tin cụ thể (nút loa)
-function ttsSpeakOne(text,sender){
-  window.speechSynthesis?.cancel();
-  ttsQueue.length=0;ttsSpeaking=false;
-  ttsQueue.push(ttsMakeUtt(text,sender));
+async function ttsSpeakOne(text,sender){
+  ttsStop();
+  ttsQueue.push({text,senderName:sender});
   ttsPlayNext();
 }
 
@@ -1088,6 +1203,8 @@ function showRoom(rc){
   roomLabel.textContent=rc;connDot.classList.remove('warn');recon.classList.remove('show');
   if(isOwner)ownerBlock.style.display='block';
   if(window.history.replaceState)window.history.replaceState({},'',window.location.pathname);
+  // Populate voice picker with server voices
+  buildVoicePicker(window.speechSynthesis?.getVoices()||[]);
 }
 function setStat(t,color){statLine.textContent=t;statLine.style.color=color||'var(--text3)'}
 
