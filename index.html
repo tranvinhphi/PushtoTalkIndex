@@ -410,6 +410,19 @@ input{font-family:inherit}
   #roomScreen.active{width:400px;height:88dvh;max-height:880px;border-radius:22px;border:1px solid var(--border);box-shadow:0 24px 60px rgba(0,0,0,.6);overflow:hidden;margin:0}
 }
 @media(min-width:900px){#roomScreen.active{width:440px;height:90dvh}}
+/* TTS speaker button on chat bubbles */
+.bubble-wrap{display:flex;align-items:flex-end;gap:5px}
+.cmsg.me .bubble-wrap{flex-direction:row-reverse}
+.tts-msg-btn{
+  width:26px;height:26px;border-radius:50%;border:none;cursor:pointer;
+  background:var(--surf2);color:var(--text3);font-size:12px;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  opacity:0;transition:opacity .15s;flex-shrink:0;
+}
+.cmsg:hover .tts-msg-btn,.cmsg:active .tts-msg-btn{opacity:1}
+.tts-msg-btn:active{transform:scale(.88);background:var(--blues);color:var(--blue)}
+/* TTS toggle active */
+#raTTS.on{background:var(--greens);border-color:var(--greenb);color:var(--green)}
 </style>
 </head>
 <body>
@@ -474,6 +487,7 @@ input{font-family:inherit}
       <span style="font-size:11px;color:var(--text3)">📤</span>
     </div>
     <div class="racts">
+      <div class="ra-wrap" id="waTTS"><div class="ra on" id="raTTS">🔊</div><span class="ra-lbl" id="raTTSlbl">Đọc chat</span></div>
       <div class="ra-wrap" id="waCam"><div class="ra">📷</div><span class="ra-lbl">Camera</span></div>
       <div class="ra-wrap" id="waWake"><div class="ra">🔆</div><span class="ra-lbl">Sáng màn</span></div>
       <div class="ra-wrap" id="waNoti"><div class="ra">🔔</div><span class="ra-lbl">Thông báo</span></div>
@@ -580,7 +594,12 @@ input{font-family:inherit}
         </div>
         <div class="sec">Tuỳ chọn</div>
         <div class="card" style="margin-bottom:10px">
-          <div class="card-row" id="rdOpenRow" style="cursor:pointer"><div class="card-icon">🔍</div><div class="card-body"><div class="card-label">Khám phá phòng khác</div><div class="card-sub">Tìm và chuyển sang phòng khác</div></div><span style="color:var(--text3)">›</span></div>
+          <div class="card-row" style="cursor:pointer" id="settingsTTSRow">
+          <div class="card-icon">🔊</div>
+          <div class="card-body"><div class="card-label">Đọc tin nhắn chat</div><div class="card-sub">Tự động đọc to tin nhắn người khác gửi</div></div>
+          <div class="card-ctrl"><button class="tog on" id="setTTS"></button></div>
+        </div>
+        <div class="card-row" id="rdOpenRow" style="cursor:pointer"><div class="card-icon">🔍</div><div class="card-body"><div class="card-label">Khám phá phòng khác</div><div class="card-sub">Tìm và chuyển sang phòng khác</div></div><span style="color:var(--text3)">›</span></div>
           <div class="card-row" id="sosRow" style="cursor:pointer"><div class="card-icon">🆘</div><div class="card-body"><div class="card-label">Gửi SOS khẩn cấp</div><div class="card-sub">Báo động toàn phòng + vị trí GPS</div></div><span style="color:var(--red)">›</span></div>
         </div>
         <button class="btn btn-r btn-full btn-lg" id="setLeave">🚪 Rời phòng</button>
@@ -725,7 +744,106 @@ function beepEnd(){beep(520,120,.18);noise(.07,.05,1500)}
 function beepSOS(){for(let i=0;i<3;i++)setTimeout(()=>{beep(900,180,.4);setTimeout(()=>beep(660,130,.3),160)},i*380)}
 function vib(p){if(navigator.vibrate)try{navigator.vibrate(p)}catch(e){}}
 
-// ── CHAT SOUND EFFECTS ──────────────────────────────────
+// ── TEXT-TO-SPEECH ENGINE ──────────────────────────────
+let ttsEnabled=true;
+let ttsVoice=null;
+let ttsSpeaking=false;
+const ttsQueue=[];
+// Buffer tin nhắn khi tab bị ẩn, sẽ đọc khi user quay lại
+const ttsPendingHidden=[];
+
+function ttsInit(){
+  if(!window.speechSynthesis)return;
+  function loadVoices(){
+    const voices=window.speechSynthesis.getVoices();
+    ttsVoice=voices.find(v=>v.lang==='vi-VN')||
+              voices.find(v=>v.lang.startsWith('vi'))||
+              voices.find(v=>v.default)||voices[0]||null;
+  }
+  loadVoices();
+  window.speechSynthesis.onvoiceschanged=loadVoices;
+}
+ttsInit();
+
+function ttsMakeUtt(text,senderName){
+  const fullText=senderName?`${senderName}: ${text}`:text;
+  const utt=new SpeechSynthesisUtterance(fullText);
+  if(ttsVoice)utt.voice=ttsVoice;
+  utt.lang=ttsVoice?.lang||'vi-VN';
+  utt.rate=1.05;utt.pitch=1;utt.volume=1;
+  utt.onend=()=>{ttsSpeaking=false;ttsPlayNext()};
+  utt.onerror=()=>{ttsSpeaking=false;ttsPlayNext()};
+  return utt;
+}
+
+function ttsSpeak(text,senderName){
+  if(!ttsEnabled||!window.speechSynthesis)return;
+  if(document.hidden){
+    // Tab đang ẩn: buffer lại, khi quay về sẽ đọc
+    ttsPendingHidden.push({text,senderName});
+    return;
+  }
+  ttsQueue.push(ttsMakeUtt(text,senderName));
+  if(!ttsSpeaking)ttsPlayNext();
+}
+
+function ttsPlayNext(){
+  if(!ttsQueue.length){ttsSpeaking=false;return}
+  ttsSpeaking=true;
+  window.speechSynthesis.cancel();
+  window.speechSynthesis.speak(ttsQueue.shift());
+}
+
+function ttsFlushPending(){
+  if(!ttsEnabled||!ttsPendingHidden.length)return;
+  // Gộp tất cả tin đang chờ thành 1 câu đọc dồn
+  const items=[...ttsPendingHidden];
+  ttsPendingHidden.length=0;
+  items.forEach(({text,senderName})=>{
+    ttsQueue.push(ttsMakeUtt(text,senderName));
+  });
+  if(!ttsSpeaking)ttsPlayNext();
+}
+
+function ttsStop(){window.speechSynthesis?.cancel();ttsQueue.length=0;ttsSpeaking=false;ttsPendingHidden.length=0}
+
+// Đọc 1 tin cụ thể (nút loa)
+function ttsSpeakOne(text,sender){
+  window.speechSynthesis?.cancel();
+  ttsQueue.length=0;ttsSpeaking=false;
+  ttsQueue.push(ttsMakeUtt(text,sender));
+  ttsPlayNext();
+}
+
+// ── Khi user quay lại tab → đọc ngay các tin đang chờ ──
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='visible'){
+    // wake lock
+    if(wakeLockOn&&!wakeLock)enableWake();
+    // flush TTS queue từ khi tab bị ẩn
+    if(ttsEnabled&&ttsPendingHidden.length>0){
+      setTimeout(ttsFlushPending,300); // delay nhỏ cho browser ready
+    }
+  } else {
+    // Tab bị ẩn → dừng đọc để không phát âm thanh kỳ lạ khi mở tab khác
+    if(ttsSpeaking){window.speechSynthesis?.cancel();ttsSpeaking=false}
+  }
+});
+
+// ── Service Worker postMessage → đọc ngay khi SW relay lại ──
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.addEventListener('message',event=>{
+    const {type,text,sender}=event.data||{};
+    if(!ttsEnabled)return;
+    if(type==='NOTIFICATION_CLICK_TTS'&&text){
+      // User vừa click notification → đọc ngay
+      setTimeout(()=>ttsSpeakOne(text,sender),500);
+    } else if(type==='CHAT_TTS'&&text){
+      // Tab đang mở nhưng không focused → buffer
+      ttsPendingHidden.push({text,senderName:sender});
+    }
+  });
+}
 // Gửi tin: tiếng "whoosh" nhẹ + pop
 function sndSend(){
   if(!audioCtx)return;
@@ -1183,17 +1301,28 @@ function appendChat(username,text,ts,isSystem){
   const el=document.createElement('div');
   if(isSystem){
     el.className='csys';el.textContent=text;
-    // âm thanh join/leave
     if(audioUnlocked){
       if(text.includes('đã vào phòng'))sndJoin();
       else if(text.includes('đã rời phòng')||text.includes('đã bị mời ra'))sndLeave();
     }
-  }else{
+  } else {
     const isMe=username===currentUsername;
     el.className='cmsg '+(isMe?'me':'other');
-    el.innerHTML=`<div class="bubble">${esc(text)}</div><div class="cmeta">${isMe?'Bạn':esc(username)} · ${fmtT(ts||Date.now())}</div>`;
-    // âm thanh nhận tin (chỉ khi tin của người khác)
-    if(!isMe&&audioUnlocked){sndReceive();vib(15)}
+
+    // Nút loa đọc tin nhắn
+    const speakBtn=`<button class="tts-msg-btn" title="Đọc tin nhắn" onclick="ttsSpeakOne(${JSON.stringify(text)},${JSON.stringify(isMe?'Bạn':username)})">🔊</button>`;
+
+    el.innerHTML=`<div class="bubble-wrap">
+      <div class="bubble">${esc(text)}</div>
+      ${speakBtn}
+    </div>
+    <div class="cmeta">${isMe?'Bạn':esc(username)} · ${fmtT(ts||Date.now())}</div>`;
+
+    if(!isMe&&audioUnlocked){
+      sndReceive();vib(15);
+      // TTS đọc to tin nhắn người khác gửi
+      if(ttsEnabled)ttsSpeak(text,username);
+    }
   }
   chatMsgs.appendChild(el);chatMsgs.scrollTop=chatMsgs.scrollHeight;
   if(activePanel!=='panelChat'&&!isSystem){chatUnread++;tabChat.classList.add('has-dot')}
@@ -1232,11 +1361,29 @@ setPublic.addEventListener('click',()=>setPublic.classList.toggle('on'));
 setApproval.addEventListener('click',()=>setApproval.classList.toggle('on'));
 setSave.addEventListener('click',()=>{if(!socket)return;socket.emit('update-room-settings',{isPublic:setPublic.classList.contains('on'),requireApproval:setApproval.classList.contains('on'),password:setPass.value,description:setDesc.value.trim()});toast('✅ Đã lưu cài đặt phòng','ok')});
 
-// WAKE LOCK
+// TTS TOGGLE
+const waTTS=$('waTTS'),raTTS=$('raTTS'),raTTSlbl=$('raTTSlbl'),setTTS=$('setTTS');
+function syncTTSUI(){
+  raTTS.classList.toggle('on',ttsEnabled);
+  if(setTTS)setTTS.className='tog'+(ttsEnabled?' on':'');
+  raTTSlbl.textContent='Đọc chat';
+}
+waTTS.addEventListener('click',()=>{
+  ttsEnabled=!ttsEnabled;
+  if(!ttsEnabled)ttsStop();
+  syncTTSUI();
+  toast(ttsEnabled?'🔊 Đọc chat: BẬT':'🔇 Đọc chat: TẮT',ttsEnabled?'ok':'warn');
+});
+if(setTTS)setTTS.addEventListener('click',()=>{
+  ttsEnabled=!ttsEnabled;
+  if(!ttsEnabled)ttsStop();
+  syncTTSUI();
+  toast(ttsEnabled?'🔊 Đọc chat: BẬT':'🔇 Đọc chat: TẮT',ttsEnabled?'ok':'warn');
+});
 async function enableWake(){if(!('wakeLock' in navigator)){toast('Máy chưa hỗ trợ giữ màn hình sáng','warn');return}try{wakeLock=await navigator.wakeLock.request('screen');wakeLockOn=true;waWake.classList.add('on');wakeLock.addEventListener('release',()=>{wakeLockOn=false;waWake.classList.remove('on')})}catch(e){}}
 function disableWake(){if(wakeLock){wakeLock.release().catch(()=>{});wakeLock=null}wakeLockOn=false;waWake.classList.remove('on')}
 waWake.addEventListener('click',()=>{if(wakeLockOn)disableWake();else enableWake()});
-document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&wakeLockOn&&!wakeLock)enableWake()});
+// visibilitychange handled in TTS engine above (also calls enableWake)
 
 // NOTIFICATIONS
 function urlB64(b){const p='='.repeat((4-b.length%4)%4),b64=(b+p).replace(/-/g,'+').replace(/_/g,'/'),r=atob(b64),o=new Uint8Array(r.length);for(let i=0;i<r.length;i++)o[i]=r.charCodeAt(i);return o}
@@ -1267,6 +1414,7 @@ function doLeave(){
   voiceMemRaw=null;vmemo.classList.remove('show');
   aprvBan.classList.remove('show');camReqBan.classList.remove('show');micReqBan.classList.remove('show');
   Object.keys(pendingApprovals).forEach(k=>delete pendingApprovals[k]);
+  ttsStop();
   currentRoom='';currentUsername='';
   showScreen('join');resetJoinBtn();
   pttBtn.classList.add('locked');
