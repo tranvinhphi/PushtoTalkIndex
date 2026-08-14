@@ -26,8 +26,19 @@
   --st:env(safe-area-inset-top,0px);
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;padding:0}
-html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);
-  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Inter","Segoe UI",sans-serif;user-select:none}
+html,body{
+  height:100%;
+  width:100%;
+  max-width:100%;
+  overflow:hidden;
+  background:var(--bg);
+  color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Inter","Segoe UI",sans-serif;
+  user-select:none;
+  /* Prevent iOS bounce/shift */
+  position:fixed;
+  top:0;left:0;right:0;bottom:0;
+}
 button{font-family:inherit;border:none;cursor:pointer;background:none;color:inherit}
 input{font-family:inherit}
 ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
@@ -130,7 +141,9 @@ input{font-family:inherit}
 ══════════════════════════════════════════════════ */
 #roomScreen{
   display:none;
-  width:100%;height:100dvh;height:100svh;
+  /* Full viewport, no side padding - prevents iPhone shift */
+  width:100vw;max-width:100%;
+  height:100dvh;height:100svh;
   grid-template-rows:
     auto   /* header       */
     auto   /* banners      */
@@ -139,21 +152,27 @@ input{font-family:inherit}
     auto   /* ptt zone     */
     auto;  /* tabbar       */
   overflow:hidden;background:var(--bg);
+  position:fixed;top:0;left:0;right:0;bottom:0;
+  box-sizing:border-box;
 }
 #roomScreen.active{display:grid}
 
 /* HEADER */
-.rhdr{grid-row:1;display:flex;align-items:center;gap:8px;
-  padding:calc(8px + var(--st)) 12px 8px;
-  background:var(--bg2);border-bottom:1px solid var(--border);flex-shrink:0}
+.rhdr{
+  grid-row:1;display:flex;align-items:center;gap:6px;
+  padding:calc(8px + var(--st)) 10px 8px;
+  background:var(--bg2);border-bottom:1px solid var(--border);flex-shrink:0;
+  width:100%;box-sizing:border-box;overflow:hidden;
+  min-width:0; /* prevent flex overflow */
+}
 .rchip{display:inline-flex;align-items:center;gap:6px;font-weight:800;font-size:13px;
   padding:5px 10px;border-radius:999px;background:var(--surf2);border:1px solid var(--border);cursor:pointer;flex-shrink:0}
 .rchip .rd{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);flex-shrink:0}
 .rchip .rd.warn{background:var(--warn);box-shadow:0 0 6px var(--warn);animation:blink .8s infinite}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
-.racts{display:flex;align-items:center;gap:5px;margin-left:auto}
-.ra{width:32px;height:32px;border-radius:8px;background:var(--surf2);border:1px solid var(--border);
-  display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;transition:all .13s;position:relative}
+.racts{display:flex;align-items:center;gap:4px;margin-left:auto;flex-shrink:0}
+.ra{width:30px;height:30px;border-radius:8px;background:var(--surf2);border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;transition:all .13s;position:relative}
 .ra:active{transform:scale(.88)}
 .ra.on{background:var(--greens);border-color:var(--greenb);color:var(--green)}
 .ra-lbl{font-size:8px;font-weight:700;color:var(--text3);white-space:nowrap;margin-top:1px;display:block;text-align:center;line-height:1}
@@ -403,13 +422,40 @@ input{font-family:inherit}
 @keyframes fUp{0%{transform:translateY(0) scale(.6);opacity:0}12%{transform:translateY(-12px) scale(1.05);opacity:1}85%{opacity:1}100%{transform:translateY(-140px) scale(.9);opacity:0}}
 
 /* RESPONSIVE */
+/* ── MOBILE FIRST (default) ── */
+/* roomScreen is position:fixed full-screen on mobile */
+
+/* ── TABLET / DESKTOP ── */
 @media(min-width:600px){
   body{display:flex;align-items:center;justify-content:center;background:#090d14}
-  .screen{min-height:auto;height:auto;max-width:420px;width:100%;border-radius:18px;border:1px solid var(--border);box-shadow:0 24px 60px rgba(0,0,0,.6);overflow:hidden;margin:20px}
+  /* Non-room screens: centered card */
+  .screen{
+    min-height:auto;height:auto;
+    max-width:420px;width:100%;
+    border-radius:18px;border:1px solid var(--border);
+    box-shadow:0 24px 60px rgba(0,0,0,.6);
+    overflow:hidden;margin:20px;
+  }
   .screen.active{max-height:92dvh;overflow-y:auto}
-  #roomScreen.active{width:400px;height:88dvh;max-height:880px;border-radius:22px;border:1px solid var(--border);box-shadow:0 24px 60px rgba(0,0,0,.6);overflow:hidden;margin:0}
+  /* Room screen: fixed but centered as card */
+  #roomScreen.active{
+    position:relative; /* override fixed on desktop */
+    width:400px;height:88dvh;max-height:880px;
+    border-radius:22px;border:1px solid var(--border);
+    box-shadow:0 24px 60px rgba(0,0,0,.6);
+    overflow:hidden;
+    top:auto;left:auto;right:auto;bottom:auto;
+  }
 }
-@media(min-width:900px){#roomScreen.active{width:440px;height:90dvh}}
+@media(min-width:900px){
+  #roomScreen.active{width:440px;height:90dvh}
+}
+/* ── IPHONE SAFE AREA FIX ── */
+@supports(padding-top: env(safe-area-inset-top)){
+  #roomScreen{
+    padding-top:0; /* safe area handled per-element */
+  }
+}
 /* TTS speaker button on chat bubbles */
 .bubble-wrap{display:flex;align-items:flex-end;gap:5px}
 .cmsg.me .bubble-wrap{flex-direction:row-reverse}
@@ -486,8 +532,17 @@ input{font-family:inherit}
       <span id="roomLabel">--</span>
       <span style="font-size:11px;color:var(--text3)">📤</span>
     </div>
-    <!-- Status button -->
-    <button id="statusBtn" style="display:flex;align-items:center;gap:4px;padding:4px 9px;border-radius:999px;background:var(--surf2);border:1px solid var(--border);font-size:13px;cursor:pointer;flex-shrink:0" title="Đổi trạng thái">🟢 <span style="font-size:10px;color:var(--green)">Online</span></button>
+    <!-- Status button + dropdown -->
+    <div style="position:relative;flex-shrink:0" id="statusWrap">
+      <button id="statusBtn" style="display:flex;align-items:center;gap:4px;padding:4px 9px;border-radius:999px;background:var(--surf2);border:1px solid var(--border);font-size:13px;cursor:pointer" title="Đổi trạng thái">🟢 <span id="statusLabel" style="font-size:10px;color:var(--green)">Online</span> <span style="font-size:9px;color:var(--text3)">▾</span></button>
+      <div id="statusDrop" style="display:none;position:absolute;top:calc(100% + 6px);right:0;background:var(--bg2);border:1px solid var(--border2);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.5);z-index:200;min-width:180px;overflow:hidden">
+        <div style="padding:8px 12px 6px;font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em">Trạng thái</div>
+        <button class="status-opt" data-s="online"  style="width:100%;padding:10px 14px;text-align:left;font-size:13px;font-weight:600;display:flex;align-items:center;gap:10px;border:none;background:transparent;color:var(--text);border-bottom:1px solid var(--border);cursor:pointer"><span>🟢</span><div><div>Online</div><div style="font-size:10px;color:var(--text3);font-weight:400">TTS đọc tin nhắn bình thường</div></div></button>
+        <button class="status-opt" data-s="away"    style="width:100%;padding:10px 14px;text-align:left;font-size:13px;font-weight:600;display:flex;align-items:center;gap:10px;border:none;background:transparent;color:var(--text);border-bottom:1px solid var(--border);cursor:pointer"><span>🟡</span><div><div>Xa máy</div><div style="font-size:10px;color:var(--text3);font-weight:400">TTS tóm tắt khi quay lại</div></div></button>
+        <button class="status-opt" data-s="busy"    style="width:100%;padding:10px 14px;text-align:left;font-size:13px;font-weight:600;display:flex;align-items:center;gap:10px;border:none;background:transparent;color:var(--text);border-bottom:1px solid var(--border);cursor:pointer"><span>🔴</span><div><div>Bận</div><div style="font-size:10px;color:var(--text3);font-weight:400">Tắt TTS hoàn toàn</div></div></button>
+        <button class="status-opt" data-s="offline" style="width:100%;padding:10px 14px;text-align:left;font-size:13px;font-weight:600;display:flex;align-items:center;gap:10px;border:none;background:transparent;color:var(--text);cursor:pointer"><span>⚫</span><div><div>Offline</div><div style="font-size:10px;color:var(--text3);font-weight:400">Không đọc & không nhận thông báo</div></div></button>
+      </div>
+    </div>
     <div class="racts">
       <div class="ra-wrap" id="waTTS"><div class="ra on" id="raTTS">🔊</div><span class="ra-lbl" id="raTTSlbl">Đọc chat</span></div>
       <div class="ra-wrap" id="waCam"><div class="ra">📷</div><span class="ra-lbl">Camera</span></div>
@@ -682,7 +737,7 @@ input{font-family:inherit}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 const SRV='https://pushtotalk-anqr.onrender.com';
-const CHUNK=350,VFPS=5,VW=160,VH=120,SK='bdv1036';
+const CHUNK=350,VFPS=5,VW=160,VH=120,SK='bdv1037';
 const EMOJIS=['😂','🤣','😭','😢','😡','😠','😱','😍','🥳','😴','🤔','👍','👎','❤️','🔥','💯','🎉','😅','🙄','🤯'];
 const $=id=>document.getElementById(id);
 
@@ -790,11 +845,15 @@ function setUserStatus(status){
 }
 
 function renderStatusBtn(){
-  const btn=$('statusBtn');
-  if(!btn)return;
   const s=STATUS_MAP[userStatus]||STATUS_MAP.online;
-  btn.innerHTML=`${s.icon} <span style="font-size:10px;color:${s.color}">${s.label}</span>`;
-  btn.title=s.tip||s.label;
+  const lbl=$('statusLabel');
+  if(lbl){lbl.textContent=s.label;lbl.style.color=s.color;}
+  const btn=$('statusBtn');
+  if(btn)btn.childNodes[0].textContent=s.icon+' ';
+  // Highlight active option
+  document.querySelectorAll('.status-opt').forEach(o=>{
+    o.style.background=o.dataset.s===userStatus?'var(--surf)':'transparent';
+  });
 }
 
 // ── TEXT-TO-SPEECH ENGINE ──────────────────────────────
@@ -948,9 +1007,11 @@ async function ttsServerSpeak(text,senderName){
   }catch(e){
     console.warn('[TTS] Proxy error:',e.message);
     ttsErrCount++;
+    // Thử lại sau 5s thay vì tắt hẳn server TTS
     if(ttsErrCount>=TTS_FALLBACK_THRESHOLD){
       ttsServerOk=false;
-      console.warn('[TTS] Fallback sang Web Speech API');
+      console.warn('[TTS] Server TTS lỗi, thử lại sau 5s...');
+      setTimeout(()=>{ttsServerOk=true;ttsErrCount=0;},5000);
     }
     return false;
   }
@@ -983,19 +1044,15 @@ async function ttsPlayNext(){
   if(ttsSpeaking)return;
   const {text,senderName}=ttsQueue.shift();
   ttsSpeaking=true;
-  // Ưu tiên server TTS (giọng Việt đẹp)
+  // Dùng server TTS (ViettelAI giọng Việt)
   if(ttsServerOk){
     const ok=await ttsServerSpeak(text,senderName);
-    if(ok)return; // onended sẽ gọi ttsPlayNext tiếp
+    if(ok)return;
   }
-  // Fallback: Web Speech API (giọng tuỳ máy)
-  if(window.speechSynthesis){
-    const utt=ttsMakeBrowserUtt(text,senderName);
-    window.speechSynthesis.cancel();
-    window.speechSynthesis.speak(utt);
-  } else {
-    ttsSpeaking=false;ttsPlayNext();
-  }
+  // Nếu server fail: thử lại trực tiếp không qua fallback browser
+  // (browser Web Speech thường đọc tiếng Anh → không dùng)
+  ttsSpeaking=false;
+  ttsPlayNext(); // bỏ qua tin này, đọc tin tiếp theo
 }
 
 function ttsFlushPending(){
@@ -1636,21 +1693,31 @@ setSave.addEventListener('click',()=>{if(!socket)return;socket.emit('update-room
 
 // STATUS BUTTON
 const statusBtn=$('statusBtn');
-const STATUS_CYCLE=['online','away','busy'];
+const statusDrop=$('statusDrop');
 const STATUS_MAP={
-  online:{icon:'🟢',label:'Online',color:'var(--green)',tip:'Đang online — TTS bật bình thường'},
-  away:  {icon:'🟡',label:'Xa máy',color:'var(--warn)', tip:'Xa máy — TTS buffer, đọc tóm tắt khi quay lại'},
-  busy:  {icon:'🔴',label:'Bận',   color:'var(--red)',  tip:'Bận — Tắt TTS hoàn toàn'},
+  online: {icon:'🟢',label:'Online', color:'var(--green)'},
+  away:   {icon:'🟡',label:'Xa máy', color:'var(--warn)'},
+  busy:   {icon:'🔴',label:'Bận',    color:'var(--red)'},
+  offline:{icon:'⚫',label:'Offline', color:'var(--text3)'},
 };
+// Toggle dropdown
 if(statusBtn){
-  statusBtn.addEventListener('click',()=>{
-    const idx=STATUS_CYCLE.indexOf(userStatus);
-    const next=STATUS_CYCLE[(idx+1)%STATUS_CYCLE.length];
-    setUserStatus(next);
-    const s=STATUS_MAP[next];
-    toast(`${s.icon} ${s.label} — ${s.tip}`,'ok');
+  statusBtn.addEventListener('click',e=>{
+    e.stopPropagation();
+    if(statusDrop)statusDrop.style.display=statusDrop.style.display==='none'?'block':'none';
   });
 }
+// Click outside → close
+document.addEventListener('click',()=>{if(statusDrop)statusDrop.style.display='none';});
+// Status options
+document.querySelectorAll('.status-opt').forEach(btn=>{
+  btn.addEventListener('click',e=>{
+    e.stopPropagation();
+    const s=btn.dataset.s;
+    if(s)setUserStatus(s);
+    if(statusDrop)statusDrop.style.display='none';
+  });
+});
 
 // TTS TOGGLE + VOICE FOR ROOM
 const waTTS=$('waTTS'),raTTS=$('raTTS'),raTTSlbl=$('raTTSlbl'),setTTS=$('setTTS');

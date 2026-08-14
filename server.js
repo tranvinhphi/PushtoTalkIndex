@@ -1,5 +1,5 @@
 /**
- * Bộ Đàm Web — Server v10.3.6
+ * Bộ Đàm Web — Server v10.3.7
  * Room Lifecycle theo mô hình Paltalk:
  *   - Temporary Room: xoá khi Total_Users == 0
  *   - Permanent Room: hibernate khi empty, restore khi owner/admin quay lại
@@ -111,7 +111,7 @@ const io = new Server(server, {
   pingInterval: 10000,
 });
 
-app.get('/health', async (_, res) => res.json({ status:'ok', version:'10.3.6' }));
+app.get('/health', async (_, res) => res.json({ status:'ok', version:'10.3.7' }));
 
 // ── TTS PROXY — gọi ViettelAI server-side để tránh CORS ──
 const https_mod = require('https');
@@ -772,4 +772,4 @@ io.on('connection', socket => {
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`[Bộ Đàm Web] Server v10.3.6 on port ${PORT}`));
+server.listen(PORT, () => console.log(`[Bộ Đàm Web] Server v10.3.7 on port ${PORT}`));
