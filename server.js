@@ -1,5 +1,5 @@
 /**
- * Bộ Đàm Web — Server v10.4.0
+ * Bộ Đàm Web — Server v10.5.1
  * Room Lifecycle theo mô hình Paltalk:
  *   - Temporary Room: xoá khi Total_Users == 0
  *   - Permanent Room: hibernate khi empty, restore khi owner/admin quay lại
@@ -111,74 +111,163 @@ const io = new Server(server, {
   pingInterval: 10000,
 });
 
-app.get('/health', async (_, res) => res.json({ status:'ok', version:'10.4.0' }));
+app.get('/health', async (_, res) => res.json({ status:'ok', version:'10.5.1' }));
 
-// ── TTS PROXY — Google Translate TTS (vi-VN, miễn phí, không cần key) ──
+// ══════════════════════════════════════════════════════════
+//  TTS PROVIDER MANAGER — tự động fallback, admin quản lý
+// ══════════════════════════════════════════════════════════
 const https_mod = require('https');
 const tts_agent = new (require('https').Agent)({keepAlive:true,maxSockets:10});
 const ttsCache = new Map();
 const TTS_CACHE_MAX = 200;
 
-function splitTTSChunks(text,max=180){
+// Providers theo thứ tự ưu tiên
+const TTS_PROVIDERS = [
+  {id:'google-vn', name:'Google (.com.vn)', type:'google', domain:'translate.google.com.vn', enabled:true, failCount:0, lastFail:0},
+  {id:'google-com',name:'Google (.com)',    type:'google', domain:'translate.google.com',    enabled:true, failCount:0, lastFail:0},
+  {id:'google-api',name:'Google (APIs)',    type:'google', domain:'translate.googleapis.com', enabled:true, failCount:0, lastFail:0},
+  {id:'fptai',     name:'FPT.AI TTS',      type:'fptai',  apiKey:'', voice:'banmai',          enabled:false,failCount:0, lastFail:0},
+];
+const FAIL_COOLDOWN=5*60*1000; // 5 phút cooldown sau 3 lần fail
+const MAX_FAIL=3;
+
+function loadTTSConfig(){
+  try{
+    const r=db.prepare('SELECT value FROM kv WHERE key=?').get('tts_providers');
+    if(r){JSON.parse(r.value).forEach(s=>{const p=TTS_PROVIDERS.find(x=>x.id===s.id);if(p){if(s.enabled!==undefined)p.enabled=s.enabled;if(s.apiKey)p.apiKey=s.apiKey;if(s.voice)p.voice=s.voice;}});}
+  }catch(e){}
+}
+function saveTTSConfig(){
+  try{db.prepare('INSERT OR REPLACE INTO kv(key,value) VALUES(?,?)').run('tts_providers',JSON.stringify(TTS_PROVIDERS.map(p=>({id:p.id,enabled:p.enabled,apiKey:p.apiKey||'',voice:p.voice||''}))));}catch(e){}
+}
+// Init KV table + load config after DB ready
+db.exec('CREATE TABLE IF NOT EXISTS kv (key TEXT PRIMARY KEY, value TEXT)');
+setTimeout(loadTTSConfig,800);
+
+function getActiveProviders(){
+  const now=Date.now();
+  return TTS_PROVIDERS.filter(p=>{
+    if(!p.enabled)return false;
+    if(p.type==='fptai'&&!p.apiKey)return false;
+    if(p.failCount>=MAX_FAIL&&now-p.lastFail<FAIL_COOLDOWN)return false;
+    return true;
+  });
+}
+
+function splitChunks(text,max=180){
   if(text.length<=max)return[text];
   const chunks=[];const words=text.split(' ');let cur='';
-  for(const w of words){
-    if((cur+' '+w).trim().length>max){if(cur)chunks.push(cur.trim());cur=w;}
-    else cur=(cur+' '+w).trim();
-  }
+  for(const w of words){if((cur+' '+w).trim().length>max){if(cur)chunks.push(cur.trim());cur=w;}else cur=(cur+' '+w).trim();}
   if(cur)chunks.push(cur.trim());
   return chunks.length?chunks:[text.substring(0,max)];
 }
 
-function fetchGoogleChunk(text){
+function fetchGoogleChunk(text,domain){
   return new Promise((resolve,reject)=>{
     const enc=encodeURIComponent(text);
-    const url=`https://translate.google.com.vn/translate_tts?ie=UTF-8&q=${enc}&tl=vi&total=1&idx=0&textlen=${text.length}&client=tw-ob&prev=input&ttsspeed=0.9`;
-    const req=https_mod.get(url,{
-      agent:tts_agent,timeout:8000,
-      headers:{
-        'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124.0 Safari/537.36',
-        'Referer':'https://translate.google.com.vn/',
-        'Accept':'audio/mpeg,audio/*;q=0.9',
-        'Accept-Language':'vi-VN,vi;q=0.9',
-      }
-    },res=>{
-      const chunks=[];
-      res.on('data',d=>chunks.push(d));
-      res.on('end',()=>{
-        const buf=Buffer.concat(chunks);
-        if(res.statusCode===200&&buf.length>300)resolve(buf);
-        else reject(new Error(`Google TTS ${res.statusCode} size=${buf.length}`));
+    const url=`https://${domain}/translate_tts?ie=UTF-8&q=${enc}&tl=vi&total=1&idx=0&textlen=${text.length}&client=tw-ob&prev=input&ttsspeed=0.9`;
+    const req=https_mod.get(url,{agent:tts_agent,timeout:7000,headers:{
+      'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124.0 Safari/537.36',
+      'Referer':`https://${domain}/`,'Accept':'audio/mpeg,audio/*;q=0.9','Accept-Language':'vi-VN,vi;q=0.9',
+    }},res=>{
+      const chunks=[];res.on('data',d=>chunks.push(d));
+      res.on('end',()=>{const buf=Buffer.concat(chunks);if(res.statusCode===200&&buf.length>300)resolve(buf);else reject(new Error(`${domain} ${res.statusCode} size=${buf.length}`));});
+    });
+    req.on('error',reject);req.on('timeout',()=>{req.destroy();reject(new Error(`${domain} timeout`));});
+  });
+}
+
+async function fetchFPTChunk(text,apiKey,voice){
+  return new Promise((resolve,reject)=>{
+    const options={hostname:'api.fpt.ai',path:'/hmi/tts/v5',method:'POST',timeout:10000,agent:tts_agent,
+      headers:{'api-key':apiKey,'voice':voice||'banmai','speed':'','Content-Type':'text/plain','Content-Length':Buffer.byteLength(text)}};
+    const req=https_mod.request(options,res=>{
+      const chunks=[];res.on('data',d=>chunks.push(d));
+      res.on('end',async()=>{
+        try{
+          const j=JSON.parse(Buffer.concat(chunks).toString());
+          if(j.error===0&&j.async){
+            for(let i=0;i<8;i++){
+              await new Promise(r=>setTimeout(r,1000));
+              try{
+                const audioBuf=await new Promise((r2,rj)=>{https_mod.get(j.async,{agent:tts_agent,timeout:5000},rs=>{const ac=[];rs.on('data',d=>ac.push(d));rs.on('end',()=>{const b=Buffer.concat(ac);if(rs.statusCode===200&&b.length>300)r2(b);else rj(new Error('not ready'));});}).on('error',rj);});
+                return resolve(audioBuf);
+              }catch(e){continue;}
+            }
+            reject(new Error('FPT audio timeout'));
+          }else reject(new Error('FPT: '+JSON.stringify(j)));
+        }catch(e){reject(e);}
       });
     });
-    req.on('error',reject);
-    req.on('timeout',()=>{req.destroy();reject(new Error('timeout'));});
+    req.on('error',reject);req.on('timeout',()=>{req.destroy();reject(new Error('FPT timeout'));});
+    req.write(text);req.end();
   });
+}
+
+async function ttsWithFallback(text){
+  const providers=getActiveProviders();
+  if(!providers.length)throw new Error('Không có TTS provider nào khả dụng');
+  for(const p of providers){
+    try{
+      let buf;
+      if(p.type==='google'){const parts=splitChunks(text);const bufs=await Promise.all(parts.map(ch=>fetchGoogleChunk(ch,p.domain)));buf=Buffer.concat(bufs);}
+      else if(p.type==='fptai')buf=await fetchFPTChunk(text,p.apiKey,p.voice);
+      p.failCount=0;
+      console.log(`[TTS] OK via ${p.name}`);
+      return buf;
+    }catch(e){
+      p.failCount++;p.lastFail=Date.now();
+      console.warn(`[TTS] ${p.name} fail (${p.failCount}): ${e.message}`);
+    }
+  }
+  throw new Error('Tất cả TTS providers thất bại');
 }
 
 app.post('/tts',express.json(),async(req,res)=>{
   const{text=''}=req.body||{};
   if(!text||text.length>500)return res.status(400).json({error:'text required'});
   const ck=`vi::${text.substring(0,200)}`;
-  if(ttsCache.has(ck)){
-    res.setHeader('Content-Type','audio/mpeg');
-    res.setHeader('Cache-Control','public,max-age=7200');
-    return res.end(ttsCache.get(ck));
-  }
+  if(ttsCache.has(ck)){res.setHeader('Content-Type','audio/mpeg');res.setHeader('Cache-Control','public,max-age=7200');return res.end(ttsCache.get(ck));}
   try{
-    const parts=splitTTSChunks(text);
-    const bufs=await Promise.all(parts.map(p=>fetchGoogleChunk(p)));
-    const combined=Buffer.concat(bufs);
+    const buf=await ttsWithFallback(text);
     if(ttsCache.size>=TTS_CACHE_MAX)ttsCache.delete(ttsCache.keys().next().value);
-    ttsCache.set(ck,combined);
-    res.setHeader('Content-Type','audio/mpeg');
-    res.setHeader('Cache-Control','public,max-age=7200');
-    res.end(combined);
-  }catch(e){
-    console.error('[TTS]',e.message);
-    res.status(503).json({error:e.message});
-  }
+    ttsCache.set(ck,buf);
+    res.setHeader('Content-Type','audio/mpeg');res.setHeader('Cache-Control','public,max-age=7200');res.end(buf);
+  }catch(e){console.error('[TTS]',e.message);res.status(503).json({error:e.message});}
 });
+
+// ── ADMIN TTS APIs (dùng từ trong app) ────────────────────
+// Admin API không cần key riêng — chỉ dùng nội bộ từ browser owner
+app.get('/admin/tts',async(req,res)=>{
+  res.json(TTS_PROVIDERS.map(p=>({id:p.id,name:p.name,type:p.type,enabled:p.enabled,
+    failCount:p.failCount,status:p.failCount>=MAX_FAIL&&Date.now()-p.lastFail<FAIL_COOLDOWN?'cooling':'ok',
+    hasKey:!!(p.apiKey),voice:p.voice||''})));
+});
+app.post('/admin/tts/:id',express.json(),async(req,res)=>{
+  const p=TTS_PROVIDERS.find(x=>x.id===req.params.id);
+  if(!p)return res.status(404).json({error:'Not found'});
+  const{enabled,apiKey,voice,resetFail}=req.body||{};
+  if(typeof enabled==='boolean')p.enabled=enabled;
+  if(typeof apiKey==='string')p.apiKey=apiKey.trim();
+  if(typeof voice==='string')p.voice=voice.trim();
+  if(resetFail){p.failCount=0;p.lastFail=0;}
+  saveTTSConfig();
+  res.json({ok:true,id:p.id,name:p.name,enabled:p.enabled});
+});
+app.post('/admin/tts-test',express.json(),async(req,res)=>{
+  const{providerId,text='Xin chào bộ đàm web'}=req.body||{};
+  const p=TTS_PROVIDERS.find(x=>x.id===providerId);
+  if(!p)return res.status(404).json({error:'Not found'});
+  const t0=Date.now();
+  try{
+    let buf;
+    if(p.type==='google')buf=await fetchGoogleChunk(text,p.domain);
+    else buf=await fetchFPTChunk(text,p.apiKey,p.voice);
+    res.json({ok:true,provider:p.name,ms:Date.now()-t0,size:buf.length});
+  }catch(e){res.json({ok:false,provider:p.name,error:e.message,ms:Date.now()-t0});}
+});
+
+
 app.get('/vapid-public-key', async (_, res) => res.json({ key: VAPID_PUBLIC_KEY }));
 app.get('/rooms', async (req, res) => {
   const q = (req.query.q || '').toLowerCase();
@@ -768,4 +857,4 @@ io.on('connection', socket => {
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`[Bộ Đàm Web] Server v10.4.0 on port ${PORT}`));
+server.listen(PORT, () => console.log(`[Bộ Đàm Web] Server v10.5.1 on port ${PORT}`));

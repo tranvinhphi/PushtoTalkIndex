@@ -655,6 +655,36 @@ input{font-family:inherit}
         </div>
         <button class="btn btn-r btn-full btn-lg" id="setLeave">🚪 Rời phòng</button>
 
+        <!-- TTS Admin Panel (owner only) -->
+        <div id="ttsAdminPanel" style="display:none;margin-top:12px">
+          <div class="sec">🔊 Quản lý TTS Provider</div>
+          <div class="card" style="margin-bottom:8px">
+            <div id="ttsProviderList" style="padding:8px 12px">
+              <div style="color:var(--text3);font-size:12px;text-align:center;padding:12px">Đang tải...</div>
+            </div>
+          </div>
+          <!-- Thêm FPT.AI key -->
+          <div class="card" style="margin-bottom:8px">
+            <div class="set-inp-wrap">
+              <label class="lbl">🔑 FPT.AI API Key</label>
+              <input type="text" class="inp" id="fptApiKey" placeholder="Dán API key từ console.fpt.ai" autocomplete="off"/>
+              <div style="margin-top:6px;display:flex;gap:6px">
+                <select class="inp" id="fptVoice" style="flex:1">
+                  <option value="banmai">Ban Mai (Nữ miền Bắc) ⭐</option>
+                  <option value="leminh">Lê Minh (Nam miền Bắc)</option>
+                  <option value="myan">Mỹ An (Nữ miền Trung)</option>
+                  <option value="giahuy">Gia Huy (Nam miền Trung)</option>
+                  <option value="linhsan">Linh San (Nữ miền Nam)</option>
+                  <option value="minhquang">Minh Quang (Nam miền Nam)</option>
+                </select>
+                <button class="btn btn-b btn-sm" id="saveFptKey">💾 Lưu</button>
+              </div>
+              <div class="hint">Đăng ký miễn phí tại console.fpt.ai → APIs → Text to Speech → API Keys</div>
+            </div>
+          </div>
+          <button class="btn btn-s btn-full" id="refreshTtsBtn">🔄 Refresh trạng thái providers</button>
+        </div>
+
         <!-- TTS Voice Picker -->
         <div style="margin-top:10px">
           <div class="sec">🔊 Cài đặt giọng đọc chat</div>
@@ -731,7 +761,7 @@ input{font-family:inherit}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 const SRV='https://pushtotalk-anqr.onrender.com';
-const CHUNK=350,VFPS=5,VW=160,VH=120,SK='bdv1040';
+const CHUNK=350,VFPS=5,VW=160,VH=120,SK='bdv1051';
 const EMOJIS=['😂','🤣','😭','😢','😡','😠','😱','😍','🥳','😴','🤔','👍','👎','❤️','🔥','💯','🎉','😅','🙄','🤯'];
 const $=id=>document.getElementById(id);
 
@@ -1305,7 +1335,9 @@ function connectServer(roomCode,username,password,createOpts){
   socket.on('you-are-owner',()=>{
     isOwner=true;isRoomAdmin=true;ownerBlock.style.display='block';
     const svfr=$('setVoiceForRoom');if(svfr)svfr.style.display='block';
+    const tap=$('ttsAdminPanel');if(tap)tap.style.display='block';
     toast('👑 Bạn là Chủ phòng','ok');renderMembers();
+    setTimeout(loadTTSProviders,500);
   });
   socket.on('you-are-admin',()=>{
     isRoomAdmin=true;ownerBlock.style.display='block';
@@ -1763,6 +1795,75 @@ async function enableWake(){if(!('wakeLock' in navigator)){toast('Máy chưa h�
 function disableWake(){if(wakeLock){wakeLock.release().catch(()=>{});wakeLock=null}wakeLockOn=false;waWake.classList.remove('on')}
 waWake.addEventListener('click',()=>{if(wakeLockOn)disableWake();else enableWake()});
 // visibilitychange handled in TTS engine above (also calls enableWake)
+
+// ── TTS ADMIN PANEL ───────────────────────────────────────
+const ADMIN_KEY = localStorage.getItem('adminKey')||'';
+
+async function loadTTSProviders(){
+  const list=$('ttsProviderList');
+  if(!list)return;
+  try{
+    const res=await fetch(SRV+'/admin/tts');
+    if(!res.ok)throw new Error('HTTP '+res.status);
+    const providers=await res.json();
+    list.innerHTML='';
+    providers.forEach(p=>{
+      const isCooling=p.status==='cooling';
+      const row=document.createElement('div');
+      row.style.cssText='display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)';
+      row.innerHTML=`
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:600">${p.name}</div>
+          <div style="font-size:10px;color:${isCooling?'var(--warn)':p.failCount>0?'var(--warn)':'var(--green)'}">
+            ${isCooling?`⏳ Cooling (${p.failCount} lỗi)`:p.failCount>0?`⚠️ ${p.failCount} lỗi`:'✅ OK'}
+            ${p.type==='fptai'?p.hasKey?'· Có key':'· Chưa có key':''}
+          </div>
+        </div>
+        <button class="btn btn-s btn-sm" data-pid="${p.id}" data-a="test" style="font-size:10px">Test</button>
+        <button class="btn btn-s btn-sm" data-pid="${p.id}" data-a="reset" style="font-size:10px">Reset</button>
+        <button class="tog ${p.enabled?'on':''}" data-pid="${p.id}" data-a="toggle" style="transform:scale(.8)"></button>`;
+      list.appendChild(row);
+    });
+    list.querySelectorAll('[data-a]').forEach(btn=>{
+      btn.addEventListener('click',async()=>{
+        const pid=btn.dataset.pid,a=btn.dataset.a,k=localStorage.getItem('adminKey')||'';
+        if(a==='toggle'){
+          const cur=btn.classList.contains('on');
+          await fetch(SRV+'/admin/tts/'+pid,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled:!cur})});
+          loadTTSProviders();
+        } else if(a==='reset'){
+          await fetch(SRV+'/admin/tts/'+pid,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({resetFail:true})});
+          toast('✅ Reset fail count OK','ok');loadTTSProviders();
+        } else if(a==='test'){
+          btn.textContent='...';
+          const r=await fetch(SRV+'/admin/tts-test',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({providerId:pid})});
+          const j=await r.json();
+          btn.textContent='Test';
+          toast(j.ok?`✅ ${j.provider} OK (${j.ms}ms)`:`❌ ${j.provider}: ${j.error}`,j.ok?'ok':'err');
+          loadTTSProviders();
+        }
+      });
+    });
+  }catch(e){list.innerHTML=`<div style="color:var(--red);font-size:12px;padding:8px">Lỗi kết nối: ${e.message}</div>`;}
+}
+
+// Save FPT key
+const saveFptKey=$('saveFptKey');
+if(saveFptKey){
+  saveFptKey.addEventListener('click',async()=>{
+    const key=localStorage.getItem('adminKey')||'';
+    const apiKey=$('fptApiKey')?.value.trim();
+    const voice=$('fptVoice')?.value;
+    if(!apiKey){toast('Nhập API key trước','err');return;}
+    const res=await fetch(SRV+'/admin/tts/fptai',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({apiKey,voice,enabled:true,resetFail:true})});
+    const j=await res.json();
+    if(j.ok){toast('✅ Đã lưu FPT.AI key, bật provider','ok');loadTTSProviders();}
+    else toast('❌ Lỗi: '+j.error,'err');
+  });
+}
+
+const refreshTtsBtn=$('refreshTtsBtn');
+if(refreshTtsBtn)refreshTtsBtn.addEventListener('click',loadTTSProviders);
 
 // NOTIFICATIONS
 function urlB64(b){const p='='.repeat((4-b.length%4)%4),b64=(b+p).replace(/-/g,'+').replace(/_/g,'/'),r=atob(b64),o=new Uint8Array(r.length);for(let i=0;i<r.length;i++)o[i]=r.charCodeAt(i);return o}
