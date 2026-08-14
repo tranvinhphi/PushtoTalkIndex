@@ -1,5 +1,5 @@
 /**
- * Bộ Đàm Web — Server v10.3.1
+ * Bộ Đàm Web — Server v10.3.2
  * Room Lifecycle theo mô hình Paltalk:
  *   - Temporary Room: xoá khi Total_Users == 0
  *   - Permanent Room: hibernate khi empty, restore khi owner/admin quay lại
@@ -9,7 +9,7 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const webpush = require('web-push');
-const Database = require('better-sqlite3');
+const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 
 const app = express();
@@ -26,73 +26,61 @@ const server = http.createServer(app);
 
 // ── DATABASE ──────────────────────────────────────────────
 const DB_PATH = process.env.DB_PATH || path.join('/tmp','botdam.db');
-const db = new Database(DB_PATH);
-db.pragma('journal_mode = WAL');
-db.exec(`
-  CREATE TABLE IF NOT EXISTS rooms (
-    room_id TEXT PRIMARY KEY,
-    owner_username TEXT NOT NULL,
-    room_type TEXT NOT NULL DEFAULT 'temporary',
-    status TEXT NOT NULL DEFAULT 'active',
-    is_public INTEGER DEFAULT 1,
-    require_approval INTEGER DEFAULT 0,
-    password TEXT DEFAULT '',
-    description TEXT DEFAULT '',
-    tts_voice TEXT DEFAULT 'nu-nam',
-    created_at INTEGER NOT NULL,
-    last_active INTEGER NOT NULL
-  );
-  CREATE TABLE IF NOT EXISTS room_admins (
-    room_id TEXT NOT NULL,
-    username TEXT NOT NULL,
-    granted_by TEXT,
-    granted_at INTEGER,
-    PRIMARY KEY (room_id, username)
-  );
-  CREATE TABLE IF NOT EXISTS room_bans (
-    room_id TEXT NOT NULL,
-    username TEXT NOT NULL,
-    banned_by TEXT,
-    banned_at INTEGER,
-    reason TEXT DEFAULT '',
-    PRIMARY KEY (room_id, username)
-  );
-  CREATE TABLE IF NOT EXISTS room_mutes (
-    room_id TEXT NOT NULL,
-    username TEXT NOT NULL,
-    PRIMARY KEY (room_id, username)
-  );
-`);
+const db = new sqlite3.Database(DB_PATH);
 
-// DB helpers
+// Wrap sqlite3 callbacks into sync-style helpers
+function dbRun(sql, params=[]){ return new Promise((res,rej)=>db.run(sql,params,function(e){if(e)rej(e);else res(this)})); }
+function dbGet(sql, params=[]){ return new Promise((res,rej)=>db.get(sql,params,(e,row)=>{if(e)rej(e);else res(row)})); }
+function dbAll(sql, params=[]){ return new Promise((res,rej)=>db.all(sql,params,(e,rows)=>{if(e)rej(e);else res(rows)})); }
+
+// Init tables
+db.serialize(()=>{
+  db.run('PRAGMA journal_mode=WAL');
+  db.run(`CREATE TABLE IF NOT EXISTS rooms (
+    room_id TEXT PRIMARY KEY, owner_username TEXT NOT NULL,
+    room_type TEXT NOT NULL DEFAULT 'temporary', status TEXT NOT NULL DEFAULT 'active',
+    is_public INTEGER DEFAULT 1, require_approval INTEGER DEFAULT 0,
+    password TEXT DEFAULT '', description TEXT DEFAULT '',
+    tts_voice TEXT DEFAULT 'nu-nam', created_at INTEGER NOT NULL, last_active INTEGER NOT NULL)`);
+  db.run(`CREATE TABLE IF NOT EXISTS room_admins (
+    room_id TEXT NOT NULL, username TEXT NOT NULL, granted_by TEXT, granted_at INTEGER,
+    PRIMARY KEY (room_id, username))`);
+  db.run(`CREATE TABLE IF NOT EXISTS room_bans (
+    room_id TEXT NOT NULL, username TEXT NOT NULL, banned_by TEXT, banned_at INTEGER,
+    reason TEXT DEFAULT '', PRIMARY KEY (room_id, username))`);
+  db.run(`CREATE TABLE IF NOT EXISTS room_mutes (
+    room_id TEXT NOT NULL, username TEXT NOT NULL, PRIMARY KEY (room_id, username))`);
+});
+
+// Sync-style DB wrappers (used throughout)
 const stmts = {
-  getRoom:        db.prepare('SELECT * FROM rooms WHERE room_id=?'),
-  createRoom:     db.prepare('INSERT OR IGNORE INTO rooms (room_id,owner_username,room_type,status,is_public,require_approval,password,description,created_at,last_active) VALUES (?,?,?,?,?,?,?,?,?,?)'),
-  updateRoom:     db.prepare('UPDATE rooms SET status=?,is_public=?,require_approval=?,password=?,description=?,last_active=?,tts_voice=? WHERE room_id=?'),
-  setStatus:      db.prepare('UPDATE rooms SET status=?,last_active=? WHERE room_id=?'),
-  setVoice:       db.prepare('UPDATE rooms SET tts_voice=? WHERE room_id=?'),
-  getAdmins:      db.prepare('SELECT username FROM room_admins WHERE room_id=?'),
-  addAdmin:       db.prepare('INSERT OR IGNORE INTO room_admins (room_id,username,granted_by,granted_at) VALUES (?,?,?,?)'),
-  removeAdmin:    db.prepare('DELETE FROM room_admins WHERE room_id=? AND username=?'),
-  isBanned:       db.prepare('SELECT 1 FROM room_bans WHERE room_id=? AND username=?'),
-  addBan:         db.prepare('INSERT OR IGNORE INTO room_bans (room_id,username,banned_by,banned_at,reason) VALUES (?,?,?,?,?)'),
-  removeBan:      db.prepare('DELETE FROM room_bans WHERE room_id=? AND username=?'),
-  isMuted:        db.prepare('SELECT 1 FROM room_mutes WHERE room_id=? AND username=?'),
-  addMute:        db.prepare('INSERT OR IGNORE INTO room_mutes (room_id,username) VALUES (?,?)'),
-  removeMute:     db.prepare('DELETE FROM room_mutes WHERE room_id=? AND username=?'),
-  publicRooms:    db.prepare("SELECT r.*,(SELECT COUNT(*) FROM room_admins WHERE room_id=r.room_id) as admin_count FROM rooms r WHERE r.is_public=1 AND r.status='active'"),
+  getRoom:     (id)        => dbGet('SELECT * FROM rooms WHERE room_id=?',[id]),
+  createRoom:  (id,owner,type,status,pub,appr,pass,desc,ca,la) => dbRun('INSERT OR IGNORE INTO rooms (room_id,owner_username,room_type,status,is_public,require_approval,password,description,created_at,last_active) VALUES (?,?,?,?,?,?,?,?,?,?)',[id,owner,type,status,pub,appr,pass,desc,ca,la]),
+  updateRoom:  (status,pub,appr,pass,desc,la,voice,id) => dbRun('UPDATE rooms SET status=?,is_public=?,require_approval=?,password=?,description=?,last_active=?,tts_voice=? WHERE room_id=?',[status,pub,appr,pass,desc,la,voice,id]),
+  setStatus:   (status,la,id) => dbRun('UPDATE rooms SET status=?,last_active=? WHERE room_id=?',[status,la,id]),
+  setVoice:    (voice,id)  => dbRun('UPDATE rooms SET tts_voice=? WHERE room_id=?',[voice,id]),
+  getAdmins:   (id)        => dbAll('SELECT username FROM room_admins WHERE room_id=?',[id]),
+  addAdmin:    (id,u,by,at)=> dbRun('INSERT OR IGNORE INTO room_admins (room_id,username,granted_by,granted_at) VALUES (?,?,?,?)',[id,u,by,at]),
+  removeAdmin: (id,u)      => dbRun('DELETE FROM room_admins WHERE room_id=? AND username=?',[id,u]),
+  isBanned:    (id,u)      => dbGet('SELECT 1 FROM room_bans WHERE room_id=? AND username=?',[id,u]),
+  addBan:      (id,u,by,at,r)=> dbRun('INSERT OR IGNORE INTO room_bans (room_id,username,banned_by,banned_at,reason) VALUES (?,?,?,?,?)',[id,u,by,at,r]),
+  removeBan:   (id,u)      => dbRun('DELETE FROM room_bans WHERE room_id=? AND username=?',[id,u]),
+  isMuted:     (id,u)      => dbGet('SELECT 1 FROM room_mutes WHERE room_id=? AND username=?',[id,u]),
+  addMute:     (id,u)      => dbRun('INSERT OR IGNORE INTO room_mutes (room_id,username) VALUES (?,?)',[id,u]),
+  removeMute:  (id,u)      => dbRun('DELETE FROM room_mutes WHERE room_id=? AND username=?',[id,u]),
+  publicRooms: ()          => dbAll("SELECT * FROM rooms WHERE is_public=1 AND status='active'",[]),
 };
 
-function isAdmin(roomId, username) {
-  const row = db.prepare('SELECT 1 FROM room_admins WHERE room_id=? AND username=?').get(roomId, username);
+async function isAdmin(roomId, username) {
+  const row = await dbGet('SELECT 1 FROM room_admins WHERE room_id=? AND username=?',[roomId,username]);
   return !!row;
 }
-function isOwner(roomId, username) {
-  const row = stmts.getRoom.get(roomId);
+async function isOwnerFn(roomId, username) {
+  const row = await stmts.getRoom(roomId);
   return row && row.owner_username === username;
 }
-function hasAdminPrivilege(roomId, username) {
-  return isOwner(roomId, username) || isAdmin(roomId, username);
+async function hasAdminPrivilege(roomId, username) {
+  return (await isOwnerFn(roomId,username)) || (await isAdmin(roomId,username));
 }
 
 // ── PUSH ──────────────────────────────────────────────────
@@ -123,7 +111,7 @@ const io = new Server(server, {
   pingInterval: 10000,
 });
 
-app.get('/health', (_, res) => res.json({ status:'ok', version:'10.3.1' }));
+app.get('/health', async (_, res) => res.json({ status:'ok', version:'10.3.2' }));
 
 // ── TTS PROXY — gọi ViettelAI server-side để tránh CORS ──
 const https_mod = require('https');
@@ -185,10 +173,10 @@ app.post('/tts', express.json(), async (req, res) => {
     res.status(503).json({ error: e.message });
   }
 });
-app.get('/vapid-public-key', (_, res) => res.json({ key: VAPID_PUBLIC_KEY }));
-app.get('/rooms', (req, res) => {
+app.get('/vapid-public-key', async (_, res) => res.json({ key: VAPID_PUBLIC_KEY }));
+app.get('/rooms', async (req, res) => {
   const q = (req.query.q || '').toLowerCase();
-  let rows = stmts.publicRooms.all();
+  let rows = await stmts.publicRooms();
   // Merge với số người online hiện tại
   rows = rows.map(r => {
     const members = Object.keys(activeRooms[r.room_id] || {});
@@ -217,30 +205,34 @@ const MAX_MIC_MS   = 90000;
 const NAME_RE = /^[A-Za-zÀ-ỹà-ỹ\s]{2,30}$/;
 const ROOM_RE = /^[A-Za-zÀ-ỹà-ỹ0-9_-]{3,20}$/;
 
-function userList(roomId) {
+async function userList(roomId) {
   if (!activeRooms[roomId]) return [];
-  const roomRow = stmts.getRoom.get(roomId);
+  const roomRow = await stmts.getRoom(roomId);
   const ownerName = roomRow?.owner_username;
-  return Object.entries(activeRooms[roomId]).map(([id, d]) => ({
-    id, username: d.username,
-    lat: d.lat, lng: d.lng,
-    ping: d.ping || null, battery: d.battery || null,
-    muted: !!stmts.isMuted.get(roomId, d.username),
-    isOwner: d.username === ownerName,
-    isAdmin: isAdmin(roomId, d.username),
-    hasCamera: d.hasCamera || false,
-    cameraOn: d.cameraOn || false,
+  const entries = Object.entries(activeRooms[roomId]);
+  // Precompute async fields
+  const results = await Promise.all(entries.map(async ([id, d]) => {
+    const muted = !!(await stmts.isMuted(roomId, d.username));
+    const adminFlag = !!(await dbGet('SELECT 1 FROM room_admins WHERE room_id=? AND username=?',[roomId, d.username]));
+    return {
+      id, username: d.username,
+      lat: d.lat, lng: d.lng,
+      ping: d.ping || null, battery: d.battery || null,
+      muted, isOwner: d.username === ownerName, isAdmin: adminFlag,
+      hasCamera: d.hasCamera || false, cameraOn: d.cameraOn || false,
+    };
   }));
+  return results;
 }
-function broadcastUsers(roomId) { io.to(roomId).emit('user-list', userList(roomId)); }
+async function broadcastUsers(roomId) { io.to(roomId).emit('user-list', await userList(roomId)); }
 
 function clearMicTo(roomId) { if (micTimeouts[roomId]) { clearTimeout(micTimeouts[roomId]); delete micTimeouts[roomId]; } }
-function releaseMic(roomId, reason) {
+async function releaseMic(roomId, reason) {
   const h = micHolders[roomId]; if (!h) return;
   micHolders[roomId] = null; clearMicTo(roomId);
   io.to(roomId).emit('speaking-stop', { username: h.username, reason: reason || 'released' });
 }
-function grantMic(roomId, socket, username) {
+async function grantMic(roomId, socket, username) {
   micHolders[roomId] = { socketId: socket.id, username, sinceTs: Date.now() };
   clearMicTo(roomId);
   micTimeouts[roomId] = setTimeout(() => releaseMic(roomId, 'timeout'), MAX_MIC_MS);
@@ -249,7 +241,7 @@ function grantMic(roomId, socket, username) {
   sendPush(roomId, { title:`🎙️ ${username} đang nói`, body:`Phòng ${roomId}`, tag:'botdam-speaking' }, socket.id);
 }
 
-function destroyRoom(roomId) {
+async function destroyRoom(roomId) {
   // Temporary room: wipe everything
   delete activeRooms[roomId];
   delete micHolders[roomId];
@@ -258,17 +250,17 @@ function destroyRoom(roomId) {
   delete pushSubs[roomId];
   clearMicTo(roomId);
   // DB: delete temporary room entirely
-  const row = stmts.getRoom.get(roomId);
+  const row = await stmts.getRoom(roomId);
   if (row && row.room_type === 'temporary') {
-    db.prepare('DELETE FROM rooms WHERE room_id=?').run(roomId);
-    db.prepare('DELETE FROM room_admins WHERE room_id=?').run(roomId);
-    db.prepare('DELETE FROM room_mutes WHERE room_id=?').run(roomId);
+    await dbRun('DELETE FROM rooms WHERE room_id=?',[roomId]);
+    await dbRun('DELETE FROM room_admins WHERE room_id=?',[roomId]);
+    await dbRun('DELETE FROM room_mutes WHERE room_id=?',[roomId]);
   }
 }
 
-function hibernateRoom(roomId) {
+async function hibernateRoom(roomId) {
   // Permanent room: keep DB, just mark offline
-  stmts.setStatus.run('hibernated', Date.now(), roomId);
+  await stmts.setStatus('hibernated', Date.now(), roomId);
   delete activeRooms[roomId];
   delete micHolders[roomId];
   delete approvalQueue[roomId];
@@ -276,14 +268,14 @@ function hibernateRoom(roomId) {
   console.log(`[Room] ${roomId} → hibernated`);
 }
 
-function wakeRoom(roomId) {
-  stmts.setStatus.run('active', Date.now(), roomId);
+async function wakeRoom(roomId) {
+  await stmts.setStatus('active', Date.now(), roomId);
   if (!activeRooms[roomId]) activeRooms[roomId] = {};
   console.log(`[Room] ${roomId} → active (wake)`);
 }
 
 // ── CORE JOIN/LEAVE ────────────────────────────────────────
-function doJoin(socket, roomId, username) {
+async function doJoin(socket, roomId, username) {
   socket.join(roomId);
   socket.data.roomCode = roomId;
   socket.data.username = username;
@@ -294,14 +286,14 @@ function doJoin(socket, roomId, username) {
   if (!(roomId in micHolders)) micHolders[roomId] = null;
   if (!approvalQueue[roomId]) approvalQueue[roomId] = [];
 
-  const roomRow = stmts.getRoom.get(roomId);
+  const roomRow = await stmts.getRoom(roomId);
   const ownerName = roomRow?.owner_username;
   const userIsOwner = username === ownerName;
-  const userIsAdmin = isAdmin(roomId, username);
+  const userIsAdmin = await isAdmin(roomId, username);
 
   // Wake permanent room if needed
   if (roomRow?.status === 'hibernated' && (userIsOwner || userIsAdmin)) {
-    wakeRoom(roomId);
+    await wakeRoom(roomId);
     io.to(roomId).emit('system-message', `🌅 Phòng vĩnh viễn "${roomId}" đã hoạt động trở lại.`);
   }
 
@@ -330,7 +322,7 @@ function doJoin(socket, roomId, username) {
   }
 
   socket.emit('joined', { roomCode: roomId, username, isOwner: userIsOwner, isAdmin: userIsAdmin, ttsVoice: roomRow?.tts_voice || 'nu-nam' });
-  broadcastUsers(roomId);
+  await broadcastUsers(roomId);
   socket.to(roomId).emit('system-message', `${username} đã vào phòng.`);
 
   const h = micHolders[roomId];
@@ -341,12 +333,12 @@ function doJoin(socket, roomId, username) {
   }
 }
 
-function doLeave(socket) {
+async function doLeave(socket) {
   const { roomCode: roomId, username } = socket.data;
   if (!roomId || !activeRooms[roomId]) return;
 
   const h = micHolders[roomId];
-  if (h && h.socketId === socket.id) releaseMic(roomId, 'left');
+  if (h && h.socketId === socket.id) await releaseMic(roomId, 'left');
   if (activeRooms[roomId][socket.id]) {
     activeRooms[roomId][socket.id].cameraOn = false;
     activeRooms[roomId][socket.id].hasCamera = false;
@@ -360,23 +352,23 @@ function doLeave(socket) {
   io.to(roomId).emit('system-message', `${username || 'Một người dùng'} đã rời phòng.`);
 
   if (remaining === 0) {
-    const roomRow = stmts.getRoom.get(roomId);
-    if (!roomRow) { destroyRoom(roomId); return; }
+    const roomRow = await stmts.getRoom(roomId);
+    if (!roomRow) { await destroyRoom(roomId); return; }
     if (roomRow.room_type === 'permanent') {
-      hibernateRoom(roomId);
+      await hibernateRoom(roomId);
     } else {
-      destroyRoom(roomId);
+      await destroyRoom(roomId);
     }
     return;
   }
 
-  broadcastUsers(roomId);
+  await broadcastUsers(roomId);
   // If owner left temporary room → transfer ownership to first remaining
-  const roomRow = stmts.getRoom.get(roomId);
+  const roomRow = await stmts.getRoom(roomId);
   if (roomRow && roomRow.owner_username === username && roomRow.room_type === 'temporary') {
     const nextEntry = Object.values(activeRooms[roomId])[0];
     if (nextEntry) {
-      db.prepare('UPDATE rooms SET owner_username=? WHERE room_id=?').run(nextEntry.username, roomId);
+      await dbRun('UPDATE rooms SET owner_username=? WHERE room_id=?',nextEntry.username, roomId);
       const nextSocket = Object.entries(activeRooms[roomId]).find(([,d]) => d.username === nextEntry.username);
       if (nextSocket) {
         io.to(nextSocket[0]).emit('you-are-owner');
@@ -387,7 +379,7 @@ function doLeave(socket) {
         });
       }
       io.to(roomId).emit('system-message', `👑 ${nextEntry.username} trở thành Chủ phòng mới.`);
-      broadcastUsers(roomId);
+      await broadcastUsers(roomId);
     }
   }
 }
@@ -396,7 +388,7 @@ function doLeave(socket) {
 io.on('connection', socket => {
   console.log(`[+] ${socket.id}`);
 
-  socket.on('join-room', ({ roomCode, username, password }) => {
+  socket.on('join-room', async ({ roomCode, username, password }) => {
     if (!roomCode || !username) return socket.emit('join-error', 'Thiếu thông tin.');
     roomCode = String(roomCode).trim().substring(0, 20);
     username = String(username).trim().replace(/\s+/g, ' ').substring(0, 30);
@@ -404,15 +396,15 @@ io.on('connection', socket => {
     if (!NAME_RE.test(username)) return socket.emit('join-error', 'Tên không hợp lệ — chỉ dùng chữ cái và dấu cách.');
 
     // Check ban
-    if (stmts.isBanned.get(roomCode, username)) return socket.emit('join-error', 'Bạn đã bị cấm vào phòng này.');
+    if (await stmts.isBanned(roomCode, username)) return socket.emit('join-error', 'Bạn đã bị cấm vào phòng này.');
 
-    doLeave(socket);
-    let roomRow = stmts.getRoom.get(roomCode);
+    await doLeave(socket);
+    let roomRow = await stmts.getRoom(roomCode);
 
     if (!roomRow) {
       // Create new temporary room
-      stmts.createRoom.run(roomCode, username, 'temporary', 'active', 1, 0, '', '', Date.now(), Date.now());
-      roomRow = stmts.getRoom.get(roomCode);
+      await stmts.createRoom(roomCode, username, 'temporary', 'active', 1, 0, '', '', Date.now(), Date.now());
+      roomRow = await stmts.getRoom(roomCode);
     } else {
       // Check password (only for existing active rooms)
       if (roomRow.password && roomRow.status === 'active') {
@@ -434,7 +426,7 @@ io.on('connection', socket => {
       const ownerEntry = activeRooms[roomCode] && Object.entries(activeRooms[roomCode]).find(([,d]) => d.username === roomRow.owner_username);
       if (ownerEntry) io.to(ownerEntry[0]).emit('approval-request', { socketId: socket.id, username, roomCode });
       // Also notify admins
-      const admins = stmts.getAdmins.all(roomCode).map(r => r.username);
+      const admins = await stmts.getAdmins(roomCode).map(r => r.username);
       if (activeRooms[roomCode]) {
         Object.entries(activeRooms[roomCode]).forEach(([sid, d]) => {
           if (admins.includes(d.username)) io.to(sid).emit('approval-request', { socketId: socket.id, username, roomCode });
@@ -443,15 +435,15 @@ io.on('connection', socket => {
       return;
     }
 
-    doJoin(socket, roomCode, username);
+    await doJoin(socket, roomCode, username);
   });
 
-  socket.on('create-room-options', ({ password, isPublic, requireApproval, description, isPermanent }) => {
+  socket.on('create-room-options', async ({ password, isPublic, requireApproval, description, isPermanent }) => {
     const { roomCode: code, username } = socket.data;
-    if (!code || !isOwner(code, username)) return;
-    const roomRow = stmts.getRoom.get(code);
+    if (!code || !await isOwnerFn(code, username)) return;
+    const roomRow = await stmts.getRoom(code);
     if (!roomRow) return;
-    stmts.updateRoom.run(
+    await stmts.updateRoom(
       'active',
       typeof isPublic === 'boolean' ? (isPublic ? 1 : 0) : roomRow.is_public,
       typeof requireApproval === 'boolean' ? (requireApproval ? 1 : 0) : roomRow.require_approval,
@@ -461,25 +453,25 @@ io.on('connection', socket => {
       roomRow.tts_voice,
       code
     );
-    if (isPermanent) db.prepare("UPDATE rooms SET room_type='permanent' WHERE room_id=?").run(code);
+    if (isPermanent) await dbRun("UPDATE rooms SET room_type='permanent' WHERE room_id=?",[code]);
   });
 
-  socket.on('rejoin-room', ({ roomCode, username }) => {
+  socket.on('rejoin-room', async ({ roomCode, username }) => {
     if (!roomCode || !username) return;
     roomCode = String(roomCode).trim().substring(0, 20);
     username = String(username).trim().replace(/\s+/g, ' ').substring(0, 30);
     if (!ROOM_RE.test(roomCode) || !NAME_RE.test(username)) return;
-    if (stmts.isBanned.get(roomCode, username)) return socket.emit('kicked', { reason: 'Bạn đã bị cấm vào phòng này.' });
-    const roomRow = stmts.getRoom.get(roomCode);
+    if (await stmts.isBanned(roomCode, username)) return socket.emit('kicked', { reason: 'Bạn đã bị cấm vào phòng này.' });
+    const roomRow = await stmts.getRoom(roomCode);
     if (!roomRow || (roomRow.status === 'active' && !activeRooms[roomCode])) {
       return socket.emit('room-closed', { roomCode });
     }
-    doJoin(socket, roomCode, username);
+    await doJoin(socket, roomCode, username);
   });
 
-  socket.on('approve-user', ({ targetSocketId }) => {
+  socket.on('approve-user', async ({ targetSocketId }) => {
     const { roomCode: code, username } = socket.data;
-    if (!code || !hasAdminPrivilege(code, username)) return;
+    if (!code || !await hasAdminPrivilege(code, username)) return;
     const q = approvalQueue[code] || [];
     const idx = q.findIndex(r => r.socketId === targetSocketId);
     if (idx === -1) return;
@@ -488,13 +480,13 @@ io.on('connection', socket => {
     socket.emit('approval-done', { socketId: targetSocketId });
     const t = io.sockets.sockets.get(targetSocketId);
     if (!t) return;
-    doJoin(t, code, targetName);
+    await doJoin(t, code, targetName);
     t.emit('approval-granted', { roomCode: code });
   });
 
-  socket.on('reject-user', ({ targetSocketId }) => {
+  socket.on('reject-user', async ({ targetSocketId }) => {
     const { roomCode: code, username } = socket.data;
-    if (!code || !hasAdminPrivilege(code, username)) return;
+    if (!code || !await hasAdminPrivilege(code, username)) return;
     const q = approvalQueue[code] || [];
     const idx = q.findIndex(r => r.socketId === targetSocketId);
     if (idx === -1) return;
@@ -505,11 +497,11 @@ io.on('connection', socket => {
     io.to(code).emit('system-message', `❌ ${targetName} bị từ chối.`);
   });
 
-  socket.on('update-room-settings', ({ isPublic, requireApproval, password, description }) => {
+  socket.on('update-room-settings', async ({ isPublic, requireApproval, password, description }) => {
     const { roomCode: code, username } = socket.data;
-    if (!code || !hasAdminPrivilege(code, username)) return;
-    const row = stmts.getRoom.get(code); if (!row) return;
-    stmts.updateRoom.run(
+    if (!code || !await hasAdminPrivilege(code, username)) return;
+    const row = await stmts.getRoom(code); if (!row) return;
+    await stmts.updateRoom(
       row.status,
       typeof isPublic === 'boolean' ? (isPublic ? 1 : 0) : row.is_public,
       typeof requireApproval === 'boolean' ? (requireApproval ? 1 : 0) : row.require_approval,
@@ -531,59 +523,58 @@ io.on('connection', socket => {
   });
 
   // ── ADMIN MANAGEMENT ──────────────────────────────────────
-  socket.on('add-admin', ({ targetUsername }) => {
+  socket.on('add-admin', async ({ targetUsername }) => {
     const { roomCode: code, username } = socket.data;
-    if (!code || !isOwner(code, username)) return;
+    if (!code || !await isOwnerFn(code, username)) return;
     if (isOwner(code, targetUsername)) return;
-    stmts.addAdmin.run(code, targetUsername, username, Date.now());
+    await stmts.addAdmin(code, targetUsername, username, Date.now());
     const target = activeRooms[code] && Object.entries(activeRooms[code]).find(([,d]) => d.username === targetUsername);
     if (target) {
       io.to(target[0]).emit('you-are-admin');
-      io.to(target[0]).emit('room-settings', (() => {
-        const r = stmts.getRoom.get(code);
-        return { isPublic:!!r.is_public, requireApproval:!!r.require_approval, description:r.description, hasPassword:!!r.password, isPermanent:r.room_type==='permanent', ttsVoice:r.tts_voice };
-      })());
+      stmts.getRoom(code).then(r => {
+        if(r) io.to(target[0]).emit('room-settings', { isPublic:!!r.is_public, requireApproval:!!r.require_approval, description:r.description, hasPassword:!!r.password, isPermanent:r.room_type==='permanent', ttsVoice:r.tts_voice });
+      });
     }
     io.to(code).emit('system-message', `👑 ${targetUsername} được thăng làm Admin phòng.`);
-    broadcastUsers(code);
+    await broadcastUsers(code);
   });
 
-  socket.on('remove-admin', ({ targetUsername }) => {
+  socket.on('remove-admin', async ({ targetUsername }) => {
     const { roomCode: code, username } = socket.data;
-    if (!code || !isOwner(code, username)) return;
-    stmts.removeAdmin.run(code, targetUsername);
+    if (!code || !await isOwnerFn(code, username)) return;
+    await stmts.removeAdmin(code, targetUsername);
     const target = activeRooms[code] && Object.entries(activeRooms[code]).find(([,d]) => d.username === targetUsername);
     if (target) io.to(target[0]).emit('you-are-demoted');
     io.to(code).emit('system-message', `🔽 ${targetUsername} đã bị thu hồi quyền Admin.`);
-    broadcastUsers(code);
+    await broadcastUsers(code);
   });
 
   // ── BAN ────────────────────────────────────────────────────
-  socket.on('ban-user', ({ targetId, reason }) => {
+  socket.on('ban-user', async ({ targetId, reason }) => {
     const { roomCode: code, username } = socket.data;
-    if (!code || !hasAdminPrivilege(code, username)) return;
+    if (!code || !await hasAdminPrivilege(code, username)) return;
     const target = activeRooms[code]?.[targetId]; if (!target) return;
-    if (isOwner(code, target.username)) return;
-    stmts.addBan.run(code, target.username, username, Date.now(), reason || '');
+    if (await isOwnerFn(code, target.username)) return;
+    await stmts.addBan(code, target.username, username, Date.now(), reason || '');
     const t = io.sockets.sockets.get(targetId);
-    if (t) { t.emit('kicked', { reason: `Bạn đã bị cấm: ${reason || 'Vi phạm nội quy'}` }); doLeave(t); }
+    if (t) { t.emit('kicked', { reason: `Bạn đã bị cấm: ${reason || 'Vi phạm nội quy'}` }); await doLeave(t); }
     io.to(code).emit('system-message', `🚫 ${target.username} đã bị cấm vào phòng.`);
   });
 
-  socket.on('unban-user', ({ targetUsername }) => {
+  socket.on('unban-user', async ({ targetUsername }) => {
     const { roomCode: code, username } = socket.data;
-    if (!code || !hasAdminPrivilege(code, username)) return;
-    stmts.removeBan.run(code, targetUsername);
+    if (!code || !await hasAdminPrivilege(code, username)) return;
+    await stmts.removeBan(code, targetUsername);
     io.to(code).emit('system-message', `✅ ${targetUsername} đã được gỡ lệnh cấm.`);
   });
 
   // ── TTS VOICE FOR ROOM ────────────────────────────────────
-  socket.on('set-room-tts-voice', ({ voice, voiceLabel }) => {
+  socket.on('set-room-tts-voice', async ({ voice, voiceLabel }) => {
     const { roomCode: code, username } = socket.data;
-    if (!code || !hasAdminPrivilege(code, username)) return;
+    if (!code || !await hasAdminPrivilege(code, username)) return;
     const allowed = ['nu-nam','nu-bac','nam-nam','nam-bac'];
     if (!allowed.includes(voice)) return;
-    stmts.setVoice.run(voice, code);
+    await stmts.setVoice(voice, code);
     socket.to(code).emit('room-tts-voice', { voice, voiceLabel });
     io.to(code).emit('system-message', `🔊 Admin đặt giọng đọc: ${voiceLabel || voice}`);
   });
@@ -595,39 +586,39 @@ io.on('connection', socket => {
     pushSubs[code].set(socket.id, sub);
   });
 
-  socket.on('update-location', ({ lat, lng }) => {
+  socket.on('update-location', async ({ lat, lng }) => {
     const { roomCode: code } = socket.data;
     if (!code || !activeRooms[code]?.[socket.id]) return;
     if (typeof lat !== 'number' || typeof lng !== 'number') return;
     activeRooms[code][socket.id].lat = lat;
     activeRooms[code][socket.id].lng = lng;
-    broadcastUsers(code);
+    await broadcastUsers(code);
   });
 
-  socket.on('update-status', ({ ping, battery }) => {
+  socket.on('update-status', async ({ ping, battery }) => {
     const { roomCode: code } = socket.data;
     if (!code || !activeRooms[code]?.[socket.id]) return;
     if (typeof ping === 'number') activeRooms[code][socket.id].ping = ping;
     if (typeof battery === 'number') activeRooms[code][socket.id].battery = battery;
-    broadcastUsers(code);
+    await broadcastUsers(code);
   });
 
-  socket.on('ping-custom', () => socket.emit('pong-custom'));
+  socket.on('ping-custom', async () => socket.emit('pong-custom'));
 
-  socket.on('start-speaking', () => {
+  socket.on('start-speaking', async () => {
     const { roomCode: code, username } = socket.data;
     if (!code) return;
-    if (stmts.isMuted.get(code, username)) return socket.emit('mic-denied', { holder: 'Chủ phòng (mic bị khoá)' });
+    if (await stmts.isMuted(code, username)) return socket.emit('mic-denied', { holder: 'Chủ phòng (mic bị khoá)' });
     const h = micHolders[code];
-    if (!h) grantMic(code, socket, username);
+    if (!h) await grantMic(code, socket, username);
     else if (h.socketId === socket.id) {}
     else socket.emit('mic-denied', { holder: h.username });
   });
 
-  socket.on('stop-speaking', () => {
+  socket.on('stop-speaking', async () => {
     const { roomCode: code } = socket.data;
     if (!code) return;
-    if (micHolders[code]?.socketId === socket.id) releaseMic(code, 'released');
+    if (micHolders[code]?.socketId === socket.id) await releaseMic(code, 'released');
   });
 
   socket.on('audio-data', buf => {
@@ -638,28 +629,28 @@ io.on('connection', socket => {
     voiceMemos[code] = { username, audioBuffer: buf, ts: Date.now() };
   });
 
-  socket.on('camera-state', ({ hasCamera, cameraOn }) => {
+  socket.on('camera-state', async ({ hasCamera, cameraOn }) => {
     const { roomCode: code } = socket.data;
     if (!code || !activeRooms[code]?.[socket.id]) return;
     if (typeof hasCamera === 'boolean') activeRooms[code][socket.id].hasCamera = hasCamera;
     if (typeof cameraOn === 'boolean') activeRooms[code][socket.id].cameraOn = cameraOn;
-    broadcastUsers(code);
+    await broadcastUsers(code);
   });
 
-  socket.on('video-frame', ({ frame }) => {
+  socket.on('video-frame', async ({ frame }) => {
     const { roomCode: code, username } = socket.data;
     if (!code || !frame) return;
     socket.to(code).emit('video-frame', { username, frame });
   });
 
-  socket.on('force-camera-off', ({ targetId }) => {
+  socket.on('force-camera-off', async ({ targetId }) => {
     const { roomCode: code, username } = socket.data;
-    if (!code || !hasAdminPrivilege(code, username)) return;
+    if (!code || !await hasAdminPrivilege(code, username)) return;
     io.sockets.sockets.get(targetId)?.emit('camera-forced-off');
-    if (activeRooms[code]?.[targetId]) { activeRooms[code][targetId].cameraOn = false; activeRooms[code][targetId].hasCamera = false; broadcastUsers(code); }
+    if (activeRooms[code]?.[targetId]) { activeRooms[code][targetId].cameraOn = false; activeRooms[code][targetId].hasCamera = false; await broadcastUsers(code); }
   });
 
-  socket.on('request-camera-on', ({ targetId }) => {
+  socket.on('request-camera-on', async ({ targetId }) => {
     const { roomCode: code, username: ownerName } = socket.data;
     if (!code || !hasAdminPrivilege(code, ownerName)) return;
     const t = io.sockets.sockets.get(targetId);
@@ -668,27 +659,27 @@ io.on('connection', socket => {
     sendPushToSocket(targetId, { title:'📷 Yêu cầu bật camera', body:`${ownerName} yêu cầu bạn bật camera`, tag:'botdam-cam-req' }, code);
   });
 
-  socket.on('request-mic-on', ({ targetId }) => {
+  socket.on('request-mic-on', async ({ targetId }) => {
     const { roomCode: code, username: ownerName } = socket.data;
     if (!code || !hasAdminPrivilege(code, ownerName)) return;
     const t = io.sockets.sockets.get(targetId);
     if (!t || !activeRooms[code]?.[targetId]) return;
-    if (stmts.isMuted.get(code, activeRooms[code][targetId].username)) {
-      stmts.removeMute.run(code, activeRooms[code][targetId].username);
-      broadcastUsers(code);
+    if (await stmts.isMuted(code, activeRooms[code][targetId].username)) {
+      await stmts.removeMute(code, activeRooms[code][targetId].username);
+      await broadcastUsers(code);
     }
     t.emit('mic-on-requested', { fromOwner: ownerName });
     sendPushToSocket(targetId, { title:'🎙️ Yêu cầu bật mic', body:`${ownerName} yêu cầu bạn nói ngay!`, tag:'botdam-mic-req' }, code);
   });
 
-  socket.on('sos', ({ lat, lng }) => {
+  socket.on('sos', async ({ lat, lng }) => {
     const { roomCode: code, username } = socket.data;
     if (!code || !username) return;
     io.to(code).emit('sos-alert', { username, lat, lng, ts: Date.now() });
     sendPush(code, { title:`🆘 SOS từ ${username}!`, body:`Cần hỗ trợ - Phòng ${code}`, tag:'botdam-sos' }, socket.id);
   });
 
-  socket.on('chat-message', ({ text }) => {
+  socket.on('chat-message', async ({ text }) => {
     const { roomCode: code, username } = socket.data;
     if (!code || !username || !text) return;
     const msg = String(text).trim().substring(0, 300);
@@ -697,75 +688,75 @@ io.on('connection', socket => {
     sendPush(code, { title:`💬 ${username}`, body: msg.length > 80 ? msg.substring(0,80)+'…' : msg, tag:'botdam-chat', chatText: msg, sender: username }, socket.id);
   });
 
-  socket.on('kick-user', ({ targetId }) => {
+  socket.on('kick-user', async ({ targetId }) => {
     const { roomCode: code, username } = socket.data;
-    if (!code || !hasAdminPrivilege(code, username)) return;
+    if (!code || !await hasAdminPrivilege(code, username)) return;
     const t = io.sockets.sockets.get(targetId);
     if (!t || !activeRooms[code]?.[targetId]) return;
     const name = activeRooms[code][targetId].username;
-    if (isOwner(code, name)) return;
+    if (await isOwnerFn(code, name)) return;
     t.emit('kicked', { reason: 'Chủ phòng đã mời bạn rời phòng.' });
-    doLeave(t);
+    await doLeave(t);
     io.to(code).emit('system-message', `👢 ${name} đã bị mời ra.`);
   });
 
-  socket.on('toggle-mute', ({ targetId }) => {
+  socket.on('toggle-mute', async ({ targetId }) => {
     const { roomCode: code, username } = socket.data;
-    if (!code || !hasAdminPrivilege(code, username)) return;
+    if (!code || !await hasAdminPrivilege(code, username)) return;
     if (!activeRooms[code]?.[targetId]) return;
     const targetName = activeRooms[code][targetId].username;
-    if (isOwner(code, targetName)) return;
-    const wasMuted = !!stmts.isMuted.get(code, targetName);
-    if (wasMuted) stmts.removeMute.run(code, targetName);
-    else { stmts.addMute.run(code, targetName); if (micHolders[code]?.socketId === targetId) releaseMic(code, 'muted'); }
+    if (await isOwnerFn(code, targetName)) return;
+    const wasMuted = !!(await stmts.isMuted(code, targetName));
+    if (wasMuted) await stmts.removeMute(code, targetName);
+    else { await stmts.addMute(code, targetName); if (micHolders[code]?.socketId === targetId) await releaseMic(code, 'muted'); }
     io.sockets.sockets.get(targetId)?.emit('you-are-muted', { muted: !wasMuted });
     io.to(code).emit('system-message', !wasMuted ? `🔇 ${targetName} bị tắt mic.` : `🔊 ${targetName} được bật mic.`);
-    broadcastUsers(code);
+    await broadcastUsers(code);
   });
 
-  socket.on('add-admin-by-id', ({ targetId }) => {
+  socket.on('add-admin-by-id', async ({ targetId }) => {
     const { roomCode: code, username } = socket.data;
-    if (!code || !isOwner(code, username)) return;
+    if (!code || !await isOwnerFn(code, username)) return;
     const target = activeRooms[code]?.[targetId]; if (!target) return;
     socket.emit('add-admin', { targetUsername: target.username });
     socket.emit('add-admin', { targetUsername: target.username });
   });
 
   // Shortcut: promote from member panel (targetId → username lookup)
-  socket.on('promote-to-admin', ({ targetId }) => {
+  socket.on('promote-to-admin', async ({ targetId }) => {
     const { roomCode: code, username } = socket.data;
-    if (!code || !isOwner(code, username)) return;
+    if (!code || !await isOwnerFn(code, username)) return;
     const target = activeRooms[code]?.[targetId]; if (!target) return;
-    if (isOwner(code, target.username)) return;
-    stmts.addAdmin.run(code, target.username, username, Date.now());
+    if (await isOwnerFn(code, target.username)) return;
+    await stmts.addAdmin(code, target.username, username, Date.now());
     const t = io.sockets.sockets.get(targetId);
     if (t) {
-      const r = stmts.getRoom.get(code);
+      const r = await stmts.getRoom(code);
       t.emit('you-are-admin');
       t.emit('room-settings', { isPublic:!!r.is_public, requireApproval:!!r.require_approval, description:r.description, hasPassword:!!r.password, isPermanent:r.room_type==='permanent', ttsVoice:r.tts_voice });
     }
     io.to(code).emit('system-message', `👑 ${target.username} được thăng làm Admin phòng.`);
-    broadcastUsers(code);
+    await broadcastUsers(code);
   });
 
-  socket.on('demote-from-admin', ({ targetId }) => {
+  socket.on('demote-from-admin', async ({ targetId }) => {
     const { roomCode: code, username } = socket.data;
-    if (!code || !isOwner(code, username)) return;
+    if (!code || !await isOwnerFn(code, username)) return;
     const target = activeRooms[code]?.[targetId]; if (!target) return;
-    stmts.removeAdmin.run(code, target.username);
+    await stmts.removeAdmin(code, target.username);
     io.sockets.sockets.get(targetId)?.emit('you-are-demoted');
     io.to(code).emit('system-message', `🔽 ${target.username} đã bị thu hồi quyền Admin.`);
-    broadcastUsers(code);
+    await broadcastUsers(code);
   });
 
-  socket.on('reaction', ({ emoji }) => {
+  socket.on('reaction', async ({ emoji }) => {
     const { roomCode: code, username } = socket.data;
     if (!code || !emoji) return;
     io.to(code).emit('reaction', { username, emoji: String(emoji).substring(0, 8) });
   });
 
-  socket.on('disconnect', () => { doLeave(socket); console.log(`[-] ${socket.id}`); });
+  socket.on('disconnect', async () => { await doLeave(socket); console.log(`[-] ${socket.id}`); });
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`[Bộ Đàm Web] Server v10.3.1 on port ${PORT}`));
+server.listen(PORT, () => console.log(`[Bộ Đàm Web] Server v10.3.2 on port ${PORT}`));
