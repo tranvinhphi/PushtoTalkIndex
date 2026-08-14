@@ -1,5 +1,5 @@
 /**
- * Bộ Đàm Web — Server v10.3.2
+ * Bộ Đàm Web — Server v10.3.5
  * Room Lifecycle theo mô hình Paltalk:
  *   - Temporary Room: xoá khi Total_Users == 0
  *   - Permanent Room: hibernate khi empty, restore khi owner/admin quay lại
@@ -111,7 +111,7 @@ const io = new Server(server, {
   pingInterval: 10000,
 });
 
-app.get('/health', async (_, res) => res.json({ status:'ok', version:'10.3.2' }));
+app.get('/health', async (_, res) => res.json({ status:'ok', version:'10.3.5' }));
 
 // ── TTS PROXY — gọi ViettelAI server-side để tránh CORS ──
 const https_mod = require('https');
@@ -124,17 +124,24 @@ const VIETTEL_VOICES = {
 const ttsCache = new Map();
 const TTS_CACHE_MAX = 200;
 
+// TTS connection pool — keep-alive để tái dùng TCP connection
+const http_agent = new (require('https').Agent)({ keepAlive: true, maxSockets: 10 });
+
 app.post('/tts', express.json(), async (req, res) => {
   const { text='', voice='nu-nam', speed=1 } = req.body || {};
-  if (!text || text.length > 600) return res.status(400).json({ error: 'text required' });
+  if (!text || text.length > 400) return res.status(400).json({ error: 'text required' });
+
   const ck = `${voice}::${text.substring(0,200)}`;
+  // Cache hit → trả về ngay, <1ms
   if (ttsCache.has(ck)) {
     res.setHeader('Content-Type','audio/mpeg');
-    res.setHeader('Cache-Control','public,max-age=3600');
+    res.setHeader('Cache-Control','public,max-age=7200');
     return res.end(ttsCache.get(ck));
   }
+
   const voiceName = VIETTEL_VOICES[voice] || 'hcm-diemmy';
-  const body = JSON.stringify({ speed, voice: voiceName, text, tts_return_option: 3, without_filter: false });
+  // speed 1.3 — đọc nhanh hơn mặc định, tự nhiên hơn
+  const body = JSON.stringify({ speed: speed || 1.3, voice: voiceName, text, tts_return_option: 3, without_filter: false });
   const options = {
     hostname: 'viettelai.vn',
     path: '/tts/speech_synthesis',
@@ -145,7 +152,8 @@ app.post('/tts', express.json(), async (req, res) => {
       'Connection': 'keep-alive',
       'User-Agent': 'Mozilla/5.0',
     },
-    timeout: 12000,
+    agent: http_agent,  // reuse TCP connection
+    timeout: 6000,      // giảm từ 12s → 6s
   };
   try {
     const buf = await new Promise((resolve, reject) => {
@@ -154,19 +162,19 @@ app.post('/tts', express.json(), async (req, res) => {
         r2.on('data', d => chunks.push(d));
         r2.on('end', () => {
           const b = Buffer.concat(chunks);
-          if (r2.statusCode === 200 && b.length > 500) resolve(b);
-          else reject(new Error(`ViettelAI status ${r2.statusCode}, size ${b.length}`));
+          if (r2.statusCode === 200 && b.length > 200) resolve(b);
+          else reject(new Error(`ViettelAI ${r2.statusCode} size=${b.length}`));
         });
       });
       req2.on('error', reject);
-      req2.on('timeout', () => { req2.destroy(); reject(new Error('timeout')); });
+      req2.on('timeout', () => { req2.destroy(); reject(new Error('timeout 6s')); });
       req2.write(body);
       req2.end();
     });
     if (ttsCache.size >= TTS_CACHE_MAX) ttsCache.delete(ttsCache.keys().next().value);
     ttsCache.set(ck, buf);
     res.setHeader('Content-Type', 'audio/mpeg');
-    res.setHeader('Cache-Control', 'public,max-age=3600');
+    res.setHeader('Cache-Control', 'public,max-age=7200');
     res.end(buf);
   } catch(e) {
     console.error('[TTS]', e.message);
@@ -282,7 +290,7 @@ async function doJoin(socket, roomId, username) {
   socket.data.pendingRoom = null;
 
   if (!activeRooms[roomId]) activeRooms[roomId] = {};
-  activeRooms[roomId][socket.id] = { username, lat:null, lng:null, ping:null, battery:null, hasCamera:false, cameraOn:false };
+  activeRooms[roomId][socket.id] = { username, lat:null, lng:null, ping:null, battery:null, hasCamera:false, cameraOn:false, status:'online' };
   if (!(roomId in micHolders)) micHolders[roomId] = null;
   if (!approvalQueue[roomId]) approvalQueue[roomId] = [];
 
@@ -595,11 +603,14 @@ io.on('connection', socket => {
     await broadcastUsers(code);
   });
 
-  socket.on('update-status', async ({ ping, battery }) => {
+  socket.on('update-status', async ({ ping, battery, status }) => {
     const { roomCode: code } = socket.data;
     if (!code || !activeRooms[code]?.[socket.id]) return;
     if (typeof ping === 'number') activeRooms[code][socket.id].ping = ping;
     if (typeof battery === 'number') activeRooms[code][socket.id].battery = battery;
+    if (status && ['online','away','busy','offline'].includes(status)){
+      activeRooms[code][socket.id].status = status;
+    }
     await broadcastUsers(code);
   });
 
@@ -759,4 +770,4 @@ io.on('connection', socket => {
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`[Bộ Đàm Web] Server v10.3.2 on port ${PORT}`));
+server.listen(PORT, () => console.log(`[Bộ Đàm Web] Server v10.3.5 on port ${PORT}`));

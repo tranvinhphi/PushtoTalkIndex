@@ -486,6 +486,8 @@ input{font-family:inherit}
       <span id="roomLabel">--</span>
       <span style="font-size:11px;color:var(--text3)">📤</span>
     </div>
+    <!-- Status button -->
+    <button id="statusBtn" style="display:flex;align-items:center;gap:4px;padding:4px 9px;border-radius:999px;background:var(--surf2);border:1px solid var(--border);font-size:13px;cursor:pointer;flex-shrink:0" title="Đổi trạng thái">🟢 <span style="font-size:10px;color:var(--green)">Online</span></button>
     <div class="racts">
       <div class="ra-wrap" id="waTTS"><div class="ra on" id="raTTS">🔊</div><span class="ra-lbl" id="raTTSlbl">Đọc chat</span></div>
       <div class="ra-wrap" id="waCam"><div class="ra">📷</div><span class="ra-lbl">Camera</span></div>
@@ -680,7 +682,7 @@ input{font-family:inherit}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 const SRV='https://pushtotalk-anqr.onrender.com';
-const CHUNK=350,VFPS=5,VW=160,VH=120,SK='bdv1032';
+const CHUNK=350,VFPS=5,VW=160,VH=120,SK='bdv1035';
 const EMOJIS=['😂','🤣','😭','😢','😡','😠','😱','😍','🥳','😴','🤔','👍','👎','❤️','🔥','💯','🎉','😅','🙄','🤯'];
 const $=id=>document.getElementById(id);
 
@@ -768,17 +770,59 @@ function beepEnd(){beep(520,120,.18);noise(.07,.05,1500)}
 function beepSOS(){for(let i=0;i<3;i++)setTimeout(()=>{beep(900,180,.4);setTimeout(()=>beep(660,130,.3),160)},i*380)}
 function vib(p){if(navigator.vibrate)try{navigator.vibrate(p)}catch(e){}}
 
+// ── USER STATUS ─────────────────────────────────────────
+// online | away | busy | offline
+let userStatus='online';
+let lastActivityTs=Date.now();
+const IDLE_TIMEOUT=60000; // 60s không tương tác → away
+
+function updateActivity(){
+  lastActivityTs=Date.now();
+  if(userStatus==='away')setUserStatus('online');
+}
+// Track mouse/key/touch
+['mousemove','keydown','touchstart','click','scroll'].forEach(ev=>
+  document.addEventListener(ev,updateActivity,{passive:true})
+);
+// Auto-detect idle → away
+setInterval(()=>{
+  if(userStatus==='online'&&Date.now()-lastActivityTs>IDLE_TIMEOUT){
+    setUserStatus('away');
+  }
+},15000);
+
+function setUserStatus(status){
+  if(userStatus===status)return;
+  userStatus=status;
+  renderStatusBtn();
+  // Broadcast lên server
+  if(socket?.connected)socket.emit('update-status',{status});
+}
+
+function renderStatusBtn(){
+  const btn=$('statusBtn');
+  if(!btn)return;
+  const s=STATUS_MAP[userStatus]||STATUS_MAP.online;
+  btn.innerHTML=`${s.icon} <span style="font-size:10px;color:${s.color}">${s.label}</span>`;
+  btn.title=s.tip||s.label;
+}
+
 // ── TEXT-TO-SPEECH ENGINE ──────────────────────────────
 let ttsEnabled=true;
 let ttsVoice=null;
 let ttsSpeaking=false;
 const ttsQueue=[];
+// Smart pending: {text, senderName, ts}
 const ttsPendingHidden=[];
 let ttsVoiceChoice='nu-nam';
-// Browser-side TTS state (không dùng server nữa)
 let ttsServerOk=true;
 let ttsErrCount=0;
 const TTS_FALLBACK_THRESHOLD=3;
+const TTS_MAX_AGE_MS=30000; // tin >30s cũ → không đọc khi quay lại
+const TTS_MAX_PENDING=3;    // tối đa 3 tin pending khi quay lại
+let lastTTSSender='';       // người gửi tin nhắn TTS gần nhất
+let lastTTSSenderTs=0;      // timestamp lần cuối đọc tên
+const SENDER_REPEAT_MS=10000; // sau 10s không tin → đọc lại tên dù cùng người
 
 // Map voice key → ViettelAI voice name
 const VIETTEL_VOICE_MAP={
@@ -861,16 +905,43 @@ function ttsMakeBrowserUtt(text,senderName){
   return utt;
 }
 
+// Prefetch: gọi /tts trước để cache sẵn, không chờ response
+function prefetchTTS(text,senderName){
+  if(!ttsEnabled||!ttsServerOk)return;
+  const shortText=text.length>80?text.substring(0,78)+'…':text;
+  const fullText=senderName?`${senderName}: ${shortText}`:shortText;
+  const voice=ttsVoiceChoice||'nu-nam';
+  // Fire and forget — không await, chỉ để warm server cache
+  fetch(SRV+'/tts',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({text:fullText,voice,speed:1.3}),
+    signal:AbortSignal.timeout(8000),
+  }).catch(()=>{});
+}
+
 async function ttsServerSpeak(text,senderName){
-  // Gọi qua server proxy /tts để tránh CORS block từ ViettelAI
-  const fullText=senderName?`Bạn ${senderName} nói là: ${text}`:text;
-  const voice=ttsVoiceChoice||'nu-nam'; // gửi key, server tự map → ViettelAI voice name
+  const shortText=text.length>80?text.substring(0,78)+'…':text;
+  const now=Date.now();
+
+  // Chỉ đọc tên khi: người gửi KHÁC hoặc cùng người nhưng đã >10s không tin
+  let fullText;
+  if(senderName&&(senderName!==lastTTSSender||now-lastTTSSenderTs>SENDER_REPEAT_MS)){
+    fullText=`${senderName}: ${shortText}`;
+    lastTTSSender=senderName;
+    lastTTSSenderTs=now;
+  } else {
+    fullText=shortText; // cùng người liên tiếp → bỏ tên
+    if(senderName)lastTTSSenderTs=now;
+  }
+
+  const voice=ttsVoiceChoice||'nu-nam';
   try{
     const res=await fetch(SRV+'/tts',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({text:fullText,voice,speed:1}),
-      signal:AbortSignal.timeout(14000),
+      body:JSON.stringify({text:fullText,voice,speed:1.3}),
+      signal:AbortSignal.timeout(8000), // giảm từ 14s → 8s
     });
     if(!res.ok)throw new Error('HTTP '+res.status);
     const arrayBuf=await res.arrayBuffer();
@@ -896,11 +967,23 @@ async function ttsServerSpeak(text,senderName){
 
 function ttsSpeak(text,senderName){
   if(!ttsEnabled)return;
-  if(document.hidden){
-    ttsPendingHidden.push({text,senderName});
+  // Bận → không đọc gì cả
+  if(userStatus==='busy')return;
+
+  const item={text,senderName,ts:Date.now()};
+
+  if(document.hidden||userStatus==='away'){
+    // Tab ẩn hoặc xa máy: giữ tối đa TTS_MAX_PENDING tin mới nhất
+    ttsPendingHidden.push(item);
+    if(ttsPendingHidden.length>TTS_MAX_PENDING){
+      // Bỏ tin cũ, chỉ giữ mới nhất
+      ttsPendingHidden.splice(0,ttsPendingHidden.length-TTS_MAX_PENDING);
+    }
     return;
   }
-  ttsQueue.push({text,senderName});
+  // Đang online: nếu queue dài → trim bớt
+  if(ttsQueue.length>2)ttsQueue.splice(0,ttsQueue.length-2);
+  ttsQueue.push(item);
   if(!ttsSpeaking)ttsPlayNext();
 }
 
@@ -926,9 +1009,31 @@ async function ttsPlayNext(){
 
 function ttsFlushPending(){
   if(!ttsEnabled||!ttsPendingHidden.length)return;
-  const items=[...ttsPendingHidden];
+  if(userStatus==='busy'){ttsPendingHidden.length=0;return;}
+  // Reset sender context — khi flush lại cần đọc tên đầy đủ
+  lastTTSSender='';lastTTSSenderTs=0;
+
+  const now=Date.now();
+  // Lọc: chỉ giữ tin trong vòng TTS_MAX_AGE_MS (30 giây)
+  const fresh=ttsPendingHidden.filter(i=>now-i.ts<TTS_MAX_AGE_MS);
   ttsPendingHidden.length=0;
-  items.forEach(item=>ttsQueue.push(item));
+
+  if(!fresh.length)return;
+
+  if(fresh.length===1){
+    // Chỉ 1 tin → đọc bình thường
+    ttsQueue.push(fresh[0]);
+  } else {
+    // Nhiều tin → thông báo gọn: "Có X tin nhắn mới từ A, B, C"
+    const senders=[...new Set(fresh.map(i=>i.senderName).filter(Boolean))];
+    const summary=senders.length>0
+      ?`Có ${fresh.length} tin nhắn mới từ ${senders.slice(0,2).join(', ')}${senders.length>2?' và những người khác':''}`
+      :`Có ${fresh.length} tin nhắn mới`;
+    // Đọc tóm tắt trước, rồi tin mới nhất
+    ttsQueue.push({text:summary,senderName:'',ts:now});
+    // Đọc thêm tin mới nhất
+    ttsQueue.push(fresh[fresh.length-1]);
+  }
   if(!ttsSpeaking)ttsPlayNext();
 }
 
@@ -947,15 +1052,16 @@ async function ttsSpeakOne(text,sender){
 // ── Khi user quay lại tab → đọc ngay các tin đang chờ ──
 document.addEventListener('visibilitychange',()=>{
   if(document.visibilityState==='visible'){
-    // wake lock
     if(wakeLockOn&&!wakeLock)enableWake();
-    // flush TTS queue từ khi tab bị ẩn
-    if(ttsEnabled&&ttsPendingHidden.length>0){
-      setTimeout(ttsFlushPending,300); // delay nhỏ cho browser ready
-    }
+    updateActivity(); // reset idle timer
+    // Nếu bận → không đọc
+    if(!ttsEnabled||userStatus==='busy'){ttsPendingHidden.length=0;return;}
+    // Flush thông minh sau 200ms
+    if(ttsPendingHidden.length>0)setTimeout(ttsFlushPending,200);
   } else {
-    // Tab bị ẩn → dừng đọc để không phát âm thanh kỳ lạ khi mở tab khác
-    if(ttsSpeaking){window.speechSynthesis?.cancel();ttsSpeaking=false}
+    // Tab ẩn → dừng đọc
+    if(ttsSpeaking){window.speechSynthesis?.cancel();ttsSpeaking=false;}
+    ttsQueue.length=0; // clear queue vì user không nghe được
   }
 });
 
@@ -1494,8 +1600,11 @@ function appendChat(username,text,ts,isSystem){
 
     if(!isMe&&audioUnlocked){
       sndReceive();vib(15);
-      // TTS đọc to tin nhắn người khác gửi
-      if(ttsEnabled)ttsSpeak(text,username);
+      if(ttsEnabled){
+        // Prefetch audio từ server ngay khi nhận — giảm độ trễ
+        prefetchTTS(text,username);
+        ttsSpeak(text,username);
+      }
     }
   }
   chatMsgs.appendChild(el);chatMsgs.scrollTop=chatMsgs.scrollHeight;
@@ -1534,6 +1643,24 @@ function spawnR(u,e){const el=document.createElement('div');el.className='rb';el
 setPublic.addEventListener('click',()=>setPublic.classList.toggle('on'));
 setApproval.addEventListener('click',()=>setApproval.classList.toggle('on'));
 setSave.addEventListener('click',()=>{if(!socket)return;socket.emit('update-room-settings',{isPublic:setPublic.classList.contains('on'),requireApproval:setApproval.classList.contains('on'),password:setPass.value,description:setDesc.value.trim()});toast('✅ Đã lưu cài đặt phòng','ok')});
+
+// STATUS BUTTON
+const statusBtn=$('statusBtn');
+const STATUS_CYCLE=['online','away','busy'];
+const STATUS_MAP={
+  online:{icon:'🟢',label:'Online',color:'var(--green)',tip:'Đang online — TTS bật bình thường'},
+  away:  {icon:'🟡',label:'Xa máy',color:'var(--warn)', tip:'Xa máy — TTS buffer, đọc tóm tắt khi quay lại'},
+  busy:  {icon:'🔴',label:'Bận',   color:'var(--red)',  tip:'Bận — Tắt TTS hoàn toàn'},
+};
+if(statusBtn){
+  statusBtn.addEventListener('click',()=>{
+    const idx=STATUS_CYCLE.indexOf(userStatus);
+    const next=STATUS_CYCLE[(idx+1)%STATUS_CYCLE.length];
+    setUserStatus(next);
+    const s=STATUS_MAP[next];
+    toast(`${s.icon} ${s.label} — ${s.tip}`,'ok');
+  });
+}
 
 // TTS TOGGLE + VOICE FOR ROOM
 const waTTS=$('waTTS'),raTTS=$('raTTS'),raTTSlbl=$('raTTSlbl'),setTTS=$('setTTS');
@@ -1609,7 +1736,7 @@ function doLeave(){
   if(watchId!=null){navigator.geolocation.clearWatch(watchId);watchId=null}
   participants=[];knownUsernames=new Set();speakingSet.clear();currentSpeaker=null;
   if(leafletFull)Object.keys(mFull).forEach(k=>{leafletFull.removeLayer(mFull[k]);delete mFull[k]});
-  chatMsgs.innerHTML='';chatUnread=0;isOwner=false;isRoomAdmin=false;
+  chatMsgs.innerHTML='';chatUnread=0;isOwner=false;isRoomAdmin=false;lastTTSSender='';lastTTSSenderTs=0;
   ownerBlock.style.display='none';
   activePanel='panelChat';switchPanel('panelChat',tabChat);
   voiceMemRaw=null;vmemo.classList.remove('show');
