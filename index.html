@@ -2,94 +2,67 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover,shrink-to-fit=no"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover"/>
 <title>Bộ Đàm Web</title>
 <link rel="manifest" href="manifest.json"/>
 <meta name="theme-color" content="#0d1117"/>
 <link rel="icon" href="icon-192.png"/>
 <link rel="apple-touch-icon" href="icon-192.png"/>
+<meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="apple-mobile-web-app-title" content="Bộ Đàm"/>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <style>
+/* ═══ RESET ═══════════════════════════════════════════════ */
 :root{
   --bg:#0d1117;--bg2:#161b22;--surf:#1c2333;--surf2:#21262d;
-  --border:#30363d;--border2:#3d4451;
-  --green:#2ea043;--greens:rgba(46,160,67,.18);--greenb:rgba(46,160,67,.35);
+  --border:#30363d;
+  --green:#2ea043;--greens:rgba(46,160,67,.2);
+  --orange:#f0780a;--oranges:rgba(240,120,10,.2);
   --blue:#58a6ff;--blues:rgba(88,166,255,.15);
   --warn:#d29922;--warns:rgba(210,153,34,.15);
   --red:#f85149;--reds:rgba(248,81,73,.15);
-  --gold:#f0a500;--golds:rgba(240,165,0,.2);
+  --gold:#f0c040;
   --text:#e6edf3;--text2:#8b949e;--text3:#484f58;
   --sb:env(safe-area-inset-bottom,0px);
   --st:env(safe-area-inset-top,0px);
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;padding:0}
-html{height:100%;height:100dvh;overflow:hidden;background:var(--bg)}
-body{
-  height:100%;height:100dvh;
-  width:100%;max-width:100vw;
-  overflow:hidden;
-  background:var(--bg);color:var(--text);
-  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Inter","Segoe UI",sans-serif;
-  user-select:none;
-  /* Prevent horizontal overflow on iPhone */
-  overscroll-behavior:none;
-  -webkit-overflow-scrolling:touch;
-}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Inter",sans-serif;
+  user-select:none;overscroll-behavior:none}
 button{font-family:inherit;border:none;cursor:pointer;background:none;color:inherit}
-input{font-family:inherit}
+input,select{font-family:inherit}
 ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
 
-/* ── UTILS ── */
+/* ═══ UTILS ════════════════════════════════════════════════ */
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px 18px;border-radius:9px;font-size:14px;font-weight:600;cursor:pointer;border:none;transition:opacity .12s,transform .12s}
 .btn:active{opacity:.78;transform:scale(.96)}
 .btn:disabled{opacity:.4;pointer-events:none}
 .btn-g{background:var(--green);color:#fff}
+.btn-o{background:var(--orange);color:#fff}
 .btn-s{background:var(--surf2);color:var(--text);border:1px solid var(--border)}
 .btn-r{background:var(--reds);color:var(--red);border:1px solid rgba(248,81,73,.3)}
-.btn-w{background:var(--warns);color:var(--warn);border:1px solid rgba(210,153,34,.3)}
-.btn-b{background:var(--blues);color:var(--blue);border:1px solid rgba(88,166,255,.3)}
 .btn-full{width:100%}
 .btn-lg{padding:13px 20px;font-size:15px;border-radius:10px}
 .btn-sm{padding:5px 11px;font-size:12px;border-radius:7px}
-.inp{width:100%;padding:10px 13px;font-size:14px;border-radius:9px;border:1.5px solid var(--border);background:var(--bg2);color:var(--text);outline:none;transition:border-color .14s,box-shadow .14s}
-.inp:focus{border-color:var(--blue);box-shadow:0 0 0 3px var(--blues)}
+.inp{width:100%;padding:10px 13px;font-size:14px;border-radius:9px;border:1.5px solid var(--border);background:var(--bg2);color:var(--text);outline:none;transition:border-color .14s}
+.inp:focus{border-color:var(--blue)}
 .inp::placeholder{color:var(--text3)}
 .lbl{font-size:11px;font-weight:600;color:var(--text2);margin-bottom:5px;display:block;text-transform:uppercase;letter-spacing:.04em}
 .fg{margin-bottom:12px}
-.hint{font-size:11px;color:var(--text3);margin-top:4px;line-height:1.5}
 .tog{width:42px;height:24px;border-radius:999px;background:var(--border);position:relative;cursor:pointer;transition:background .18s;flex-shrink:0;border:none}
 .tog.on{background:var(--green)}
 .tog::after{content:'';position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:transform .18s;box-shadow:0 1px 3px rgba(0,0,0,.3)}
 .tog.on::after{transform:translateX(18px)}
-.badge{display:inline-flex;align-items:center;font-size:10px;font-weight:600;border-radius:999px;padding:2px 7px;border:1px solid}
-.bdg-g{background:var(--greens);color:var(--green);border-color:rgba(46,160,67,.3)}
-.bdg-b{background:var(--blues);color:var(--blue);border-color:rgba(88,166,255,.3)}
-.bdg-w{background:var(--warns);color:var(--warn);border-color:rgba(210,153,34,.3)}
-.bdg-r{background:var(--reds);color:var(--red);border-color:rgba(248,81,73,.3)}
-.sec{font-size:10.5px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px}
-.card{background:var(--surf);border:1px solid var(--border);border-radius:12px;overflow:hidden}
-.card-row{display:flex;align-items:center;gap:12px;padding:12px;border-bottom:1px solid var(--border)}
-.card-row:last-child{border-bottom:none}
-.card-icon{width:34px;height:34px;border-radius:9px;background:var(--surf2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
-.card-body{flex:1;min-width:0}
-.card-label{font-size:13.5px;font-weight:600}
-.card-sub{font-size:11.5px;color:var(--text3);margin-top:2px}
-.card-ctrl{flex-shrink:0;margin-left:8px}
 
-/* ── NON-ROOM SCREENS ── */
-.screen{display:none;min-height:100dvh;flex-direction:column;overflow-y:auto;-webkit-overflow-scrolling:touch}
+/* ═══ NON-ROOM SCREENS ═════════════════════════════════════ */
+.screen{display:none;min-height:100dvh;flex-direction:column;overflow-y:auto}
 .screen.active{display:flex}
-
-/* JOIN */
 #joinScreen{background:radial-gradient(ellipse at top,#1a2332 0%,var(--bg) 60%)}
-.join-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
-  padding:calc(28px + var(--st)) 20px calc(28px + var(--sb));gap:14px}
-.j-logo{width:80px;height:80px;border-radius:24px;background:linear-gradient(145deg,#1f6feb,#388bfd);
-  display:flex;align-items:center;justify-content:center;font-size:36px;
-  box-shadow:0 8px 28px rgba(56,139,253,.4)}
+.join-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:calc(28px + var(--st)) 20px calc(28px + var(--sb));gap:14px}
+.j-logo{width:80px;height:80px;border-radius:24px;background:linear-gradient(145deg,#c45000,#f0780a);display:flex;align-items:center;justify-content:center;font-size:36px;box-shadow:0 8px 28px rgba(240,120,10,.4)}
 .j-title{font-size:24px;font-weight:900;letter-spacing:-.02em}
 .j-sub{font-size:13px;color:var(--text2);margin-top:-8px}
 .j-card{width:100%;max-width:380px;background:var(--surf);border:1px solid var(--border);border-radius:16px;padding:20px}
@@ -104,10 +77,7 @@ input{font-family:inherit}
 .cr-body{display:none;padding:4px 14px 14px;flex-direction:column;gap:10px}
 .cr-body.open{display:flex}
 .trow{display:flex;align-items:center;justify-content:space-between;padding:6px 0}
-.trow .tl{font-size:13px;font-weight:600}
-.trow .ts{font-size:11px;color:var(--text3);margin-top:1px}
-
-/* DISCOVER */
+.trow .tl{font-size:13px;font-weight:600}.trow .ts{font-size:11px;color:var(--text3)}
 .topbar{display:flex;align-items:center;gap:10px;padding:calc(10px + var(--st)) 16px 10px;background:var(--bg2);border-bottom:1px solid var(--border);flex-shrink:0}
 .topbar h2{font-size:16px;font-weight:800;flex:1}
 .ib{width:34px;height:34px;border-radius:8px;background:var(--surf);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
@@ -115,89 +85,94 @@ input{font-family:inherit}
 .page{flex:1;overflow-y:auto;padding:12px 16px 24px}
 .sw{position:relative;margin-bottom:12px}
 .sw .si{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:14px;pointer-events:none}
-.sw .inp{padding-left:32px}
-.rc{display:flex;align-items:center;gap:11px;padding:12px;border-radius:12px;background:var(--surf);border:1px solid var(--border);margin-bottom:8px;cursor:pointer;transition:border-color .14s}
-.rc:active,.rc:hover{border-color:var(--blue)}
+.rc{display:flex;align-items:center;gap:11px;padding:12px;border-radius:12px;background:var(--surf);border:1px solid var(--border);margin-bottom:8px;cursor:pointer}
+.rc:active{border-color:var(--blue)}
 .rc-ico{width:42px;height:42px;border-radius:12px;background:var(--surf2);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
 .rc-info{flex:1;min-width:0}
 .rc-name{font-size:14px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .rc-sub{font-size:11.5px;color:var(--text2);margin-top:2px}
 .rc-bgs{display:flex;gap:4px;margin-top:4px;flex-wrap:wrap}
+.badge{display:inline-flex;align-items:center;font-size:10px;font-weight:600;border-radius:999px;padding:2px 7px;border:1px solid}
+.bdg-g{background:var(--greens);color:var(--green);border-color:rgba(46,160,67,.3)}
+.bdg-b{background:var(--blues);color:var(--blue);border-color:rgba(88,166,255,.3)}
+.bdg-w{background:var(--warns);color:var(--warn);border-color:rgba(210,153,34,.3)}
 .spw{display:flex;flex-direction:column;align-items:center;padding:48px 0;gap:12px;color:var(--text2);font-size:13px}
-.spn{width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--green);border-radius:50%;animation:spin .7s linear infinite}
+.spn{width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--orange);border-radius:50%;animation:spin .7s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 .empt{text-align:center;padding:40px 16px;color:var(--text2);font-size:13px;line-height:1.7}
-
-/* WAITING */
 #waitScreen{background:var(--bg);align-items:center;justify-content:center;padding:40px 24px;text-align:center;gap:14px}
 .wi{font-size:56px;animation:wP 2s ease-in-out infinite}
 @keyframes wP{0%,100%{transform:scale(1)}50%{transform:scale(1.07)}}
-.wt{font-size:20px;font-weight:800}
-.ws{font-size:13px;color:var(--text2);line-height:1.7;white-space:pre-wrap}
+.wt{font-size:20px;font-weight:800}.ws{font-size:13px;color:var(--text2);line-height:1.7;white-space:pre-wrap}
 
-/* ══════════════════════════════════════════════════
-   ROOM — CSS GRID, 6 rows, NO overlap possible
-══════════════════════════════════════════════════ */
+/* ═══ ROOM — theo style ảnh tham khảo ══════════════════════
+   Layout: Map full trên | Member strip | Content | PTT | Tabbar
+═══════════════════════════════════════════════════════════ */
 #roomScreen{
   display:none;
-  width:100%;max-width:100vw;
-  height:100dvh;
+  width:100%;height:100dvh;
   grid-template-rows:
-    auto 1fr auto auto;
-  overflow:hidden;background:var(--bg);
-  box-sizing:border-box;
+    auto      /* header: tên phòng + actions */
+    auto      /* banners */
+    1fr       /* MAP - chiếm phần lớn */
+    auto      /* member strip nổi trên map bottom */
+    auto      /* status/content panel - chỉ hiện khi cần */
+    auto      /* PTT zone */
+    auto;     /* tabbar */
+  overflow:hidden;background:var(--bg);position:relative;
 }
 #roomScreen.active{display:grid}
 
 /* HEADER */
-.rhdr{
-  grid-row:1;display:flex;align-items:center;gap:6px;
-  padding:calc(8px + var(--st)) 10px 8px;
-  background:var(--bg2);border-bottom:1px solid var(--border);flex-shrink:0;
-  width:100%;box-sizing:border-box;overflow:hidden;
-  min-width:0; /* prevent flex overflow */
-}
-.rchip{display:inline-flex;align-items:center;gap:5px;font-weight:700;font-size:12px;
-  padding:4px 8px;border-radius:999px;background:var(--surf2);border:1px solid var(--border);cursor:pointer;
-  flex-shrink:1;min-width:0;overflow:hidden;}
-.rchip span:nth-child(2){overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:90px}
+.rhdr{grid-row:1;display:flex;align-items:center;gap:6px;padding:calc(6px + var(--st)) 10px 6px;background:rgba(13,17,23,.85);backdrop-filter:blur(10px);border-bottom:1px solid rgba(255,255,255,.08);flex-shrink:0;z-index:10}
+.rchip{display:inline-flex;align-items:center;gap:5px;font-weight:700;font-size:12px;padding:4px 8px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);cursor:pointer;flex-shrink:1;min-width:0;max-width:130px}
 .rchip .rd{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);flex-shrink:0}
 .rchip .rd.warn{background:var(--warn);box-shadow:0 0 6px var(--warn);animation:blink .8s infinite}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
-.racts{display:flex;align-items:center;gap:4px;margin-left:auto;flex-shrink:0}
-.ra{width:30px;height:30px;border-radius:8px;background:var(--surf2);border:1px solid var(--border);
-  display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;transition:all .13s;position:relative}
-.ra:active{transform:scale(.88)}
-.ra.on{background:var(--greens);border-color:var(--greenb);color:var(--green)}
-.ra-lbl{font-size:7.5px;font-weight:700;color:var(--text3);white-space:nowrap;margin-top:1px;display:block;text-align:center;line-height:1}
-.ra-wrap{display:flex;flex-direction:column;align-items:center;gap:0;cursor:pointer}
-.ra-wrap:active .ra{transform:scale(.88)}
-.ra-wrap.on .ra{background:var(--greens);border-color:var(--greenb);color:var(--green)}
-.ra-wrap.on .ra-lbl{color:var(--green)}
+.rchip span:nth-child(2){overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
-/* BANNERS row 2 */
-.banners{grid-row:2;display:flex;flex-direction:column;flex-shrink:0}
+/* Status button */
+#statusWrap{position:relative;flex-shrink:0;z-index:200}
+#statusBtn{display:flex;align-items:center;gap:4px;padding:4px 8px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);font-size:12px;cursor:pointer;white-space:nowrap}
+#statusDrop{display:none;position:fixed;top:auto;left:10px;right:10px;background:var(--bg2);border:1.5px solid var(--border);border-radius:14px;box-shadow:0 16px 48px rgba(0,0,0,.7);z-index:9999;overflow:hidden}
+#statusDrop.open{display:block}
+.sdrop-title{padding:10px 14px 6px;font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em}
+.sopt{width:100%;padding:12px 16px;text-align:left;font-size:13px;font-weight:600;display:flex;align-items:center;gap:12px;border:none;background:transparent;color:var(--text);border-bottom:1px solid var(--border);cursor:pointer}
+.sopt:last-child{border-bottom:none}
+.sopt:active{background:var(--surf)}
+.sopt.active-s{background:var(--surf)}
+.sopt .sopt-info{display:flex;flex-direction:column;gap:2px}
+.sopt .sopt-lbl{font-weight:700;font-size:13px}
+.sopt .sopt-sub{font-size:11px;color:var(--text2);font-weight:400}
+
+.racts{display:flex;align-items:center;gap:4px;margin-left:auto;flex-shrink:0}
+.ra-wrap{display:flex;flex-direction:column;align-items:center;gap:1px;cursor:pointer;min-width:44px}
+.ra-wrap:active .ra{transform:scale(.88)}
+.ra-wrap.on .ra{background:var(--oranges);border-color:rgba(240,120,10,.4);color:var(--orange)}
+.ra{width:30px;height:30px;border-radius:8px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;transition:all .13s}
+.ra-lbl{font-size:7px;font-weight:700;color:var(--text3);white-space:nowrap}
+.ra-wrap.on .ra-lbl{color:var(--orange)}
+
+/* BANNERS */
+.banners{grid-row:2;display:flex;flex-direction:column;flex-shrink:0;z-index:10}
 .ban{display:none;padding:6px 12px;font-size:12px;font-weight:600;text-align:center}
 .ban.show{display:block}
 .ban-recon{background:var(--warns);color:var(--warn);border-bottom:1px solid rgba(210,153,34,.3)}
 .ban-ios{background:var(--blues);color:var(--blue);border-bottom:1px solid rgba(88,166,255,.2)}
-.ban-ios b{font-weight:700}
-.ban-ios .bx{float:right;cursor:pointer;opacity:.7;padding:0 3px}
-.vmemo{display:none;padding:7px 12px;background:var(--warns);border-bottom:1px solid rgba(210,153,34,.3)}
+.ban-ios b{font-weight:700}.ban-ios .bx{float:right;cursor:pointer;opacity:.7;padding:0 3px}
+.vmemo{display:none;padding:7px 12px;background:var(--oranges);border-bottom:1px solid rgba(240,120,10,.3)}
 .vmemo.show{display:block}
 .vmemo-row{display:flex;align-items:center;gap:8px}
-.vmemo-btn{padding:4px 10px;border-radius:7px;background:var(--warn);color:#fff;font-size:11px;font-weight:700;border:none;cursor:pointer}
+.vmemo-btn{padding:4px 10px;border-radius:7px;background:var(--orange);color:#fff;font-size:11px;font-weight:700;border:none;cursor:pointer}
 .vmemo-info{flex:1;font-size:11px;color:var(--text2)}
 .vmemo-x{font-size:13px;color:var(--text3);border:none;background:none;cursor:pointer;padding:4px}
 .aprv-ban{display:none;padding:7px 12px;background:var(--warns);border-bottom:1px solid rgba(210,153,34,.3)}
 .aprv-ban.show{display:block}
-.aprv-ban-title{font-size:11px;font-weight:700;color:var(--warn);margin-bottom:5px}
-/* NEW: cam/mic request banners */
 .req-ban{display:none;padding:10px 14px;border-bottom:1px solid var(--border);animation:slideDown .3s ease}
 .req-ban.show{display:block}
 @keyframes slideDown{from{transform:translateY(-20px);opacity:0}to{transform:none;opacity:1}}
-.req-cam{background:linear-gradient(90deg,rgba(88,166,255,.15),rgba(88,166,255,.08));border-bottom-color:rgba(88,166,255,.3)}
-.req-mic{background:linear-gradient(90deg,rgba(46,160,67,.18),rgba(46,160,67,.08));border-bottom-color:rgba(46,160,67,.3)}
+.req-cam{background:linear-gradient(90deg,var(--blues),rgba(88,166,255,.05));border-bottom-color:rgba(88,166,255,.3)}
+.req-mic{background:linear-gradient(90deg,var(--greens),rgba(46,160,67,.05));border-bottom-color:rgba(46,160,67,.3)}
 .req-inner{display:flex;align-items:center;gap:10px}
 .req-icon{font-size:22px;flex-shrink:0}
 .req-body{flex:1;min-width:0}
@@ -205,179 +180,197 @@ input{font-family:inherit}
 .req-sub{font-size:11px;color:var(--text2);margin-top:1px}
 .req-btns{display:flex;gap:6px;flex-shrink:0}
 
-/* AVATAR STRIP row 3 */
-.av-strip{grid-row:3;display:flex;gap:0;overflow-x:auto;padding:8px 10px;
-  border-bottom:1px solid var(--border);background:var(--bg2);
-  -webkit-overflow-scrolling:touch;scroll-snap-type:x mandatory;flex-shrink:0}
+/* MAP — row 3, chiếm phần lớn màn hình */
+.map-sec{
+  grid-row:3;
+  position:relative;overflow:hidden;
+  /* Map luôn hiển thị */
+}
+#mapFull{width:100%;height:100%}
+.map-empty-ov{
+  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  color:var(--text2);font-size:13px;
+  background:rgba(13,17,23,.6);pointer-events:none;text-align:center;
+  flex-direction:column;gap:8px;
+}
+.map-empty-ov .mei{font-size:32px}
+
+/* MEMBER STRIP — nổi phía dưới map, row 4 */
+.av-strip{
+  grid-row:4;
+  display:flex;gap:0;overflow-x:auto;
+  padding:8px 10px 6px;
+  background:rgba(13,17,23,.9);
+  backdrop-filter:blur(8px);
+  border-top:1px solid rgba(255,255,255,.08);
+  -webkit-overflow-scrolling:touch;scroll-snap-type:x mandatory;flex-shrink:0;
+}
 .av-strip::-webkit-scrollbar{display:none}
-.av-item{display:flex;flex-direction:column;align-items:center;gap:3px;min-width:60px;flex-shrink:0;scroll-snap-align:start;padding:0 3px}
-.av-ring{width:44px;height:44px;border-radius:50%;padding:2.5px;flex-shrink:0}
-.av-ring.idle{background:var(--border)}
+.av-item{display:flex;flex-direction:column;align-items:center;gap:3px;min-width:62px;flex-shrink:0;scroll-snap-align:start;padding:0 4px}
+.av-ring{width:46px;height:46px;border-radius:50%;padding:2.5px;flex-shrink:0;position:relative}
+.av-ring.idle{background:rgba(255,255,255,.15)}
 .av-ring.speaking{background:var(--green);animation:rPop 1.2s ease-in-out infinite}
-.av-ring.me-ring{background:var(--blue)}
-@keyframes rPop{0%,100%{box-shadow:0 0 0 0 rgba(46,160,67,.4)}50%{box-shadow:0 0 0 5px rgba(46,160,67,0)}}
-.av-inner{width:100%;height:100%;border-radius:50%;overflow:hidden;background:var(--surf2);
-  display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:#fff;
-  border:2px solid var(--bg2)}
-/* owner avatar gets gold ring */
 .av-ring.owner-ring{background:var(--gold)}
-.av-name{font-size:9.5px;font-weight:600;color:var(--text2);text-align:center;max-width:58px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.av-status{font-size:8.5px;font-weight:700;color:var(--text3)}
+.av-ring.me-ring{background:var(--orange)}
+@keyframes rPop{0%,100%{box-shadow:0 0 0 0 rgba(46,160,67,.4)}50%{box-shadow:0 0 0 6px rgba(46,160,67,0)}}
+.av-inner{width:100%;height:100%;border-radius:50%;overflow:hidden;background:var(--surf2);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:#fff;border:2px solid rgba(13,17,23,.8)}
+.av-name{font-size:9px;font-weight:600;color:var(--text2);text-align:center;max-width:58px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.av-status{font-size:8px;font-weight:700;color:var(--text3)}
 .av-status.speaking{color:var(--green)}
 .av-status.owner{color:var(--gold)}
+.av-status.me-s{color:var(--orange)}
 
-/* CONTENT row 4 */
-.content{grid-row:4;display:flex;flex-direction:column;overflow:hidden;min-height:0}
+/* CONTENT PANEL — row 5, chỉ hiện khi đang ở tab Chat/Members/Settings */
+.content{
+  grid-row:5;
+  display:flex;flex-direction:column;
+  overflow:hidden;min-height:0;
+  /* Chiều cao cố định khi hiện panel */
+  max-height:0;
+  transition:max-height .25s ease;
+}
+.content.panel-open{
+  max-height:45vh; /* chiếm tối đa 45% màn hình */
+  border-top:1px solid rgba(255,255,255,.08);
+}
 .panel{display:none;flex:1;flex-direction:column;overflow:hidden;min-height:0}
 .panel.active{display:flex}
 
-/* Chat panel */
-.chat-msgs{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;
-  padding:10px 12px;display:flex;flex-direction:column;gap:6px}
-.csys{align-self:center;font-size:11px;color:var(--text3);padding:3px 10px;
-  background:var(--surf2);border-radius:999px;border:1px solid var(--border);margin:2px 0}
+/* Chat */
+.chat-msgs{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:8px 12px;display:flex;flex-direction:column;gap:5px;background:rgba(13,17,23,.95)}
+.csys{align-self:center;font-size:11px;color:var(--text3);padding:3px 10px;background:var(--surf2);border-radius:999px;border:1px solid var(--border);margin:2px 0}
 .cmsg{display:flex;flex-direction:column;max-width:78%}
 .cmsg.me{align-self:flex-end;align-items:flex-end}
 .cmsg.other{align-self:flex-start}
 .bubble{padding:9px 12px;border-radius:16px;font-size:14px;line-height:1.45;word-break:break-word}
-.cmsg.me .bubble{background:var(--blue);color:#fff;border-bottom-right-radius:4px;font-weight:500}
+.cmsg.me .bubble{background:var(--orange);color:#fff;border-bottom-right-radius:4px;font-weight:500}
 .cmsg.other .bubble{background:var(--surf);border:1px solid var(--border);color:var(--text);border-bottom-left-radius:4px}
 .cmeta{font-size:10px;color:var(--text3);margin-top:3px;padding:0 3px}
+.chat-input-row{display:flex;gap:7px;padding:7px 12px 8px;border-top:1px solid var(--border);background:rgba(22,27,34,.98);flex-shrink:0}
+.chat-inp{flex:1;padding:9px 13px;border-radius:20px;border:1.5px solid var(--border);background:var(--surf2);color:var(--text);font-size:14px;outline:none}
+.chat-inp:focus{border-color:var(--orange)}
+.csend{width:40px;height:40px;border-radius:50%;background:var(--orange);color:#fff;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.csend:active{background:#c45000;transform:scale(.91)}
+.cemoji{width:36px;height:36px;border-radius:10px;background:var(--surf2);border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.cemoji:active{transform:scale(.9)}
 
-/* Members panel */
-.mlist{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:8px 12px;display:flex;flex-direction:column;gap:5px}
-.mrow{display:flex;align-items:center;gap:10px;padding:9px 11px;border-radius:12px;background:var(--surf);border:1px solid var(--border);transition:all .18s}
-.mrow.speaking{background:rgba(46,160,67,.07);border-color:rgba(46,160,67,.4)}
+/* Members */
+.mlist{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:6px 10px;display:flex;flex-direction:column;gap:4px;background:rgba(13,17,23,.95)}
+.mrow{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:12px;background:rgba(28,35,51,.8);border:1px solid var(--border);transition:all .18s}
+.mrow.speaking{background:rgba(46,160,67,.1);border-color:rgba(46,160,67,.4)}
 .mrow.muted-r{opacity:.6}
 .mrow.new-j{animation:rowIn .3s ease}
 @keyframes rowIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
-/* owner member row has gold left border */
 .mrow.is-owner{border-left:3px solid var(--gold)}
 .mav-wrap{position:relative;flex-shrink:0}
-.mav{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;color:#fff}
-/* owner avatar in members: gold ring */
+.mav{width:38px;height:38px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;color:#fff}
 .mav.owner-av{box-shadow:0 0 0 2.5px var(--gold)}
 .mol{position:absolute;right:-2px;bottom:-2px;width:9px;height:9px;border-radius:50%;background:var(--green);border:2px solid var(--surf)}
 .mcrown{position:absolute;left:-5px;top:-6px;font-size:13px}
 .minfo{flex:1;min-width:0}
-.mname{font-size:13.5px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.msub{font-size:11px;color:var(--text3);margin-top:2px;display:flex;align-items:center;gap:4px;flex-wrap:wrap}
+.mname{font-size:13px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.msub{font-size:10.5px;color:var(--text3);margin-top:2px;display:flex;align-items:center;gap:4px;flex-wrap:wrap}
 .mrow.speaking .msub{color:var(--green)}
-.qb{font-size:9.5px;padding:1px 5px;border-radius:5px;border:1px solid var(--border);background:var(--surf2)}
+.qb{font-size:9px;padding:1px 5px;border-radius:5px;border:1px solid var(--border);background:var(--surf2)}
 .qb.g{border-color:rgba(46,160,67,.4);color:var(--green);background:var(--greens)}
 .qb.o{border-color:rgba(210,153,34,.4);color:var(--warn);background:var(--warns)}
 .qb.b{border-color:rgba(248,81,73,.4);color:var(--red);background:var(--reds)}
 .mwave{width:18px;height:18px;flex-shrink:0;color:var(--green);opacity:0;transform:scale(.5);transition:opacity .15s,transform .15s}
 .mrow.speaking .mwave{opacity:1;transform:scale(1);animation:mBl 1s ease-in-out infinite}
 @keyframes mBl{0%,100%{opacity:1}50%{opacity:.35}}
-.owbtns{display:flex;gap:3px;flex-shrink:0}
-/* ── OWNER DROPDOWN ── */
 .owbtns{position:relative;flex-shrink:0}
-.owb-btn{width:30px;height:30px;border-radius:8px;background:var(--surf2);border:1px solid var(--border);
-  font-size:16px;display:flex;align-items:center;justify-content:center;color:var(--text2);
-  transition:all .13s;cursor:pointer}
-.owb-btn:active{transform:scale(.88);background:var(--surf)}
-.owb-drop{
-  display:none;position:fixed;
-  background:var(--bg2);border:1px solid var(--border2);border-radius:12px;
-  box-shadow:0 12px 32px rgba(0,0,0,.6);
-  z-index:999;min-width:200px;overflow:hidden;
-}
+.owb-btn{width:28px;height:28px;border-radius:7px;background:var(--surf2);border:1px solid var(--border);font-size:14px;display:flex;align-items:center;justify-content:center;color:var(--text2)}
+.owb-btn:active{transform:scale(.88)}
+.owb-drop{display:none;position:fixed;background:var(--bg2);border:1.5px solid var(--border);border-radius:12px;box-shadow:0 12px 32px rgba(0,0,0,.6);z-index:9999;min-width:200px;overflow:hidden}
 .owb-drop.open{display:block}
-.owb-drop-item{
-  width:100%;padding:11px 14px;text-align:left;font-size:13px;font-weight:600;
-  display:flex;align-items:center;gap:10px;border:none;background:transparent;color:var(--text);
-  border-bottom:1px solid var(--border);cursor:pointer;transition:background .12s;
-}
+.owb-drop-title{padding:8px 14px 6px;font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;background:var(--surf2)}
+.owb-drop-item{width:100%;padding:11px 14px;text-align:left;font-size:13px;font-weight:600;display:flex;align-items:center;gap:10px;border:none;background:transparent;color:var(--text);border-bottom:1px solid var(--border);cursor:pointer;transition:background .12s}
 .owb-drop-item:last-child{border-bottom:none}
 .owb-drop-item:active,.owb-drop-item:hover{background:var(--surf)}
 .owb-drop-item.danger{color:var(--red)}
 .owb-drop-item.warn{color:var(--warn)}
 .owb-drop-item.blue{color:var(--blue)}
 .owb-drop-item.green{color:var(--green)}
-.owb-drop-title{padding:8px 14px 6px;font-size:10px;font-weight:700;color:var(--text3);
-  text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--border);background:var(--surf2)}
 
-/* Map panel */
-.map-panel-wrap{flex:1;position:relative;overflow:hidden;min-height:0}
-#mapFull{width:100%;height:100%}
-.mfe{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--text2);font-size:12px;background:rgba(13,17,23,.5);pointer-events:none;text-align:center}
-
-/* Settings panel */
-.set-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:10px 12px 16px;display:flex;flex-direction:column;gap:10px}
+/* Settings */
+.set-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:8px 12px 16px;display:flex;flex-direction:column;gap:8px;background:rgba(13,17,23,.95)}
+.set-section{background:var(--surf);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.set-item{display:flex;align-items:center;gap:12px;padding:12px;border-bottom:1px solid var(--border)}
+.set-item:last-child{border-bottom:none}
+.set-icon{width:32px;height:32px;border-radius:9px;background:var(--surf2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+.set-body{flex:1;min-width:0}
+.set-label{font-size:13.5px;font-weight:600}
+.set-sub{font-size:11.5px;color:var(--text3);margin-top:2px}
+.set-ctrl{flex-shrink:0;margin-left:8px}
 .set-inp-wrap{padding:8px 12px 12px}
+.sec{font-size:10.5px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;padding:0 2px}
+.aprv-item{display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:10px;background:var(--warns);border:1px solid rgba(210,153,34,.3);margin-bottom:6px}
 
-/* Video grid inside content */
-#videoGrid{display:none;flex-wrap:wrap;gap:4px;padding:5px 12px;flex-shrink:0;border-bottom:1px solid var(--border)}
+/* VIDEO GRID */
+#videoGrid{display:none;flex-wrap:wrap;gap:4px;padding:4px 10px;flex-shrink:0;border-bottom:1px solid var(--border)}
 #videoGrid.vis{display:flex}
 .vtile{position:relative;border-radius:8px;overflow:hidden;background:var(--surf2);border:1px solid var(--border);flex:1;min-width:80px;max-width:calc(50% - 2px);aspect-ratio:4/3}
 .vtile canvas{width:100%;height:100%;object-fit:cover;display:block}
 .vname{position:absolute;bottom:0;left:0;right:0;padding:3px 6px;font-size:10px;font-weight:700;background:linear-gradient(0deg,rgba(0,0,0,.7),transparent);color:#fff}
 .voff{position:absolute;top:3px;right:3px;background:rgba(248,81,73,.85);color:#fff;font-size:9px;border-radius:5px;padding:2px 5px;cursor:pointer;font-weight:700;border:none}
 
-/* ══ PTT ZONE row 5 ══ */
+/* PTT ZONE — row 6, nổi bật theo style ảnh */
 .ptt-zone{
-  grid-row:5;
-  display:flex;flex-direction:column;align-items:center;gap:6px;
-  padding:12px 16px 10px;
-  background:var(--bg2);border-top:1px solid var(--border);
+  grid-row:6;
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+  padding:10px 16px calc(8px);
+  background:rgba(13,17,23,.92);
+  backdrop-filter:blur(10px);
+  border-top:1px solid rgba(255,255,255,.08);
   flex-shrink:0;position:relative;
 }
 #reactLayer{position:absolute;bottom:100%;left:0;right:0;height:60px;pointer-events:none;overflow:visible;z-index:50}
-.stat-line{font-size:12.5px;font-weight:600;color:var(--text3);text-align:center;min-height:16px}
-.ptt-row{display:flex;align-items:center;justify-content:center;gap:20px;width:100%}
-/* ptt-side removed */
-/* emoji chat button hover */
-#emojiFab:active{background:var(--blues)!important;border-color:var(--blue)!important}
-#emojiFab:active svg circle,#emojiFab:active svg path{stroke:var(--blue)!important}
-#chatSend:active{transform:scale(.91);background:#1f6feb!important}
+.stat-line{font-size:12px;font-weight:600;color:var(--text3);text-align:center;min-height:16px}
+.stat-line.talking{color:var(--green)}
+.stat-line.preparing{color:var(--warn)}
+.stat-line.remote{color:var(--orange)}
 
-/* PTT button — big, clear, unmistakable */
-.ptt-outer{position:relative;width:90px;height:90px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.ptt-ring{position:absolute;inset:-8px;border-radius:50%;border:3px solid var(--green);opacity:0;pointer-events:none}
+/* PTT button — big orange like reference image */
+.ptt-outer{position:relative;width:80px;height:80px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ptt-ring{position:absolute;inset:-10px;border-radius:50%;border:3px solid var(--orange);opacity:0;pointer-events:none}
 .ptt-outer.talking .ptt-ring{opacity:1;animation:pRing 1.3s ease-out infinite}
-@keyframes pRing{0%{transform:scale(.85);opacity:.65}100%{transform:scale(1.6);opacity:0}}
+@keyframes pRing{0%{transform:scale(.85);opacity:.7}100%{transform:scale(1.6);opacity:0}}
 #pttBtn{
-  width:80px;height:80px;border-radius:50%;
-  background:radial-gradient(circle at 38% 30%,#2a3f60,#131e30 70%);
-  border:3px solid var(--border2);
+  width:72px;height:72px;border-radius:50%;
+  background:radial-gradient(circle at 38% 30%,#ff8c00,#c45000 70%);
+  border:3px solid rgba(255,140,0,.4);
   display:flex;align-items:center;justify-content:center;
   transition:all .15s;z-index:1;position:relative;
-  box-shadow:0 6px 20px rgba(0,0,0,.45);
+  box-shadow:0 6px 20px rgba(240,120,10,.5);
 }
-#pttBtn svg{width:30px;height:30px;color:var(--text2);transition:color .15s}
-#pttBtn.locked{opacity:.4;pointer-events:none}
-#pttBtn.preparing{
-  border-color:var(--warn);
-  background:radial-gradient(circle at 38% 30%,#3d2e10,#1a1208 70%);
-  box-shadow:0 0 0 6px rgba(210,153,34,.18),0 6px 20px rgba(0,0,0,.4)}
-#pttBtn.preparing svg{color:var(--warn)}
-#pttBtn.talking{
-  border-color:var(--green);
-  background:radial-gradient(circle at 38% 30%,#0e3320,#051a10 70%);
-  box-shadow:0 0 0 8px rgba(46,160,67,.22),0 0 30px rgba(46,160,67,.3),0 6px 20px rgba(0,0,0,.3)}
-#pttBtn.talking svg{color:var(--green)}
-#pttBtn:active:not(.locked){transform:scale(.91)}
-.ptt-label{font-size:10px;font-weight:800;color:var(--text3);letter-spacing:.06em;text-transform:uppercase;text-align:center;margin-top:2px}
+#pttBtn svg{width:28px;height:28px;color:#fff;transition:all .15s}
+#pttBtn.locked{opacity:.4;pointer-events:none;background:var(--surf2);box-shadow:none;border-color:var(--border)}
+#pttBtn.locked svg{color:var(--text3)}
+#pttBtn.preparing{background:radial-gradient(circle at 38% 30%,#e8a500,#8a6200 70%);box-shadow:0 0 0 8px rgba(210,153,34,.2),0 6px 20px rgba(210,153,34,.3)}
+#pttBtn.talking{background:radial-gradient(circle at 38% 30%,#40c060,#1a6030 70%);box-shadow:0 0 0 8px rgba(46,160,67,.25),0 0 30px rgba(46,160,67,.4)}
+#pttBtn:active:not(.locked){transform:scale(.92)}
+.ptt-label{font-size:10px;font-weight:800;color:var(--text3);letter-spacing:.06em;text-transform:uppercase;text-align:center}
+.ptt-label.talking{color:var(--green)}
+.ptt-label.preparing{color:var(--warn)}
 
-/* ══ TABBAR row 6 ══ */
+/* TABBAR — row 7 */
 .tabbar{
-  grid-row:6;
-  display:flex;background:var(--bg2);border-top:1px solid var(--border);
+  grid-row:7;
+  display:flex;background:rgba(13,17,23,.95);border-top:1px solid rgba(255,255,255,.08);
   padding-bottom:var(--sb);flex-shrink:0;
+  backdrop-filter:blur(10px);
 }
-.ti{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
-  gap:2px;padding:7px 4px 5px;cursor:pointer;border:none;background:transparent;
-  transition:opacity .14s;position:relative;min-width:0}
+.ti{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:7px 4px 5px;cursor:pointer;border:none;background:transparent;transition:opacity .14s;position:relative;min-width:0}
 .ti:active{opacity:.6}
-.ti .tii{font-size:20px;line-height:1.15}
+.ti .tii{font-size:20px;line-height:1.15;transition:transform .15s}
 .ti .til{font-size:9.5px;font-weight:600;color:var(--text3);white-space:nowrap;overflow:hidden;max-width:54px;text-overflow:ellipsis}
-.ti.active .til{color:var(--green)}
-.ti .tdot{position:absolute;top:5px;right:calc(50% - 18px);width:8px;height:8px;border-radius:50%;background:var(--red);border:1.5px solid var(--bg2);display:none}
+.ti.active .til{color:var(--orange)}
+.ti.active .tii{transform:scale(1.1)}
+.ti .tdot{position:absolute;top:5px;right:calc(50% - 18px);width:8px;height:8px;border-radius:50%;background:var(--red);border:1.5px solid rgba(13,17,23,.95);display:none}
 .ti.has-dot .tdot{display:block}
 
-/* ── MODALS ── */
-.mov{display:none;position:fixed;inset:0;z-index:80;background:rgba(0,0,0,.65);align-items:flex-end;justify-content:center;backdrop-filter:blur(3px)}
+/* ═══ MODALS ═══════════════════════════════════════════════ */
+.mov{display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.7);align-items:flex-end;justify-content:center;backdrop-filter:blur(4px)}
 .mov.show{display:flex}
 .mbd{position:absolute;inset:0}
 .msheet{position:relative;background:var(--bg2);border-top-left-radius:22px;border-top-right-radius:22px;border:1px solid var(--border);border-bottom:none;padding:0 18px calc(18px + var(--sb));width:100%;max-width:480px;max-height:88dvh;overflow-y:auto;box-shadow:0 -8px 32px rgba(0,0,0,.5)}
@@ -389,10 +382,10 @@ input{font-family:inherit}
 .qr-lb{flex:1;padding:9px 12px;border-radius:9px;background:var(--surf);border:1px solid var(--border);font-size:12px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .egrid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
 .ebtn{aspect-ratio:1;border-radius:12px;background:var(--surf2);border:1px solid var(--border);font-size:22px;display:flex;align-items:center;justify-content:center}
-.ebtn:active{transform:scale(.88);background:var(--greens)}
+.ebtn:active{transform:scale(.88)}
 
 /* SOS */
-#sosOv{display:none;position:fixed;inset:0;z-index:100;background:rgba(248,81,73,.88);align-items:center;justify-content:center;flex-direction:column;gap:14px}
+#sosOv{display:none;position:fixed;inset:0;z-index:10000;background:rgba(248,81,73,.88);align-items:center;justify-content:center;flex-direction:column;gap:14px}
 #sosOv.show{display:flex}
 .sos-card{background:#fff;border-radius:22px;padding:26px 22px;width:calc(100% - 40px);max-width:300px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.4)}
 .sos-e{font-size:50px;margin-bottom:8px;animation:sosBounce .5s ease-in-out infinite alternate}
@@ -402,7 +395,7 @@ input{font-family:inherit}
 .sos-dismiss{padding:11px 24px;border-radius:11px;background:rgba(255,255,255,.25);color:#fff;font-weight:700;font-size:13px;border:none;cursor:pointer}
 
 /* TOAST */
-#toastLayer{position:fixed;top:calc(10px + var(--st));left:50%;transform:translateX(-50%);z-index:200;display:flex;flex-direction:column;gap:6px;width:calc(100% - 28px);max-width:340px;align-items:center;pointer-events:none}
+#toastLayer{position:fixed;top:calc(10px + var(--st));left:50%;transform:translateX(-50%);z-index:20000;display:flex;flex-direction:column;gap:6px;width:calc(100% - 28px);max-width:340px;align-items:center;pointer-events:none}
 .toast{background:var(--surf2);border:1px solid var(--border);color:var(--text);font-size:12.5px;font-weight:600;padding:9px 14px;border-radius:11px;box-shadow:0 8px 24px rgba(0,0,0,.5);animation:tIn .2s ease,tOut .28s ease 2.3s forwards;text-align:center}
 .toast.ok{background:rgba(46,160,67,.2);border-color:rgba(46,160,67,.4);color:var(--green)}
 .toast.err{background:var(--reds);border-color:rgba(248,81,73,.4);color:var(--red)}
@@ -415,54 +408,14 @@ input{font-family:inherit}
 .rb .re{font-size:24px}.rb .rw{font-size:9px;color:var(--text3);background:var(--surf2);padding:1px 5px;border-radius:6px;margin-top:1px}
 @keyframes fUp{0%{transform:translateY(0) scale(.6);opacity:0}12%{transform:translateY(-12px) scale(1.05);opacity:1}85%{opacity:1}100%{transform:translateY(-140px) scale(.9);opacity:0}}
 
-/* RESPONSIVE */
-/* ── MOBILE FIRST (default) ── */
-/* roomScreen is position:fixed full-screen on mobile */
-
-/* ── TABLET / DESKTOP ── */
+/* DESKTOP */
 @media(min-width:600px){
-  body{display:flex;align-items:center;justify-content:center;background:#090d14}
-  /* Non-room screens: centered card */
-  .screen{
-    min-height:auto;height:auto;
-    max-width:420px;width:100%;
-    border-radius:18px;border:1px solid var(--border);
-    box-shadow:0 24px 60px rgba(0,0,0,.6);
-    overflow:hidden;margin:20px;
-  }
+  body{display:flex;align-items:center;justify-content:center;background:#060810}
+  .screen{min-height:auto;max-width:420px;width:100%;border-radius:18px;border:1px solid var(--border);box-shadow:0 24px 60px rgba(0,0,0,.6);overflow:hidden;margin:20px}
   .screen.active{max-height:92dvh;overflow-y:auto}
-  /* Room screen: fixed but centered as card */
-  #roomScreen.active{
-    position:relative; /* override fixed on desktop */
-    width:400px;height:88dvh;max-height:880px;
-    border-radius:22px;border:1px solid var(--border);
-    box-shadow:0 24px 60px rgba(0,0,0,.6);
-    overflow:hidden;
-    top:auto;left:auto;right:auto;bottom:auto;
-  }
+  #roomScreen.active{width:400px;height:90dvh;max-height:900px;border-radius:22px;border:1px solid var(--border);box-shadow:0 24px 60px rgba(0,0,0,.6);overflow:hidden;position:relative;top:auto;left:auto;right:auto;bottom:auto}
 }
-@media(min-width:900px){
-  #roomScreen.active{width:440px;height:90dvh}
-}
-/* ── IPHONE SAFE AREA FIX ── */
-@supports(padding-top: env(safe-area-inset-top)){
-  #roomScreen{
-    padding-top:0; /* safe area handled per-element */
-  }
-}
-/* TTS speaker button on chat bubbles */
-.bubble-wrap{display:flex;align-items:flex-end;gap:5px}
-.cmsg.me .bubble-wrap{flex-direction:row-reverse}
-.tts-msg-btn{
-  width:26px;height:26px;border-radius:50%;border:none;cursor:pointer;
-  background:var(--surf2);color:var(--text3);font-size:12px;
-  display:flex;align-items:center;justify-content:center;flex-shrink:0;
-  opacity:0;transition:opacity .15s;flex-shrink:0;
-}
-.cmsg:hover .tts-msg-btn,.cmsg:active .tts-msg-btn{opacity:1}
-.tts-msg-btn:active{transform:scale(.88);background:var(--blues);color:var(--blue)}
-/* TTS toggle active */
-#raTTS.on{background:var(--greens);border-color:var(--greenb);color:var(--green)}
+@media(min-width:900px){#roomScreen.active{width:440px;height:92dvh}}
 </style>
 </head>
 <body>
@@ -476,23 +429,23 @@ input{font-family:inherit}
     <div class="j-sub">Walkie-talkie nhóm — mọi thiết bị</div>
     <div class="j-card" style="max-width:380px;width:100%">
       <h3>🚪 Vào phòng</h3>
-      <div class="fg"><label class="lbl">Mã phòng</label><input type="text" id="roomCodeInput" class="inp" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Nhập mã phòng..."/><div class="hint">Phân biệt hoa/thường · 3-20 ký tự</div></div>
+      <div class="fg"><label class="lbl">Mã phòng</label><input type="text" id="roomCodeInput" class="inp" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Nhập mã phòng..."/><div style="font-size:11px;color:var(--text3);margin-top:4px">Phân biệt hoa/thường · 3-20 ký tự</div></div>
       <div class="fg"><label class="lbl">Tên của bạn</label><input type="text" id="usernameInput" class="inp" autocomplete="off" autocapitalize="words" placeholder="Tên thật..."/></div>
       <div class="fg" id="passGroup" style="display:none"><label class="lbl">🔒 Mật khẩu phòng</label><input type="password" id="roomPass" class="inp" placeholder="Nhập mật khẩu..."/></div>
-      <button id="joinBtn" class="btn btn-g btn-full btn-lg" style="margin-top:2px">Vào phòng</button>
+      <button id="joinBtn" class="btn btn-o btn-full btn-lg" style="margin-top:2px">Vào phòng</button>
       <div id="joinErr" class="j-err"></div>
     </div>
     <div class="jdiv" style="max-width:380px;width:100%">hoặc tạo phòng mới</div>
     <div class="cr-card" style="max-width:380px;width:100%">
       <button class="cr-hdr" id="crToggle"><span>➕</span><span style="flex:1;text-align:left">Tạo phòng mới</span><span class="arr">▼</span></button>
       <div class="cr-body" id="crBody">
-        <div class="fg"><label class="lbl">Mã phòng mới</label><input type="text" id="newCode" class="inp" autocomplete="off" autocapitalize="off" placeholder="Vd: NhomBanThan"/></div>
+        <div class="fg"><label class="lbl">Mã phòng mới</label><input type="text" id="newCode" class="inp" autocomplete="off" autocapitalize="off" placeholder="Vd: NhomPhượt2026"/></div>
         <div class="fg"><label class="lbl">Tên của bạn</label><input type="text" id="newName" class="inp" autocomplete="off" autocapitalize="words" placeholder="Tên thật..."/></div>
         <div class="fg"><label class="lbl">Mật khẩu (tuỳ chọn)</label><input type="password" id="newPass" class="inp" placeholder="Để trống nếu không cần"/></div>
         <div class="fg"><label class="lbl">Mô tả phòng</label><input type="text" id="newDesc" class="inp" placeholder="Vd: Nhóm phượt miền Trung..." maxlength="80"/></div>
         <div class="trow"><div><div class="tl">Phòng công khai</div><div class="ts">Hiện trong danh sách khám phá</div></div><button class="tog on" id="newPublic"></button></div>
         <div class="trow"><div><div class="tl">Duyệt thành viên</div><div class="ts">Chủ phòng phải duyệt từng người</div></div><button class="tog" id="newApproval"></button></div>
-        <button id="crBtn" class="btn btn-g btn-full">🏠 Tạo và vào phòng</button>
+        <button id="crBtn" class="btn btn-o btn-full">🏠 Tạo và vào phòng</button>
       </div>
     </div>
     <div style="width:100%;max-width:380px"><button id="discoverBtn" class="btn btn-s btn-full">🔍 Khám phá phòng đang hoạt động</button></div>
@@ -503,7 +456,7 @@ input{font-family:inherit}
 <div id="discoverScreen" class="screen">
   <div class="topbar"><button class="ib" id="dBack">←</button><h2>🔍 Khám phá phòng</h2><button class="ib" id="dRefresh">↻</button></div>
   <div class="page">
-    <div class="sw" style="margin-top:4px"><span class="si">🔍</span><input type="text" class="inp sw" id="dSearch" placeholder="Tìm theo tên phòng..."/></div>
+    <div class="sw" style="margin-top:4px"><span class="si">🔍</span><input type="text" class="inp" id="dSearch" placeholder="Tìm theo tên phòng..." style="padding-left:32px"/></div>
     <div id="roomListEl"></div>
   </div>
 </div>
@@ -524,221 +477,135 @@ input{font-family:inherit}
     <div class="rchip" id="shareChip">
       <span class="rd" id="connDot"></span>
       <span id="roomLabel">--</span>
-      <span style="font-size:11px;color:var(--text3)">📤</span>
+      <span style="font-size:10px;color:var(--text3)">📤</span>
     </div>
-    <!-- Status button + dropdown -->
-    <div style="position:relative;flex-shrink:0" id="statusWrap">
-      <button id="statusBtn" style="display:flex;align-items:center;gap:4px;padding:4px 9px;border-radius:999px;background:var(--surf2);border:1px solid var(--border);font-size:13px;cursor:pointer" title="Đổi trạng thái">🟢 <span id="statusLabel" style="font-size:10px;color:var(--green)">Online</span> <span style="font-size:9px;color:var(--text3)">▾</span></button>
-      <div id="statusDrop" style="display:none;position:absolute;top:calc(100% + 6px);right:0;background:var(--bg2);border:1px solid var(--border2);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.5);z-index:200;min-width:180px;overflow:hidden">
-        <div style="padding:8px 12px 6px;font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em">Trạng thái</div>
-        <button class="status-opt" data-s="online"  style="width:100%;padding:10px 14px;text-align:left;font-size:13px;font-weight:600;display:flex;align-items:center;gap:10px;border:none;background:transparent;color:var(--text);border-bottom:1px solid var(--border);cursor:pointer"><span>🟢</span><div><div>Online</div><div style="font-size:10px;color:var(--text3);font-weight:400">TTS đọc tin nhắn bình thường</div></div></button>
-        <button class="status-opt" data-s="away"    style="width:100%;padding:10px 14px;text-align:left;font-size:13px;font-weight:600;display:flex;align-items:center;gap:10px;border:none;background:transparent;color:var(--text);border-bottom:1px solid var(--border);cursor:pointer"><span>🟡</span><div><div>Xa máy</div><div style="font-size:10px;color:var(--text3);font-weight:400">TTS tóm tắt khi quay lại</div></div></button>
-        <button class="status-opt" data-s="busy"    style="width:100%;padding:10px 14px;text-align:left;font-size:13px;font-weight:600;display:flex;align-items:center;gap:10px;border:none;background:transparent;color:var(--text);border-bottom:1px solid var(--border);cursor:pointer"><span>🔴</span><div><div>Bận</div><div style="font-size:10px;color:var(--text3);font-weight:400">Tắt TTS hoàn toàn</div></div></button>
-        <button class="status-opt" data-s="offline" style="width:100%;padding:10px 14px;text-align:left;font-size:13px;font-weight:600;display:flex;align-items:center;gap:10px;border:none;background:transparent;color:var(--text);cursor:pointer"><span>⚫</span><div><div>Offline</div><div style="font-size:10px;color:var(--text3);font-weight:400">Không đọc & không nhận thông báo</div></div></button>
+    <!-- Status dropdown -->
+    <div id="statusWrap">
+      <button id="statusBtn">🟢 <span id="statusLabel" style="font-size:10px;color:var(--green)">Online</span> <span style="font-size:9px;color:var(--text3)">▾</span></button>
+      <div id="statusDrop">
+        <div class="sdrop-title">Trạng thái</div>
+        <button class="sopt active-s" data-s="online"><span>🟢</span><div class="sopt-info"><div class="sopt-lbl">Online</div><div class="sopt-sub">Đọc tin nhắn bình thường</div></div></button>
+        <button class="sopt" data-s="away"><span>🟡</span><div class="sopt-info"><div class="sopt-lbl">Xa máy</div><div class="sopt-sub">Tóm tắt khi quay lại</div></div></button>
+        <button class="sopt" data-s="busy"><span>🔴</span><div class="sopt-info"><div class="sopt-lbl">Bận</div><div class="sopt-sub">Tắt TTS hoàn toàn</div></div></button>
+        <button class="sopt" data-s="offline"><span>⚫</span><div class="sopt-info"><div class="sopt-lbl">Offline</div><div class="sopt-sub">Không đọc, không thông báo</div></div></button>
       </div>
     </div>
     <div class="racts">
-      <div class="ra-wrap" id="waTTS"><div class="ra on" id="raTTS">🔊</div><span class="ra-lbl" id="raTTSlbl">Đọc chat</span></div>
-      <div class="ra-wrap" id="waCam"><div class="ra">📷</div><span class="ra-lbl">Camera</span></div>
-      <div class="ra-wrap" id="waWake"><div class="ra">🔆</div><span class="ra-lbl">Sáng màn</span></div>
-      <div class="ra-wrap" id="waNoti"><div class="ra">🔔</div><span class="ra-lbl">Thông báo</span></div>
-      <div class="ra-wrap" id="waLeave" style="cursor:pointer"><div class="ra" style="background:var(--reds);border-color:rgba(248,81,73,.3)">🚪</div><span class="ra-lbl" style="color:var(--red)">Rời phòng</span></div>
+      <div class="ra-wrap" id="waTTS"><div class="ra on" id="raTTS">🔊</div><span class="ra-lbl" id="raTTSlbl">Đọc</span></div>
+      <div class="ra-wrap" id="waCam"><div class="ra">📷</div><span class="ra-lbl">Cam</span></div>
+      <div class="ra-wrap" id="waWake"><div class="ra">🔆</div><span class="ra-lbl">Sáng</span></div>
+      <div class="ra-wrap" id="waNoti"><div class="ra">🔔</div><span class="ra-lbl">Tbáo</span></div>
+      <div class="ra-wrap" id="waLeave" style="cursor:pointer"><div class="ra" style="background:var(--reds);border-color:rgba(248,81,73,.3)">🚪</div><span class="ra-lbl" style="color:var(--red)">Rời</span></div>
     </div>
   </div>
 
   <!-- Row 2: Banners -->
   <div class="banners">
     <div class="ban ban-recon" id="recon">⚡ Đang kết nối lại...</div>
-    <div class="ban ban-ios" id="iosB"><span class="bx" id="iosBX">✕</span>📲 Safari → <b>Thêm vào màn hình chính</b> để nhận thông báo.</div>
+    <div class="ban ban-ios" id="iosB"><span class="bx" id="iosBX">✕</span>📲 Safari → <b>Thêm vào màn hình chính</b></div>
     <div class="vmemo" id="vmemo"><div class="vmemo-row"><button class="vmemo-btn" id="vmemoPlay">▶ Phát lại</button><div class="vmemo-info" id="vmemoInfo">Tin nhắn thoại</div><button class="vmemo-x" id="vmemoX">✕</button></div></div>
-    <div class="aprv-ban" id="aprvBan"><div class="aprv-ban-title">⏳ Đang chờ duyệt vào phòng</div><div id="aprvBanList"></div></div>
-    <!-- NEW: cam request banner -->
-    <div class="req-ban req-cam" id="camReqBan">
-      <div class="req-inner">
-        <div class="req-icon">📷</div>
-        <div class="req-body"><div class="req-title">Yêu cầu bật camera</div><div class="req-sub" id="camReqSub">Chủ phòng yêu cầu bạn bật camera</div></div>
-        <div class="req-btns">
-          <button class="btn btn-b btn-sm" id="camAccept">Bật</button>
-          <button class="btn btn-s btn-sm" id="camDecline">Bỏ qua</button>
-        </div>
-      </div>
-    </div>
-    <!-- NEW: mic request banner -->
-    <div class="req-ban req-mic" id="micReqBan">
-      <div class="req-inner">
-        <div class="req-icon">🎙️</div>
-        <div class="req-body"><div class="req-title">Yêu cầu bật micro</div><div class="req-sub" id="micReqSub">Chủ phòng yêu cầu bạn nói ngay</div></div>
-        <div class="req-btns">
-          <button class="btn btn-g btn-sm" id="micAccept">Bật mic</button>
-          <button class="btn btn-s btn-sm" id="micDecline">Bỏ qua</button>
-        </div>
-      </div>
+    <div class="aprv-ban" id="aprvBan"><div style="font-size:11px;font-weight:700;color:var(--warn);margin-bottom:5px">⏳ Đang chờ duyệt vào phòng</div><div id="aprvBanList"></div></div>
+    <div class="req-ban req-cam" id="camReqBan"><div class="req-inner"><div class="req-icon">📷</div><div class="req-body"><div class="req-title">Yêu cầu bật camera</div><div class="req-sub" id="camReqSub">Chủ phòng yêu cầu</div></div><div class="req-btns"><button class="btn btn-s btn-sm" id="camAccept">Bật</button><button class="btn btn-s btn-sm" id="camDecline">Bỏ</button></div></div></div>
+    <div class="req-ban req-mic" id="micReqBan"><div class="req-inner"><div class="req-icon">🎙️</div><div class="req-body"><div class="req-title">Yêu cầu bật micro</div><div class="req-sub" id="micReqSub">Chủ phòng yêu cầu</div></div><div class="req-btns"><button class="btn btn-g btn-sm" id="micAccept">Bật</button><button class="btn btn-s btn-sm" id="micDecline">Bỏ</button></div></div></div>
+  </div>
+
+  <!-- Row 3: MAP (luôn hiển thị, chiếm phần lớn) -->
+  <div class="map-sec">
+    <div id="mapFull"></div>
+    <div class="map-empty-ov" id="mapEmptyOv">
+      <div class="mei">🗺️</div>
+      <div>Chưa có ai chia sẻ vị trí</div>
     </div>
   </div>
 
-  <!-- Row 3: Avatar strip -->
+  <!-- Row 4: Avatar strip (luôn hiển thị, nổi phía dưới map) -->
   <div class="av-strip" id="avStrip"></div>
 
-  <!-- Row 4: Content panels -->
-  <div class="content">
+  <!-- Row 5: Content panels (chỉ hiện khi chọn tab Chat/Members/Settings) -->
+  <div class="content" id="contentArea">
     <div id="videoGrid"></div>
-
-    <!-- CHAT (default) -->
-    <div class="panel active" id="panelChat">
+    <!-- CHAT -->
+    <div class="panel" id="panelChat">
       <div class="chat-msgs" id="chatMsgs"></div>
-      <div style="display:flex;gap:7px;padding:8px 12px 9px;border-top:1px solid var(--border);background:var(--bg2);flex-shrink:0;align-items:center">
-        <!-- Emoji button: icon mặt cười rõ ràng -->
-        <button id="emojiFab" title="Gửi cảm xúc" style="width:40px;height:40px;border-radius:12px;background:var(--surf2);border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .13s">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="12" cy="12" r="10" stroke="#8b949e" stroke-width="1.8"/>
-            <path d="M8 14s1.5 2 4 2 4-2 4-2" stroke="#8b949e" stroke-width="1.8" stroke-linecap="round"/>
-            <circle cx="9" cy="10" r="1.2" fill="#8b949e"/>
-            <circle cx="15" cy="10" r="1.2" fill="#8b949e"/>
-          </svg>
-        </button>
-        <input type="text" class="inp" id="chatInput" placeholder="Nhắn tin nhanh..." maxlength="300" autocomplete="off" style="flex:1;padding:9px 13px;border-radius:20px;background:var(--surf2)"/>
-        <!-- Send button: icon mũi tên gửi rõ ràng -->
-        <button id="chatSend" title="Gửi tin nhắn" style="width:44px;height:44px;border-radius:50%;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 3px 12px rgba(88,166,255,.35);transition:all .13s">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M22 2L11 13" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
+      <div class="chat-input-row">
+        <button class="cemoji" id="emojiFab">🙂</button>
+        <input type="text" class="chat-inp" id="chatInput" placeholder="Nhắn tin nhanh..." maxlength="300" autocomplete="off"/>
+        <button class="csend" id="chatSend">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M22 2L11 13M22 2L15 22L11 13L2 9L22 2Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button>
       </div>
     </div>
-
     <!-- MEMBERS -->
     <div class="panel" id="panelMembers">
       <div class="mlist" id="memberListEl"></div>
     </div>
-
-    <!-- MAP -->
-    <div class="panel" id="panelMap">
-      <div class="map-panel-wrap">
-        <div id="mapFull"></div>
-        <div class="mfe" id="mapFullEmpty" style="display:none">📍 Chưa có ai chia sẻ vị trí</div>
-      </div>
-    </div>
-
     <!-- SETTINGS -->
     <div class="panel" id="panelSettings">
       <div class="set-scroll">
-        <div id="setAprvSec" style="display:none">
-          <div class="sec" style="margin-bottom:8px">⏳ Đang chờ duyệt</div>
-          <div id="setAprvItems"></div>
-        </div>
+        <div id="setAprvSec" style="display:none"><div class="sec" style="margin-bottom:8px">⏳ Đang chờ duyệt</div><div id="setAprvItems"></div></div>
         <div id="ownerBlock" style="display:none">
           <div class="sec">Phòng & quyền truy cập</div>
-          <div class="card" style="margin-bottom:10px">
-            <div class="card-row"><div class="card-icon">🌐</div><div class="card-body"><div class="card-label">Phòng công khai</div><div class="card-sub">Hiện trong danh sách khám phá</div></div><div class="card-ctrl"><button class="tog on" id="setPublic"></button></div></div>
-            <div class="card-row"><div class="card-icon">✅</div><div class="card-body"><div class="card-label">Duyệt thành viên</div><div class="card-sub">Phải được chủ phòng phê duyệt</div></div><div class="card-ctrl"><button class="tog" id="setApproval"></button></div></div>
+          <div class="set-section" style="margin-bottom:10px">
+            <div class="set-item"><div class="set-icon">🌐</div><div class="set-body"><div class="set-label">Phòng công khai</div><div class="set-sub">Hiện trong danh sách khám phá</div></div><div class="set-ctrl"><button class="tog on" id="setPublic"></button></div></div>
+            <div class="set-item"><div class="set-icon">✅</div><div class="set-body"><div class="set-label">Duyệt thành viên</div><div class="set-sub">Phải được chủ phòng phê duyệt</div></div><div class="set-ctrl"><button class="tog" id="setApproval"></button></div></div>
           </div>
           <div class="sec">Bảo mật</div>
-          <div class="card" style="margin-bottom:10px">
-            <div class="set-inp-wrap"><label class="lbl">🔒 Mật khẩu phòng</label><input type="password" class="inp" id="setPass" placeholder="Để trống = không cần mật khẩu"/><div class="hint">Đặt mới hoặc xoá để bỏ mật khẩu</div></div>
-          </div>
-          <div class="sec">Thông tin phòng</div>
-          <div class="card" style="margin-bottom:10px">
-            <div class="set-inp-wrap"><label class="lbl">Mô tả</label><input type="text" class="inp" id="setDesc" placeholder="Vd: Nhóm phượt miền Trung..." maxlength="80"/></div>
-          </div>
+          <div class="set-section" style="margin-bottom:10px"><div class="set-inp-wrap"><label class="lbl">🔒 Mật khẩu phòng</label><input type="password" class="inp" id="setPass" placeholder="Để trống = không cần"/></div></div>
+          <div class="sec">Thông tin</div>
+          <div class="set-section" style="margin-bottom:10px"><div class="set-inp-wrap"><label class="lbl">Mô tả</label><input type="text" class="inp" id="setDesc" placeholder="Vd: Nhóm phượt miền Trung..." maxlength="80"/></div></div>
           <button class="btn btn-g btn-full" id="setSave" style="margin-bottom:8px">💾 Lưu cài đặt</button>
+          <!-- TTS Admin -->
+          <div id="ttsAdminPanel">
+            <div class="sec" style="margin-top:6px">🔊 Quản lý TTS Provider</div>
+            <div class="set-section" style="margin-bottom:8px"><div id="ttsProviderList" style="padding:8px 12px"><div style="color:var(--text3);font-size:12px;text-align:center;padding:12px">Đang tải...</div></div></div>
+            <div class="set-section" style="margin-bottom:8px">
+              <div class="set-inp-wrap">
+                <label class="lbl">🔑 FPT.AI API Key</label>
+                <input type="text" class="inp" id="fptApiKey" placeholder="Dán API key từ console.fpt.ai" autocomplete="off"/>
+                <div style="margin-top:6px;display:flex;gap:6px">
+                  <select class="inp" id="fptVoice" style="flex:1">
+                    <option value="banmai">Ban Mai (Nữ Bắc) ⭐</option>
+                    <option value="leminh">Lê Minh (Nam Bắc)</option>
+                    <option value="myan">Mỹ An (Nữ Trung)</option>
+                    <option value="linhsan">Linh San (Nữ Nam)</option>
+                    <option value="minhquang">Minh Quang (Nam Nam)</option>
+                  </select>
+                  <button class="btn btn-s btn-sm" id="saveFptKey">💾</button>
+                </div>
+              </div>
+            </div>
+            <button class="btn btn-s btn-full" id="refreshTtsBtn" style="margin-bottom:8px">🔄 Refresh TTS status</button>
+          </div>
         </div>
         <div class="sec">Tuỳ chọn</div>
-        <div class="card" style="margin-bottom:10px">
-          <div class="card-row" style="cursor:pointer" id="settingsTTSRow">
-          <div class="card-icon">🔊</div>
-          <div class="card-body"><div class="card-label">Đọc tin nhắn chat</div><div class="card-sub">Tự động đọc to tin nhắn người khác gửi</div></div>
-          <div class="card-ctrl"><button class="tog on" id="setTTS"></button></div>
-        </div>
-        <div class="card-row" id="rdOpenRow" style="cursor:pointer"><div class="card-icon">🔍</div><div class="card-body"><div class="card-label">Khám phá phòng khác</div><div class="card-sub">Tìm và chuyển sang phòng khác</div></div><span style="color:var(--text3)">›</span></div>
-          <div class="card-row" id="sosRow" style="cursor:pointer"><div class="card-icon">🆘</div><div class="card-body"><div class="card-label">Gửi SOS khẩn cấp</div><div class="card-sub">Báo động toàn phòng + vị trí GPS</div></div><span style="color:var(--red)">›</span></div>
+        <div class="set-section" style="margin-bottom:10px">
+          <div class="set-item" id="rdOpenRow" style="cursor:pointer"><div class="set-icon">🔍</div><div class="set-body"><div class="set-label">Khám phá phòng khác</div><div class="set-sub">Tìm và chuyển sang phòng khác</div></div><span style="color:var(--text3)">›</span></div>
+          <div class="set-item" id="sosRow" style="cursor:pointer"><div class="set-icon">🆘</div><div class="set-body"><div class="set-label">Gửi SOS khẩn cấp</div><div class="set-sub">Báo động toàn phòng + GPS</div></div><span style="color:var(--red)">›</span></div>
         </div>
         <button class="btn btn-r btn-full btn-lg" id="setLeave">🚪 Rời phòng</button>
-
-        <!-- TTS Admin Panel (owner only) -->
-        <div id="ttsAdminPanel" style="display:none;margin-top:12px">
-          <div class="sec">🔊 Quản lý TTS Provider</div>
-          <div class="card" style="margin-bottom:8px">
-            <div id="ttsProviderList" style="padding:8px 12px">
-              <div style="color:var(--text3);font-size:12px;text-align:center;padding:12px">Đang tải...</div>
-            </div>
-          </div>
-          <!-- Thêm FPT.AI key -->
-          <div class="card" style="margin-bottom:8px">
-            <div class="set-inp-wrap">
-              <label class="lbl">🔑 FPT.AI API Key</label>
-              <input type="text" class="inp" id="fptApiKey" placeholder="Dán API key từ console.fpt.ai" autocomplete="off"/>
-              <div style="margin-top:6px;display:flex;gap:6px">
-                <select class="inp" id="fptVoice" style="flex:1">
-                  <option value="banmai">Ban Mai (Nữ miền Bắc) ⭐</option>
-                  <option value="leminh">Lê Minh (Nam miền Bắc)</option>
-                  <option value="myan">Mỹ An (Nữ miền Trung)</option>
-                  <option value="giahuy">Gia Huy (Nam miền Trung)</option>
-                  <option value="linhsan">Linh San (Nữ miền Nam)</option>
-                  <option value="minhquang">Minh Quang (Nam miền Nam)</option>
-                </select>
-                <button class="btn btn-b btn-sm" id="saveFptKey">💾 Lưu</button>
-              </div>
-              <div class="hint">Đăng ký miễn phí tại console.fpt.ai → APIs → Text to Speech → API Keys</div>
-            </div>
-          </div>
-          <button class="btn btn-s btn-full" id="refreshTtsBtn">🔄 Refresh trạng thái providers</button>
-        </div>
-
-        <!-- TTS Voice Picker -->
-        <div style="margin-top:10px">
-          <div class="sec">🔊 Cài đặt giọng đọc chat</div>
-          <div class="card">
-            <div class="set-inp-wrap">
-              <label class="lbl">Chọn giọng nói</label>
-              <select id="ttsVoiceSel" class="inp" style="cursor:pointer;margin-bottom:8px">
-                <option value="nu-nam">🎀 Nữ miền Nam — Điềm My</option>
-                <option value="nu-bac">🎀 Nữ miền Bắc — Thanh</option>
-                <option value="nam-nam">🎙️ Nam miền Nam — Minh Quang</option>
-                <option value="nam-bac">🎙️ Nam miền Bắc — Thanh Long</option>
-              </select>
-              <!-- Nút áp giọng cho toàn phòng — chỉ admin thấy -->
-              <button id="setVoiceForRoom" class="btn btn-g btn-full" style="display:none;margin-bottom:8px">
-                📢 Áp dụng giọng này cho toàn phòng
-              </button>
-              <div class="hint" style="line-height:1.6">
-                💡 Giọng Việt từ ViettelAI — miễn phí, không cần đăng ký.<br>
-                👑 <b>Admin</b> có thể áp dụng giọng cho tất cả thành viên.
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   </div>
 
-  <!-- Row 5: PTT Zone -->
+  <!-- Row 6: PTT Zone -->
   <div class="ptt-zone">
     <div id="reactLayer"></div>
     <div class="stat-line" id="statLine">Phòng đang trống</div>
-    <div class="ptt-row">
-      <!-- center: PTT only -->
-      <div style="display:flex;flex-direction:column;align-items:center;gap:4px">
-        <div class="ptt-outer">
-          <div class="ptt-ring" id="pttRing"></div>
-          <button id="pttBtn" class="locked">
-            <svg viewBox="0 0 24 24" fill="none">
-              <path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3Z" stroke="currentColor" stroke-width="2"/>
-              <path d="M19 11a7 7 0 0 1-14 0M12 18v3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-            </svg>
-          </button>
-        </div>
-        <div class="ptt-label" id="pttLabel">PUSH TO TALK</div>
-      </div>
+    <div class="ptt-outer">
+      <div class="ptt-ring" id="pttRing"></div>
+      <button id="pttBtn" class="locked">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3Z" stroke="currentColor" stroke-width="2"/><path d="M19 11a7 7 0 0 1-14 0M12 18v3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
     </div>
+    <div class="ptt-label" id="pttLabel">NHẤN ĐỂ NÓI</div>
   </div>
 
-  <!-- Row 6: Tab bar -->
+  <!-- Row 7: Tab bar -->
   <div class="tabbar">
-    <button class="ti" id="tabMap" data-p="panelMap">
+    <button class="ti" id="tabMap">
       <span class="tii">🗺️</span><span class="til">Bản đồ</span><span class="tdot"></span>
     </button>
-    <button class="ti active" id="tabChat" data-p="panelChat">
+    <button class="ti" id="tabChat" data-p="panelChat">
       <span class="tii">💬</span><span class="til">Chat</span><span class="tdot"></span>
     </button>
     <button class="ti" id="tabMembers" data-p="panelMembers">
@@ -751,17 +618,20 @@ input{font-family:inherit}
 </div>
 
 <!-- MODALS -->
-<div class="mov" id="qrMov"><div class="mbd" id="qrBd"></div><div class="msheet"><div class="mhandle"></div><div class="mtitle">📤 Chia sẻ phòng</div><div class="qr-cw"><canvas id="qrCanvas" width="200" height="200"></canvas></div><div class="qr-lr"><div class="qr-lb" id="qrLink"></div><button class="btn btn-b btn-sm" id="qrCopy">Sao chép</button></div><button class="btn btn-s btn-full" id="qrClose">Đóng</button></div></div>
+<div class="mov" id="qrMov"><div class="mbd" id="qrBd"></div><div class="msheet"><div class="mhandle"></div><div class="mtitle">📤 Chia sẻ phòng</div><div class="qr-cw"><canvas id="qrCanvas" width="200" height="200"></canvas></div><div class="qr-lr"><div class="qr-lb" id="qrLink"></div><button class="btn btn-s btn-sm" id="qrCopy">Sao chép</button></div><button class="btn btn-s btn-full" id="qrClose">Đóng</button></div></div>
 <div class="mov" id="emojiMov"><div class="mbd" id="emojiBd"></div><div class="msheet"><div class="mhandle"></div><div class="mtitle">😄 Gửi cảm xúc</div><div class="egrid" id="emojiGrid"></div><button class="btn btn-s btn-full" style="margin-top:12px" id="emojiClose">Đóng</button></div></div>
-<div class="mov" id="rdMov"><div class="mbd" id="rdBd"></div><div class="msheet"><div class="mhandle"></div><div class="mtitle">🔍 Phòng đang hoạt động</div><div class="sw"><span class="si">🔍</span><input type="text" class="inp sw" id="rdSearch" placeholder="Tìm phòng..."/></div><div id="rdList" style="max-height:52dvh;overflow-y:auto"></div><button class="btn btn-s btn-full" style="margin-top:10px" id="rdClose">Đóng</button></div></div>
+<div class="mov" id="rdMov"><div class="mbd" id="rdBd"></div><div class="msheet"><div class="mhandle"></div><div class="mtitle">🔍 Phòng đang hoạt động</div><div class="sw"><span class="si">🔍</span><input type="text" class="inp" id="rdSearch" placeholder="Tìm phòng..." style="padding-left:32px"/></div><div id="rdList" style="max-height:50dvh;overflow-y:auto"></div><button class="btn btn-s btn-full" style="margin-top:10px" id="rdClose">Đóng</button></div></div>
 <div id="sosOv"><div class="sos-card"><div class="sos-e">🆘</div><div class="sos-t" id="sosTitle">SOS!</div><div class="sos-b" id="sosBody">Thành viên cần hỗ trợ.</div></div><button class="sos-dismiss" id="sosDismiss">✓ Đã biết, đóng lại</button></div>
+<!-- Shared owner dropdown -->
+<div class="owb-drop" id="owDrop"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
 <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
 <script>
 const SRV='https://pushtotalk-anqr.onrender.com';
-const CHUNK=350,VFPS=5,VW=160,VH=120,SK='bdv1051';
+const CHUNK=350,VFPS=5,VW=160,VH=120,SK='bdv1060';
 const EMOJIS=['😂','🤣','😭','😢','😡','😠','😱','😍','🥳','😴','🤔','👍','👎','❤️','🔥','💯','🎉','😅','🙄','🤯'];
 const $=id=>document.getElementById(id);
 
@@ -1899,6 +1769,46 @@ function doLeave(){
   showScreen('join');resetJoinBtn();
   pttBtn.classList.add('locked');
 }
+
+// ── TAB LOGIC v11: Map always visible, content panel toggles ──
+const contentArea=document.getElementById('contentArea');
+const allTabs2=[tabMap,tabChat,tabMembers,tabSettings];
+const allPanels2=[panelChat,panelMembers,panelSettings];
+
+function switchPanel2(panelId,tabEl){
+  allPanels2.forEach(p=>p.classList.remove('active'));
+  allTabs2.forEach(t=>t.classList.remove('active'));
+  if(panelId===null){
+    // Map tab — hide content, show full map
+    contentArea.classList.remove('panel-open');
+    tabMap.classList.add('active');
+    activePanel='map';
+    // Resize map
+    setTimeout(()=>{try{leafletFull?.invalidateSize()}catch(e){}},50);
+  } else {
+    const panel=document.getElementById(panelId);
+    if(panel){
+      panel.classList.add('active');
+      contentArea.classList.add('panel-open');
+    }
+    if(tabEl)tabEl.classList.add('active');
+    activePanel=panelId;
+    if(panelId==='panelChat'){chatUnread=0;tabChat.classList.remove('has-dot');}
+    // Map still visible behind, resize
+    setTimeout(()=>{try{leafletFull?.invalidateSize()}catch(e){}},50);
+  }
+}
+
+// Override the old switchPanel
+function switchPanel(pid,tel){switchPanel2(pid,tel);}
+
+tabMap.addEventListener('click',()=>switchPanel2(null,tabMap));
+tabChat.addEventListener('click',()=>switchPanel2('panelChat',tabChat));
+tabMembers.addEventListener('click',()=>switchPanel2('panelMembers',tabMembers));
+tabSettings.addEventListener('click',()=>switchPanel2('panelSettings',tabSettings));
+
+// Start with map view (no panel open)
+switchPanel2(null,tabMap);
 </script>
 </body>
 </html>
