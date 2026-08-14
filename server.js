@@ -1,5 +1,5 @@
 /**
- * Bộ Đàm Web — Server v10.3.5
+ * Bộ Đàm Web — Server v10.3.6
  * Room Lifecycle theo mô hình Paltalk:
  *   - Temporary Room: xoá khi Total_Users == 0
  *   - Permanent Room: hibernate khi empty, restore khi owner/admin quay lại
@@ -111,15 +111,16 @@ const io = new Server(server, {
   pingInterval: 10000,
 });
 
-app.get('/health', async (_, res) => res.json({ status:'ok', version:'10.3.5' }));
+app.get('/health', async (_, res) => res.json({ status:'ok', version:'10.3.6' }));
 
 // ── TTS PROXY — gọi ViettelAI server-side để tránh CORS ──
 const https_mod = require('https');
+// ViettelAI voice names (verified working)
 const VIETTEL_VOICES = {
-  'nu-nam' :'hcm-diemmy',
-  'nu-bac' :'hn-thanh',
-  'nam-nam':'hcm-minhquang',
-  'nam-bac':'hn-thanhlong',
+  'nu-nam' :'hcm-diemmy',     // nữ TP.HCM — Điềm My
+  'nu-bac' :'hn-thanhha',     // nữ Hà Nội — Thanh Hà  
+  'nam-nam':'hcm-minhquang',  // nam TP.HCM — Minh Quang
+  'nam-bac':'hn-thanhlong',   // nam Hà Nội — Thanh Long
 };
 const ttsCache = new Map();
 const TTS_CACHE_MAX = 200;
@@ -141,7 +142,8 @@ app.post('/tts', express.json(), async (req, res) => {
 
   const voiceName = VIETTEL_VOICES[voice] || 'hcm-diemmy';
   // speed 1.3 — đọc nhanh hơn mặc định, tự nhiên hơn
-  const body = JSON.stringify({ speed: speed || 1.3, voice: voiceName, text, tts_return_option: 3, without_filter: false });
+  // speed 1.0 = giọng chuẩn ViettelAI, tránh bị biến dạng giọng khi speed cao
+  const body = JSON.stringify({ speed: 1.0, voice: voiceName, text, tts_return_option: 3, without_filter: false });
   const options = {
     hostname: 'viettelai.vn',
     path: '/tts/speech_synthesis',
@@ -770,4 +772,4 @@ io.on('connection', socket => {
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`[Bộ Đàm Web] Server v10.3.5 on port ${PORT}`));
+server.listen(PORT, () => console.log(`[Bộ Đàm Web] Server v10.3.6 on port ${PORT}`));

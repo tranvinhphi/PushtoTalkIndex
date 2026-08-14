@@ -682,7 +682,7 @@ input{font-family:inherit}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 const SRV='https://pushtotalk-anqr.onrender.com';
-const CHUNK=350,VFPS=5,VW=160,VH=120,SK='bdv1035';
+const CHUNK=350,VFPS=5,VW=160,VH=120,SK='bdv1036';
 const EMOJIS=['😂','🤣','😭','😢','😡','😠','😱','😍','🥳','😴','🤔','👍','👎','❤️','🔥','💯','🎉','😅','🙄','🤯'];
 const $=id=>document.getElementById(id);
 
@@ -774,22 +774,12 @@ function vib(p){if(navigator.vibrate)try{navigator.vibrate(p)}catch(e){}}
 // online | away | busy | offline
 let userStatus='online';
 let lastActivityTs=Date.now();
-const IDLE_TIMEOUT=60000; // 60s không tương tác → away
 
+// Status chỉ thay đổi khi user bấm — không auto-detect idle
 function updateActivity(){
   lastActivityTs=Date.now();
-  if(userStatus==='away')setUserStatus('online');
+  // Không tự đổi status nữa
 }
-// Track mouse/key/touch
-['mousemove','keydown','touchstart','click','scroll'].forEach(ev=>
-  document.addEventListener(ev,updateActivity,{passive:true})
-);
-// Auto-detect idle → away
-setInterval(()=>{
-  if(userStatus==='online'&&Date.now()-lastActivityTs>IDLE_TIMEOUT){
-    setUserStatus('away');
-  }
-},15000);
 
 function setUserStatus(status){
   if(userStatus===status)return;
@@ -909,13 +899,14 @@ function ttsMakeBrowserUtt(text,senderName){
 function prefetchTTS(text,senderName){
   if(!ttsEnabled||!ttsServerOk)return;
   const shortText=text.length>80?text.substring(0,78)+'…':text;
-  const fullText=senderName?`${senderName}: ${shortText}`:shortText;
+  // prefetch dùng cùng format nhưng không track sender (chỉ warm cache)
+  const fullText=senderName?`bạn ${senderName} chat là: ${shortText}`:shortText;
   const voice=ttsVoiceChoice||'nu-nam';
   // Fire and forget — không await, chỉ để warm server cache
   fetch(SRV+'/tts',{
     method:'POST',
     headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({text:fullText,voice,speed:1.3}),
+    body:JSON.stringify({text:fullText,voice,speed:1.0}),
     signal:AbortSignal.timeout(8000),
   }).catch(()=>{});
 }
@@ -927,7 +918,7 @@ async function ttsServerSpeak(text,senderName){
   // Chỉ đọc tên khi: người gửi KHÁC hoặc cùng người nhưng đã >10s không tin
   let fullText;
   if(senderName&&(senderName!==lastTTSSender||now-lastTTSSenderTs>SENDER_REPEAT_MS)){
-    fullText=`${senderName}: ${shortText}`;
+    fullText=`bạn ${senderName} chat là: ${shortText}`;
     lastTTSSender=senderName;
     lastTTSSenderTs=now;
   } else {
@@ -940,7 +931,7 @@ async function ttsServerSpeak(text,senderName){
     const res=await fetch(SRV+'/tts',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({text:fullText,voice,speed:1.3}),
+      body:JSON.stringify({text:fullText,voice,speed:1.0}),
       signal:AbortSignal.timeout(8000), // giảm từ 14s → 8s
     });
     if(!res.ok)throw new Error('HTTP '+res.status);
@@ -1053,7 +1044,6 @@ async function ttsSpeakOne(text,sender){
 document.addEventListener('visibilitychange',()=>{
   if(document.visibilityState==='visible'){
     if(wakeLockOn&&!wakeLock)enableWake();
-    updateActivity(); // reset idle timer
     // Nếu bận → không đọc
     if(!ttsEnabled||userStatus==='busy'){ttsPendingHidden.length=0;return;}
     // Flush thông minh sau 200ms
