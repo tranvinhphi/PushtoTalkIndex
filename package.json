@@ -1,0 +1,11 @@
+{
+  "name": "walkie-talkie-web",
+  "version": "10.2.0",
+  "main": "server.js",
+  "scripts": { "start": "node server.js" },
+  "dependencies": {
+    "express": "^4.18.2",
+    "socket.io": "^4.7.5",
+    "web-push": "^3.6.7"
+  }
+}
