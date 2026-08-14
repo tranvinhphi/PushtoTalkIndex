@@ -680,7 +680,7 @@ input{font-family:inherit}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 const SRV='https://pushtotalk-anqr.onrender.com';
-const CHUNK=350,VFPS=5,VW=160,VH=120,SK='bdv1021';
+const CHUNK=350,VFPS=5,VW=160,VH=120,SK='bdv1031';
 const EMOJIS=['😂','🤣','😭','😢','😡','😠','😱','😍','🥳','😴','🤔','👍','👎','❤️','🔥','💯','🎉','😅','🙄','🤯'];
 const $=id=>document.getElementById(id);
 
@@ -716,7 +716,7 @@ const sosOv=$('sosOv'),sosTitle=$('sosTitle'),sosBody=$('sosBody'),sosDismiss=$(
 const toastLayer=$('toastLayer');
 
 // STATE
-let socket=null,mediaStream=null,mimeType='',currentRoom='',currentUsername='',isOwner=false;
+let socket=null,mediaStream=null,mimeType='',currentRoom='',currentUsername='',isOwner=false,isRoomAdmin=false;
 let talkState='idle',chunkRecorder=null,chunkTimer=null;
 let participants=[],knownUsernames=new Set();
 const speakingSet=new Set();let currentSpeaker=null;
@@ -862,16 +862,15 @@ function ttsMakeBrowserUtt(text,senderName){
 }
 
 async function ttsServerSpeak(text,senderName){
-  // Format câu đọc tự nhiên hơn: "Bạn [tên] nói là: [nội dung]"
+  // Gọi qua server proxy /tts để tránh CORS block từ ViettelAI
   const fullText=senderName?`Bạn ${senderName} nói là: ${text}`:text;
-  // Hardcode giọng — không để ViettelAI tự ý đổi giọng theo nội dung
-  const voice=VIETTEL_VOICE_MAP[ttsVoiceChoice]||'hcm-diemmy';
+  const voice=ttsVoiceChoice||'nu-nam'; // gửi key, server tự map → ViettelAI voice name
   try{
-    const res=await fetch('https://viettelai.vn/tts/speech_synthesis',{
+    const res=await fetch(SRV+'/tts',{
       method:'POST',
-      headers:{'Content-Type':'application/json','Connection':'keep-alive'},
-      body:JSON.stringify({speed:1,voice,text:fullText,tts_return_option:3,without_filter:false,prosody:{volume:0,pitch:0}}),
-      signal:AbortSignal.timeout(10000),
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({text:fullText,voice,speed:1}),
+      signal:AbortSignal.timeout(14000),
     });
     if(!res.ok)throw new Error('HTTP '+res.status);
     const arrayBuf=await res.arrayBuffer();
@@ -885,7 +884,7 @@ async function ttsServerSpeak(text,senderName){
     ttsErrCount=0;ttsServerOk=true;
     return true;
   }catch(e){
-    console.warn('[TTS] ViettelAI error:',e.message);
+    console.warn('[TTS] Proxy error:',e.message);
     ttsErrCount++;
     if(ttsErrCount>=TTS_FALLBACK_THRESHOLD){
       ttsServerOk=false;
@@ -963,13 +962,12 @@ document.addEventListener('visibilitychange',()=>{
 // ── Service Worker postMessage → đọc ngay khi SW relay lại ──
 if('serviceWorker' in navigator){
   navigator.serviceWorker.addEventListener('message',event=>{
+    // Không return true — tránh "message channel closed" error
     const {type,text,sender}=event.data||{};
     if(!ttsEnabled)return;
     if(type==='NOTIFICATION_CLICK_TTS'&&text){
-      // User vừa click notification → đọc ngay
       setTimeout(()=>ttsSpeakOne(text,sender),500);
     } else if(type==='CHAT_TTS'&&text){
-      // Tab đang mở nhưng không focused → buffer
       ttsPendingHidden.push({text,senderName:sender});
     }
   });
@@ -1138,8 +1136,10 @@ function connectServer(roomCode,username,password,createOpts){
   socket.on('connect',()=>{connDot.classList.remove('warn');recon.classList.remove('show');socket.emit('join-room',{roomCode,username,password:password||''})});
   socket.on('reconnect',()=>{if(currentRoom&&currentUsername)socket.emit('rejoin-room',{roomCode:currentRoom,username:currentUsername})});
 
-  socket.on('joined',({roomCode:rc,username:un,isOwner:ownerFlag})=>{
-    isOwner=!!ownerFlag;ss(rc,un);
+  socket.on('joined',({roomCode:rc,username:un,isOwner:ownerFlag,isAdmin:adminFlag,ttsVoice:voice})=>{
+    isOwner=!!ownerFlag;isRoomAdmin=!!ownerFlag||!!adminFlag;ss(rc,un);
+    // Apply room TTS voice from server
+    if(voice){ttsVoiceChoice=voice;const sel=$('ttsVoiceSel');if(sel)sel.value=voice;}
     if(isCreating&&createOpts&&ownerFlag){socket.emit('create-room-options',createOpts);isCreating=false}
     showRoom(rc);
     requestMicPerm();initMapFull();requestGeo();startPing();startBattery();
@@ -1156,9 +1156,19 @@ function connectServer(roomCode,username,password,createOpts){
   socket.on('camera-forced-off',()=>{stopCam();toast('📷 Chủ phòng tắt camera của bạn','warn')});
 
   socket.on('you-are-owner',()=>{
-    isOwner=true;ownerBlock.style.display='block';
+    isOwner=true;isRoomAdmin=true;ownerBlock.style.display='block';
     const svfr=$('setVoiceForRoom');if(svfr)svfr.style.display='block';
     toast('👑 Bạn là Chủ phòng','ok');renderMembers();
+  });
+  socket.on('you-are-admin',()=>{
+    isRoomAdmin=true;ownerBlock.style.display='block';
+    const svfr=$('setVoiceForRoom');if(svfr)svfr.style.display='block';
+    toast('🛡️ Bạn là Admin phòng','ok');renderMembers();
+  });
+  socket.on('you-are-demoted',()=>{
+    isRoomAdmin=false;ownerBlock.style.display='none';
+    const svfr=$('setVoiceForRoom');if(svfr)svfr.style.display='none';
+    toast('🔽 Quyền Admin đã bị thu hồi','warn');renderMembers();
   });
   socket.on('room-settings',s=>{setPublic.className='tog'+(s.isPublic?' on':'');setApproval.className='tog'+(s.requireApproval?' on':'');setDesc.value=s.description||'';setPass.value=''});
   socket.on('approval-request',({socketId,username})=>{pendingApprovals[socketId]=username;renderApproval();toast(`⏳ ${username} xin vào phòng`)});
@@ -1218,11 +1228,15 @@ function connectServer(roomCode,username,password,createOpts){
   // Admin broadcast giọng đọc cho toàn phòng
   socket.on('room-tts-voice',({voice,voiceLabel})=>{
     ttsVoiceChoice=voice;
-    // Sync UI picker
+    // Reset error state khi nhận giọng mới từ admin
+    ttsErrCount=0; ttsServerOk=true;
+    ttsStop();
     const sel=$('ttsVoiceSel');
     if(sel){for(const opt of sel.options){if(opt.value===voice){opt.selected=true;break}}}
     syncTTSUI();
     toast(`🔊 Admin đặt giọng đọc: ${voiceLabel}`,'ok');
+    // Đọc thử giọng mới
+    setTimeout(()=>ttsSpeak('Giọng đọc mới đã được áp dụng',''),300);
   });
 }
 
@@ -1333,16 +1347,25 @@ owDrop.id='owDrop';
 document.body.appendChild(owDrop);
 
 let owDropTargetId=null;
+let targetId_=''; // track current dropdown target
+function isAdmin(socketId){
+  const p=participants.find(x=>x.id===socketId);
+  return p?!!p.isAdmin:false;
+}
 function openOwMenu(btn,targetId,targetName,isMuted,camOn_){
+  targetId_=targetId;
   owDropTargetId=targetId;
   // Build menu
+  const pIsAdmin=isAdmin(targetId_);
   owDrop.innerHTML=`
     <div class="owb-drop-title">👤 ${targetName}</div>
     <button class="owb-drop-item green" data-a="req-mic">🎙️ Yêu cầu bật micro</button>
     <button class="owb-drop-item ${isMuted?'green':'warn'}" data-a="mute">${isMuted?'🔊 Bật micro lại':'🔇 Tắt micro'}</button>
     <button class="owb-drop-item blue" data-a="req-cam">📷 Yêu cầu bật camera</button>
     <button class="owb-drop-item warn" data-a="cam-off">📷✕ Tắt camera</button>
-    <button class="owb-drop-item danger" data-a="kick">👢 Mời ra khỏi phòng</button>`;
+    ${isOwner?`<button class="owb-drop-item ${pIsAdmin?'warn':'blue'}" data-a="${pIsAdmin?'demote':'promote'}">${pIsAdmin?'🔽 Thu hồi Admin':'👑 Thăng làm Admin'}</button>`:''}
+    <button class="owb-drop-item danger" data-a="kick">👢 Mời ra khỏi phòng</button>
+    ${isOwner?'<button class="owb-drop-item danger" data-a="ban">🚫 Cấm vào phòng</button>':''}`;
   // Position near button
   const rect=btn.getBoundingClientRect();
   const dropW=200,dropH=220;
@@ -1370,6 +1393,9 @@ owDrop.addEventListener('click',e=>{
   else if(a==='cam-off')socket.emit('force-camera-off',{targetId:id});
   else if(a==='req-cam')socket.emit('request-camera-on',{targetId:id});
   else if(a==='req-mic')socket.emit('request-mic-on',{targetId:id});
+  else if(a==='promote'){if(confirm('Thăng làm Admin phòng?'))socket.emit('promote-to-admin',{targetId:id})}
+  else if(a==='demote'){if(confirm('Thu hồi quyền Admin?'))socket.emit('demote-from-admin',{targetId:id})}
+  else if(a==='ban'){const reason=prompt('Lý do cấm (tuỳ chọn):','');if(reason!==null)socket.emit('ban-user',{targetId:id,reason})}
 });
 document.addEventListener('click',e=>{if(!owDrop.contains(e.target)&&!e.target.closest('.owb-btn'))closeOwMenu()});
 
@@ -1390,7 +1416,7 @@ function renderMembers(justJoined=[]){
       <div class="msub">${isSp?'🎙️ Đang nói...':'🎧 Lắng nghe'} ${qb(p.ping,p.battery)}${p.cameraOn?' 📷':''}</div>
     </div>
     <div class="mwave"><svg viewBox="0 0 24 24" fill="none"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3Z" stroke="currentColor" stroke-width="2"/><path d="M19 11a7 7 0 0 1-14 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
-    ${isOwner&&!isMe?`<div class="owbtns"><button class="owb-btn" data-id="${p.id}" data-name="${esc(p.username)}" data-muted="${p.muted}" data-cam="${p.cameraOn}" title="Quản lý thành viên">⋮</button></div>`:''}`;
+    ${isRoomAdmin&&!isMe?`<div class="owbtns"><button class="owb-btn" data-id="${p.id}" data-name="${esc(p.username)}" data-muted="${p.muted}" data-cam="${p.cameraOn}" title="Quản lý thành viên">⋮</button></div>`:''}`;
     // attach click for this row's menu button
     if(isOwner&&!isMe){
       const menuBtn=row.querySelector('.owb-btn');
@@ -1516,7 +1542,15 @@ const setVoiceForRoom=$('setVoiceForRoom'),ttsVoiceSelEl=$('ttsVoiceSel');
 // Sync voice picker selection → ttsVoiceChoice
 if(ttsVoiceSelEl){
   ttsVoiceSelEl.value=ttsVoiceChoice;
-  ttsVoiceSelEl.onchange=()=>{ttsVoiceChoice=ttsVoiceSelEl.value;};
+  ttsVoiceSelEl.onchange=()=>{
+    ttsVoiceChoice=ttsVoiceSelEl.value;
+    // Reset lỗi khi user đổi giọng — cho phép thử lại
+    ttsErrCount=0; ttsServerOk=true;
+    // Test ngay giọng mới
+    ttsStop();
+    const label=ttsVoiceSelEl.options[ttsVoiceSelEl.selectedIndex]?.text||ttsVoiceChoice;
+    ttsSpeak('Đây là giọng đọc mới','');
+  };
 }
 
 // Admin: áp dụng giọng cho toàn phòng
@@ -1575,7 +1609,7 @@ function doLeave(){
   if(watchId!=null){navigator.geolocation.clearWatch(watchId);watchId=null}
   participants=[];knownUsernames=new Set();speakingSet.clear();currentSpeaker=null;
   if(leafletFull)Object.keys(mFull).forEach(k=>{leafletFull.removeLayer(mFull[k]);delete mFull[k]});
-  chatMsgs.innerHTML='';chatUnread=0;isOwner=false;
+  chatMsgs.innerHTML='';chatUnread=0;isOwner=false;isRoomAdmin=false;
   ownerBlock.style.display='none';
   activePanel='panelChat';switchPanel('panelChat',tabChat);
   voiceMemRaw=null;vmemo.classList.remove('show');
