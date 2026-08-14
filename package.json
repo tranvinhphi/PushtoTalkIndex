@@ -1,6 +1,6 @@
 {
   "name": "walkie-talkie-web",
-  "version": "10.2.0",
+  "version": "10.2.1",
   "main": "server.js",
   "scripts": { "start": "node server.js" },
   "dependencies": {

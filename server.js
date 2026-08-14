@@ -1,5 +1,5 @@
 /**
- * Walkie Talkie Web - Server v10.2.0
+ * Walkie Talkie Web - Server v10.2.1
  * NEW: force-camera-on request, force-mic-on request (with browser notification),
  *      owner distinct color flag sent to client
  */
@@ -32,7 +32,7 @@ function sendPushToUser(socketId,{title,body,tag},subMap){
 
 const io=new Server(server,{cors:{origin:'*',methods:['GET','POST']},maxHttpBufferSize:10*1024*1024,pingTimeout:20000,pingInterval:10000});
 
-app.get('/health',(_,res)=>res.json({status:'ok',version:'10.2.0'}));
+app.get('/health',(_,res)=>res.json({status:'ok',version:'10.2.1'}));
 
 // TTS handled client-side via ViettelAI direct call
 app.get('/vapid-public-key',(_,res)=>res.json({key:VAPID_PUBLIC_KEY}));
@@ -346,6 +346,17 @@ io.on('connection',socket=>{
     broadcastUsers(code);
   });
 
+  // Admin set TTS voice for whole room
+  socket.on('set-room-tts-voice',({voice,voiceLabel})=>{
+    const {roomCode:code}=socket.data;
+    if(!code||roomOwners[code]!==socket.id)return;
+    const allowed=['nu-nam','nu-bac','nam-nam','nam-bac'];
+    if(!allowed.includes(voice))return;
+    // Broadcast đến tất cả user khác trong phòng
+    socket.to(code).emit('room-tts-voice',{voice,voiceLabel});
+    io.to(code).emit('system-message',`🔊 Admin đặt giọng đọc: ${voiceLabel||voice}`);
+  });
+
   socket.on('reaction',({emoji})=>{
     const {roomCode:code,username}=socket.data;if(!code||!emoji)return;
     io.to(code).emit('reaction',{username,emoji:String(emoji).substring(0,8)});
@@ -355,4 +366,4 @@ io.on('connection',socket=>{
 });
 
 const PORT=process.env.PORT||3000;
-server.listen(PORT,()=>console.log(`Server v10.2.0 on port ${PORT}`));
+server.listen(PORT,()=>console.log(`Server v10.2.1 on port ${PORT}`));

@@ -606,15 +606,23 @@ input{font-family:inherit}
 
         <!-- TTS Voice Picker -->
         <div style="margin-top:10px">
-          <div class="sec">🔊 Chọn giọng đọc</div>
+          <div class="sec">🔊 Cài đặt giọng đọc chat</div>
           <div class="card">
             <div class="set-inp-wrap">
-              <label class="lbl">Giọng nói</label>
-              <select id="ttsVoiceSel" class="inp" style="cursor:pointer">
-                <option>Đang tải danh sách giọng...</option>
+              <label class="lbl">Chọn giọng nói</label>
+              <select id="ttsVoiceSel" class="inp" style="cursor:pointer;margin-bottom:8px">
+                <option value="nu-nam">🎀 Nữ miền Nam — Điềm My</option>
+                <option value="nu-bac">🎀 Nữ miền Bắc — Thanh</option>
+                <option value="nam-nam">🎙️ Nam miền Nam — Minh Quang</option>
+                <option value="nam-bac">🎙️ Nam miền Bắc — Thanh Long</option>
               </select>
-              <div class="hint" style="margin-top:6px;line-height:1.6">
-                💡 Giọng Việt từ ViettelAI — gọi thẳng từ browser, miễn phí, không cần đăng ký, nhất quán trên mọi thiết bị.
+              <!-- Nút áp giọng cho toàn phòng — chỉ admin thấy -->
+              <button id="setVoiceForRoom" class="btn btn-g btn-full" style="display:none;margin-bottom:8px">
+                📢 Áp dụng giọng này cho toàn phòng
+              </button>
+              <div class="hint" style="line-height:1.6">
+                💡 Giọng Việt từ ViettelAI — miễn phí, không cần đăng ký.<br>
+                👑 <b>Admin</b> có thể áp dụng giọng cho tất cả thành viên.
               </div>
             </div>
           </div>
@@ -672,7 +680,7 @@ input{font-family:inherit}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 const SRV='https://pushtotalk-anqr.onrender.com';
-const CHUNK=350,VFPS=5,VW=160,VH=120,SK='bdv1020';
+const CHUNK=350,VFPS=5,VW=160,VH=120,SK='bdv1021';
 const EMOJIS=['😂','🤣','😭','😢','😡','😠','😱','😍','🥳','😴','🤔','👍','👎','❤️','🔥','💯','🎉','😅','🙄','🤯'];
 const $=id=>document.getElementById(id);
 
@@ -854,14 +862,15 @@ function ttsMakeBrowserUtt(text,senderName){
 }
 
 async function ttsServerSpeak(text,senderName){
-  // Gọi ViettelAI trực tiếp từ browser — giọng Việt chuẩn, không cần API key
-  const fullText=senderName?`${senderName}: ${text}`:text;
+  // Format câu đọc tự nhiên hơn: "Bạn [tên] nói là: [nội dung]"
+  const fullText=senderName?`Bạn ${senderName} nói là: ${text}`:text;
+  // Hardcode giọng — không để ViettelAI tự ý đổi giọng theo nội dung
   const voice=VIETTEL_VOICE_MAP[ttsVoiceChoice]||'hcm-diemmy';
   try{
     const res=await fetch('https://viettelai.vn/tts/speech_synthesis',{
       method:'POST',
       headers:{'Content-Type':'application/json','Connection':'keep-alive'},
-      body:JSON.stringify({speed:1,voice,text:fullText,tts_return_option:3,without_filter:false}),
+      body:JSON.stringify({speed:1,voice,text:fullText,tts_return_option:3,without_filter:false,prosody:{volume:0,pitch:0}}),
       signal:AbortSignal.timeout(10000),
     });
     if(!res.ok)throw new Error('HTTP '+res.status);
@@ -1146,7 +1155,11 @@ function connectServer(roomCode,username,password,createOpts){
   socket.on('you-are-muted',({muted})=>toast(muted?'🔇 Chủ phòng tắt mic của bạn':'🔊 Chủ phòng bật lại mic','warn'));
   socket.on('camera-forced-off',()=>{stopCam();toast('📷 Chủ phòng tắt camera của bạn','warn')});
 
-  socket.on('you-are-owner',()=>{isOwner=true;ownerBlock.style.display='block';toast('👑 Bạn là Chủ phòng','ok');renderMembers()});
+  socket.on('you-are-owner',()=>{
+    isOwner=true;ownerBlock.style.display='block';
+    const svfr=$('setVoiceForRoom');if(svfr)svfr.style.display='block';
+    toast('👑 Bạn là Chủ phòng','ok');renderMembers();
+  });
   socket.on('room-settings',s=>{setPublic.className='tog'+(s.isPublic?' on':'');setApproval.className='tog'+(s.requireApproval?' on':'');setDesc.value=s.description||'';setPass.value=''});
   socket.on('approval-request',({socketId,username})=>{pendingApprovals[socketId]=username;renderApproval();toast(`⏳ ${username} xin vào phòng`)});
   socket.on('approval-done',({socketId})=>{delete pendingApprovals[socketId];renderApproval()});
@@ -1202,6 +1215,15 @@ function connectServer(roomCode,username,password,createOpts){
   socket.on('disconnect',()=>{connDot.classList.add('warn');recon.classList.add('show');setStat('⚡ Đang kết nối lại...','var(--warn)');if(talkState==='talking')stopTalking()});
   socket.on('connect_error',()=>{if(roomScreen.classList.contains('active'))return;joinErr.textContent='Không kết nối được máy chủ.';resetJoinBtn();showScreen('join')});
   socket.on('pong-custom',()=>{if(pingTs){const ms=Date.now()-pingTs;if(socket?.connected)socket.emit('update-status',{ping:ms});pingTs=null}});
+  // Admin broadcast giọng đọc cho toàn phòng
+  socket.on('room-tts-voice',({voice,voiceLabel})=>{
+    ttsVoiceChoice=voice;
+    // Sync UI picker
+    const sel=$('ttsVoiceSel');
+    if(sel){for(const opt of sel.options){if(opt.value===voice){opt.selected=true;break}}}
+    syncTTSUI();
+    toast(`🔊 Admin đặt giọng đọc: ${voiceLabel}`,'ok');
+  });
 }
 
 function showRoom(rc){
@@ -1209,8 +1231,11 @@ function showRoom(rc){
   roomLabel.textContent=rc;connDot.classList.remove('warn');recon.classList.remove('show');
   if(isOwner)ownerBlock.style.display='block';
   if(window.history.replaceState)window.history.replaceState({},'',window.location.pathname);
-  // Populate voice picker with server voices
+  // Populate voice picker
   buildVoicePicker(window.speechSynthesis?.getVoices()||[]);
+  // Show admin voice button only for owner
+  const svfr=$('setVoiceForRoom');
+  if(svfr)svfr.style.display=isOwner?'block':'none';
 }
 function setStat(t,color){statLine.textContent=t;statLine.style.color=color||'var(--text3)'}
 
@@ -1484,8 +1509,27 @@ setPublic.addEventListener('click',()=>setPublic.classList.toggle('on'));
 setApproval.addEventListener('click',()=>setApproval.classList.toggle('on'));
 setSave.addEventListener('click',()=>{if(!socket)return;socket.emit('update-room-settings',{isPublic:setPublic.classList.contains('on'),requireApproval:setApproval.classList.contains('on'),password:setPass.value,description:setDesc.value.trim()});toast('✅ Đã lưu cài đặt phòng','ok')});
 
-// TTS TOGGLE
+// TTS TOGGLE + VOICE FOR ROOM
 const waTTS=$('waTTS'),raTTS=$('raTTS'),raTTSlbl=$('raTTSlbl'),setTTS=$('setTTS');
+const setVoiceForRoom=$('setVoiceForRoom'),ttsVoiceSelEl=$('ttsVoiceSel');
+
+// Sync voice picker selection → ttsVoiceChoice
+if(ttsVoiceSelEl){
+  ttsVoiceSelEl.value=ttsVoiceChoice;
+  ttsVoiceSelEl.onchange=()=>{ttsVoiceChoice=ttsVoiceSelEl.value;};
+}
+
+// Admin: áp dụng giọng cho toàn phòng
+if(setVoiceForRoom){
+  setVoiceForRoom.addEventListener('click',()=>{
+    if(!socket||!isOwner)return;
+    const voice=ttsVoiceSelEl?ttsVoiceSelEl.value:ttsVoiceChoice;
+    const voiceLabel=ttsVoiceSelEl?ttsVoiceSelEl.options[ttsVoiceSelEl.selectedIndex]?.text:voice;
+    ttsVoiceChoice=voice;
+    socket.emit('set-room-tts-voice',{voice,voiceLabel});
+    toast(`📢 Đã áp dụng giọng "${voiceLabel}" cho toàn phòng`,'ok');
+  });
+}
 function syncTTSUI(){
   raTTS.classList.toggle('on',ttsEnabled);
   if(setTTS)setTTS.className='tog'+(ttsEnabled?' on':'');
