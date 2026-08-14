@@ -1,5 +1,5 @@
 /**
- * Bộ Đàm Web — Server v10.3.7
+ * Bộ Đàm Web — Server v10.4.0
  * Room Lifecycle theo mô hình Paltalk:
  *   - Temporary Room: xoá khi Total_Users == 0
  *   - Permanent Room: hibernate khi empty, restore khi owner/admin quay lại
@@ -111,76 +111,72 @@ const io = new Server(server, {
   pingInterval: 10000,
 });
 
-app.get('/health', async (_, res) => res.json({ status:'ok', version:'10.3.7' }));
+app.get('/health', async (_, res) => res.json({ status:'ok', version:'10.4.0' }));
 
-// ── TTS PROXY — gọi ViettelAI server-side để tránh CORS ──
+// ── TTS PROXY — Google Translate TTS (vi-VN, miễn phí, không cần key) ──
 const https_mod = require('https');
-// ViettelAI voice names (verified working)
-const VIETTEL_VOICES = {
-  'nu-nam' :'hcm-diemmy',     // nữ TP.HCM — Điềm My
-  'nu-bac' :'hn-thanhha',     // nữ Hà Nội — Thanh Hà  
-  'nam-nam':'hcm-minhquang',  // nam TP.HCM — Minh Quang
-  'nam-bac':'hn-thanhlong',   // nam Hà Nội — Thanh Long
-};
+const tts_agent = new (require('https').Agent)({keepAlive:true,maxSockets:10});
 const ttsCache = new Map();
 const TTS_CACHE_MAX = 200;
 
-// TTS connection pool — keep-alive để tái dùng TCP connection
-const http_agent = new (require('https').Agent)({ keepAlive: true, maxSockets: 10 });
+function splitTTSChunks(text,max=180){
+  if(text.length<=max)return[text];
+  const chunks=[];const words=text.split(' ');let cur='';
+  for(const w of words){
+    if((cur+' '+w).trim().length>max){if(cur)chunks.push(cur.trim());cur=w;}
+    else cur=(cur+' '+w).trim();
+  }
+  if(cur)chunks.push(cur.trim());
+  return chunks.length?chunks:[text.substring(0,max)];
+}
 
-app.post('/tts', express.json(), async (req, res) => {
-  const { text='', voice='nu-nam', speed=1 } = req.body || {};
-  if (!text || text.length > 400) return res.status(400).json({ error: 'text required' });
+function fetchGoogleChunk(text){
+  return new Promise((resolve,reject)=>{
+    const enc=encodeURIComponent(text);
+    const url=`https://translate.google.com.vn/translate_tts?ie=UTF-8&q=${enc}&tl=vi&total=1&idx=0&textlen=${text.length}&client=tw-ob&prev=input&ttsspeed=0.9`;
+    const req=https_mod.get(url,{
+      agent:tts_agent,timeout:8000,
+      headers:{
+        'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124.0 Safari/537.36',
+        'Referer':'https://translate.google.com.vn/',
+        'Accept':'audio/mpeg,audio/*;q=0.9',
+        'Accept-Language':'vi-VN,vi;q=0.9',
+      }
+    },res=>{
+      const chunks=[];
+      res.on('data',d=>chunks.push(d));
+      res.on('end',()=>{
+        const buf=Buffer.concat(chunks);
+        if(res.statusCode===200&&buf.length>300)resolve(buf);
+        else reject(new Error(`Google TTS ${res.statusCode} size=${buf.length}`));
+      });
+    });
+    req.on('error',reject);
+    req.on('timeout',()=>{req.destroy();reject(new Error('timeout'));});
+  });
+}
 
-  const ck = `${voice}::${text.substring(0,200)}`;
-  // Cache hit → trả về ngay, <1ms
-  if (ttsCache.has(ck)) {
+app.post('/tts',express.json(),async(req,res)=>{
+  const{text=''}=req.body||{};
+  if(!text||text.length>500)return res.status(400).json({error:'text required'});
+  const ck=`vi::${text.substring(0,200)}`;
+  if(ttsCache.has(ck)){
     res.setHeader('Content-Type','audio/mpeg');
     res.setHeader('Cache-Control','public,max-age=7200');
     return res.end(ttsCache.get(ck));
   }
-
-  const voiceName = VIETTEL_VOICES[voice] || 'hcm-diemmy';
-  // speed 1.3 — đọc nhanh hơn mặc định, tự nhiên hơn
-  // speed 1.0 = giọng chuẩn ViettelAI, tránh bị biến dạng giọng khi speed cao
-  const body = JSON.stringify({ speed: 1.0, voice: voiceName, text, tts_return_option: 3, without_filter: false });
-  const options = {
-    hostname: 'viettelai.vn',
-    path: '/tts/speech_synthesis',
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Content-Length': Buffer.byteLength(body),
-      'Connection': 'keep-alive',
-      'User-Agent': 'Mozilla/5.0',
-    },
-    agent: http_agent,  // reuse TCP connection
-    timeout: 6000,      // giảm từ 12s → 6s
-  };
-  try {
-    const buf = await new Promise((resolve, reject) => {
-      const req2 = https_mod.request(options, r2 => {
-        const chunks = [];
-        r2.on('data', d => chunks.push(d));
-        r2.on('end', () => {
-          const b = Buffer.concat(chunks);
-          if (r2.statusCode === 200 && b.length > 200) resolve(b);
-          else reject(new Error(`ViettelAI ${r2.statusCode} size=${b.length}`));
-        });
-      });
-      req2.on('error', reject);
-      req2.on('timeout', () => { req2.destroy(); reject(new Error('timeout 6s')); });
-      req2.write(body);
-      req2.end();
-    });
-    if (ttsCache.size >= TTS_CACHE_MAX) ttsCache.delete(ttsCache.keys().next().value);
-    ttsCache.set(ck, buf);
-    res.setHeader('Content-Type', 'audio/mpeg');
-    res.setHeader('Cache-Control', 'public,max-age=7200');
-    res.end(buf);
-  } catch(e) {
-    console.error('[TTS]', e.message);
-    res.status(503).json({ error: e.message });
+  try{
+    const parts=splitTTSChunks(text);
+    const bufs=await Promise.all(parts.map(p=>fetchGoogleChunk(p)));
+    const combined=Buffer.concat(bufs);
+    if(ttsCache.size>=TTS_CACHE_MAX)ttsCache.delete(ttsCache.keys().next().value);
+    ttsCache.set(ck,combined);
+    res.setHeader('Content-Type','audio/mpeg');
+    res.setHeader('Cache-Control','public,max-age=7200');
+    res.end(combined);
+  }catch(e){
+    console.error('[TTS]',e.message);
+    res.status(503).json({error:e.message});
   }
 });
 app.get('/vapid-public-key', async (_, res) => res.json({ key: VAPID_PUBLIC_KEY }));
@@ -772,4 +768,4 @@ io.on('connection', socket => {
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`[Bộ Đàm Web] Server v10.3.7 on port ${PORT}`));
+server.listen(PORT, () => console.log(`[Bộ Đàm Web] Server v10.4.0 on port ${PORT}`));
