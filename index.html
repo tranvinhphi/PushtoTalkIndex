@@ -537,6 +537,9 @@ input,select,textarea{font-family:inherit;color:inherit}
     <!-- Video grid -->
     <div id="videoGrid"></div>
 
+    <!-- Scroll area: member strip + content panels (content-panel absolute covers only this) -->
+    <div id="sheetScrollArea" style="flex:1;position:relative;overflow:hidden;min-height:0;">
+
     <!-- Member strip (always visible in sheet) -->
     <div id="memberStripView">
       <div class="bs-members-hdr">
@@ -616,6 +619,8 @@ input,select,textarea{font-family:inherit;color:inherit}
         <button class="btn btn-r btn-full btn-lg" id="setLeave" style="border-radius:14px">🚪 Rời phòng</button>
       </div>
     </div>
+
+    </div><!-- /sheetScrollArea -->
 
     <!-- PTT ZONE — TrailTalk orange style -->
     <div class="ptt-zone">
@@ -1818,7 +1823,7 @@ function doLeave(){
 // ── Bottom sheet drag & height ─────────────────────────
 const bottomSheet=document.getElementById('bottomSheet');
 const memberStripView=document.getElementById('memberStripView');
-const BS_MIN=170, BS_MID=280, BS_FULL='72vh';
+const BS_MIN=310, BS_MID=360, BS_FULL='72vh';
 
 function setBSH(h){
   bottomSheet.style.height=typeof h==='number'?h+'px':h;
