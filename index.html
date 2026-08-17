@@ -167,6 +167,24 @@ input,select,textarea{font-family:inherit;color:inherit}
 .mc-btn{width:44px;height:44px;border-radius:14px;background:rgba(0,0,0,.6);backdrop-filter:blur(12px);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:17px;color:var(--text2);transition:all .15s}
 .mc-btn:active{transform:scale(.9)}
 .mc-btn.blue{background:var(--blue);color:#fff;border-color:transparent;box-shadow:0 4px 16px rgba(59,130,246,.4)}
+.mc-sep{height:6px;flex-shrink:0}
+
+/* Map avatar markers — TrailTalk style */
+.mm-self{width:20px;height:20px;border-radius:50%;background:var(--blue);border:2.5px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.5);position:relative}
+.mm-self::after{content:'';position:absolute;inset:-8px;border-radius:50%;border:2px solid rgba(59,130,246,.55);animation:mmPulseSelf 2s infinite}
+@keyframes mmPulseSelf{0%{transform:scale(.9);opacity:.9}70%{transform:scale(1.9);opacity:0}100%{transform:scale(1.9);opacity:0}}
+.mm-self-lbl{margin-top:6px;background:rgba(59,130,246,.92);color:#fff;font-size:9px;font-weight:800;padding:2px 9px;border-radius:999px;white-space:nowrap;text-transform:uppercase;letter-spacing:.03em;box-shadow:0 2px 8px rgba(0,0,0,.4)}
+.mm-avatar-wrap{position:relative;display:flex;flex-direction:column;align-items:center}
+.mm-ring{position:relative;border-radius:50%;background:var(--surf2);display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;box-shadow:0 3px 12px rgba(0,0,0,.5);flex-shrink:0}
+.mm-arrow{width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;position:absolute;top:-9px;left:50%;transform:translateX(-50%);filter:drop-shadow(0 0 3px rgba(0,0,0,.9))}
+.mm-pulse-ring{position:absolute;inset:-6px;border-radius:50%;border:2px solid var(--green);animation:mmPulseSpeak 1.4s infinite}
+@keyframes mmPulseSpeak{0%{transform:scale(.92);opacity:.8}70%{transform:scale(1.35);opacity:0}100%{transform:scale(1.35);opacity:0}}
+.mm-lbl{margin-top:5px;font-size:9px;font-weight:800;padding:2px 8px;border-radius:999px;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.4)}
+.mm-lbl.idle{background:rgba(0,0,0,.65);color:var(--text2);border:1px solid var(--border2)}
+.mm-lbl.speak{background:var(--green);color:#000}
+.mm-wave{display:flex;gap:2px;align-items:flex-end;height:10px;margin-top:3px}
+.mm-wave span{width:2px;background:var(--green);border-radius:1px;animation:mmWave .8s ease-in-out infinite}
+@keyframes mmWave{0%,100%{height:3px}50%{height:10px}}
 
 /* Banners */
 .banners{position:absolute;z-index:25;left:0;right:0;display:flex;flex-direction:column}
@@ -368,7 +386,7 @@ input,select,textarea{font-family:inherit;color:inherit}
 .ti.has-dot .tdot{display:block}
 
 /* Video grid */
-#videoGrid{display:none;flex-wrap:wrap;gap:4px;padding:4px 12px;flex-shrink:0}
+#videoGrid{display:none;flex-wrap:wrap;gap:4px;padding:4px 12px}
 #videoGrid.vis{display:flex}
 .vtile{position:relative;border-radius:10px;overflow:hidden;background:var(--surf2);border:1px solid var(--border);flex:1;min-width:80px;max-width:calc(50% - 2px);aspect-ratio:4/3}
 .vtile canvas{width:100%;height:100%;object-fit:cover;display:block}
@@ -426,6 +444,55 @@ input,select,textarea{font-family:inherit;color:inherit}
   #roomScreen.active{width:400px;height:91dvh;max-height:900px;border-radius:24px;border:1px solid var(--border2);box-shadow:0 28px 70px rgba(0,0,0,.8);overflow:hidden}
 }
 @media(min-width:900px){#roomScreen.active{width:440px;height:93dvh}}
+
+/* ══════════════════════════════════════════════════════════
+   DESKTOP LAYOUT (>=1024px) — sidebar/dock instead of sheet
+   Reuses the same mobile DOM; purely a visual reflow.
+══════════════════════════════════════════════════════════ */
+@media (min-width:1024px){
+  button{cursor:pointer}
+  #roomScreen{max-width:100%}
+
+  /* Solid top header bar instead of a floating gradient overlay */
+  .rhdr{
+    background:var(--glass);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+    border-bottom:1px solid var(--border);
+    padding:18px 28px;
+  }
+  .rname{font-size:19px}
+
+  /* Map FAB controls shift left so they never sit under the dock */
+  .map-ctrl{right:calc(400px + 44px)}
+
+  /* Right-side floating dock replaces the bottom sheet */
+  .bottom-sheet{
+    left:auto;right:16px;top:96px;bottom:16px;
+    width:400px;height:auto!important;max-height:none;
+    border-radius:24px;border:1px solid var(--border2);
+    box-shadow:0 24px 70px rgba(0,0,0,.55);
+    overflow:hidden;
+  }
+  .bs-handle-wrap{display:none}
+  .content-panel{border-radius:24px}
+
+  /* Member list becomes a vertical list, like a real sidebar roster */
+  .av-strip{flex-direction:column;overflow-x:visible;overflow-y:auto;padding:2px 10px 8px;gap:2px}
+  .av-item{
+    display:grid;grid-template-columns:42px 1fr;grid-template-rows:auto auto;
+    column-gap:12px;row-gap:1px;align-items:center;
+    min-width:0;width:100%;padding:7px 8px;border-radius:12px;
+  }
+  .av-item:hover{background:rgba(255,255,255,.05)}
+  .av-ring{grid-column:1;grid-row:1/3;width:42px;height:42px;flex-shrink:0}
+  .av-name{grid-column:2;grid-row:1;align-self:end;max-width:none;text-align:left;font-size:12.5px}
+  .av-status{grid-column:2;grid-row:2;align-self:start;font-size:10.5px;font-weight:700;color:var(--text2)}
+  .av-status.speaking{color:var(--green)}
+  .av-status.owner{color:var(--gold)}
+
+  /* A little extra breathing room around the PTT console */
+  .ptt-zone{padding:18px 24px}
+  .tabbar .til{font-size:9.5px}
+}
 </style>
 </head>
 <body>
@@ -515,6 +582,9 @@ input,select,textarea{font-family:inherit;color:inherit}
 
   <!-- Map controls -->
   <div class="map-ctrl" id="mapCtrlWrap" style="top:calc(68px + var(--st))">
+    <button class="mc-btn" id="mcZoomIn">➕</button>
+    <button class="mc-btn" id="mcZoomOut">➖</button>
+    <div class="mc-sep"></div>
     <button class="mc-btn" id="mcLocate">📍</button>
     <button class="mc-btn" id="mcFit">👥</button>
     <button class="mc-btn" id="mcWake">🔆</button>
@@ -534,11 +604,13 @@ input,select,textarea{font-family:inherit;color:inherit}
   <div class="bottom-sheet" id="bottomSheet">
     <div class="bs-handle-wrap" id="bsHandle"><div class="bs-handle"></div></div>
 
-    <!-- Video grid -->
-    <div id="videoGrid"></div>
+    <!-- Scroll area: video grid + member strip + content panels (content-panel absolute covers only this) -->
+    <div id="sheetScrollArea" style="flex:1;position:relative;overflow-y:auto;overflow-x:hidden;min-height:0;">
 
-    <!-- Scroll area: member strip + content panels (content-panel absolute covers only this) -->
-    <div id="sheetScrollArea" style="flex:1;position:relative;overflow:hidden;min-height:0;">
+    <!-- Video grid (moved inside the flexible/scrollable area on purpose:
+         this area has min-height:0 + its own scroll, so it can shrink safely
+         and will NEVER push the PTT / tab bar buttons below the sheet. -->
+    <div id="videoGrid"></div>
 
     <!-- Member strip (always visible in sheet) -->
     <div id="memberStripView">
@@ -1276,8 +1348,8 @@ function connectServer(roomCode,username,password,createOpts){
 
   socket.on('mic-granted',()=>{beepOk();vib([20,40,20]);setTalk('talking');startChunked()});
   socket.on('mic-denied',({holder})=>{beepNo();vib(60);setTalk('idle');toast(`😅 ${holder} đang giữ mic`,'warn')});
-  socket.on('speaking-start',({username})=>{speakingSet.add(username);currentSpeaker=username;renderMembers();renderAvStrip();setStat(`🎙️ ${username} đang nói`,'var(--green)');if(username!==currentUsername)toast(`🎧 ${username} đang nói`)});
-  socket.on('speaking-stop',({username})=>{speakingSet.delete(username);if(currentSpeaker===username)currentSpeaker=null;renderMembers();renderAvStrip();if(statLine&&statLine.textContent===`🎙️ ${username} đang nói`)setStat('Phòng đang trống','')});
+  socket.on('speaking-start',({username})=>{speakingSet.add(username);currentSpeaker=username;renderMembers();renderAvStrip();renderMapMarkers();setStat(`🎙️ ${username} đang nói`,'var(--green)');if(username!==currentUsername)toast(`🎧 ${username} đang nói`)});
+  socket.on('speaking-stop',({username})=>{speakingSet.delete(username);if(currentSpeaker===username)currentSpeaker=null;renderMembers();renderAvStrip();renderMapMarkers();if(statLine&&statLine.textContent===`🎙️ ${username} đang nói`)setStat('Phòng đang trống','')});
   socket.on('audio-data',({username,audio})=>enqAudio(audio,username));
   socket.on('reaction',({username,emoji})=>spawnR(username,emoji));
   socket.on('chat-message',({username,text,ts})=>appendChat(username,text,ts,false));
@@ -1355,30 +1427,42 @@ micDecline.addEventListener('click',()=>micReqBan.classList.remove('show'));
 // MAP (full tab only)
 function initMapFull(){
   if(leafletFull)return;
-  leafletFull=L.map('mapFull',{zoomControl:true,attributionControl:false}).setView([16.0544,108.2022],12);
+  leafletFull=L.map('mapFull',{zoomControl:false,attributionControl:false}).setView([16.0544,108.2022],12);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(leafletFull);
   setTimeout(()=>{try{leafletFull.invalidateSize()}catch(e){}},400);
 }
+function makeSelfIcon(){
+  const html=`<div class="mm-avatar-wrap"><div class="mm-self"></div><div class="mm-self-lbl">BẠN</div></div>`;
+  return L.divIcon({html,className:'',iconSize:[70,54],iconAnchor:[35,20]});
+}
 function makePinIcon(username,isSp,color){
-  const bd=isSp?`border:3px solid ${color};box-shadow:0 0 0 3px rgba(46,160,67,.4)`:`border:2.5px solid #fff`;
-  const html=`<div style="display:flex;flex-direction:column;align-items:center">
-    <div style="font-size:10px;font-weight:700;color:#fff;background:rgba(0,0,0,.6);padding:1px 5px;border-radius:5px;white-space:nowrap;margin-bottom:2px">${esc(username)}</div>
-    <div style="width:36px;height:36px;border-radius:50%;${bd};background:${color};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff;box-shadow:0 3px 10px rgba(0,0,0,.4)">${ini(username)}</div>
-    <div style="width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:8px solid ${color}"></div>
+  const size=isSp?58:44;
+  const wave=isSp?`<div class="mm-wave"><span style="animation-delay:.0s"></span><span style="animation-delay:.15s"></span><span style="animation-delay:.3s"></span><span style="animation-delay:.1s"></span></div>`:'';
+  const ringBorder=isSp?`border:3px solid ${color}`:`border:2px solid rgba(255,255,255,.55)`;
+  const pulse=isSp?`<div class="mm-pulse-ring" style="border-color:${color}"></div>`:'';
+  const html=`<div class="mm-avatar-wrap">
+    <div style="position:relative">
+      ${pulse}
+      <div class="mm-ring" style="width:${size}px;height:${size}px;${ringBorder};background:${color};font-size:${isSp?14:12}px">${ini(username)}</div>
+      <div class="mm-arrow" style="border-top:8px solid ${color}"></div>
+    </div>
+    <div class="mm-lbl ${isSp?'speak':'idle'}">${esc(username)}${isSp?' 🎙️':''}</div>
+    ${wave}
   </div>`;
-  return L.divIcon({html,className:'',iconSize:[60,58],iconAnchor:[30,58]});
+  return L.divIcon({html,className:'',iconSize:[80,isSp?86:70],iconAnchor:[40,isSp?86:70]});
 }
 function renderMapMarkers(){
   if(!leafletFull)return; // map not ready yet
-  if(!leafletFull)return;
   const wl=participants.filter(p=>p.lat!=null&&p.lng!=null);
   if(mapFullEmpty)mapFullEmpty.style.display=wl.length?'none':'flex';
   const seen=new Set();
   wl.forEach(p=>{
-    seen.add(p.username);const color=colorFor(p.username),isSp=speakingSet.has(p.username);
-    const icon=makePinIcon(p.username,isSp,color);
+    seen.add(p.username);
+    const isMe=p.username===currentUsername;
+    const color=colorFor(p.username),isSp=speakingSet.has(p.username);
+    const icon=isMe?makeSelfIcon():makePinIcon(p.username,isSp,color);
     if(mFull[p.username])mFull[p.username].setLatLng([p.lat,p.lng]).setIcon(icon);
-    else mFull[p.username]=L.marker([p.lat,p.lng],{icon}).addTo(leafletFull);
+    else mFull[p.username]=L.marker([p.lat,p.lng],{icon,zIndexOffset:isMe?1000:(isSp?500:0)}).addTo(leafletFull);
   });
   Object.keys(mFull).forEach(n=>{if(!seen.has(n)){leafletFull.removeLayer(mFull[n]);delete mFull[n]}});
   if(wl.length){const b=L.latLngBounds(wl.map(p=>[p.lat,p.lng]));try{leafletFull.fitBounds(b.pad(.4),{maxZoom:15,animate:false})}catch(e){}}
@@ -1919,6 +2003,8 @@ if(statusBtn2&&statusDrop2){
 }
 
 // ── Map controls ───────────────────────────────────────
+document.getElementById('mcZoomIn')?.addEventListener('click',()=>{try{leafletFull?.zoomIn();}catch(e){}});
+document.getElementById('mcZoomOut')?.addEventListener('click',()=>{try{leafletFull?.zoomOut();}catch(e){}});
 document.getElementById('mcLocate')?.addEventListener('click',()=>{
   if(navigator.geolocation)navigator.geolocation.getCurrentPosition(p=>{
     try{leafletFull?.setView([p.coords.latitude,p.coords.longitude],16);}catch(e){}
@@ -1926,9 +2012,6 @@ document.getElementById('mcLocate')?.addEventListener('click',()=>{
 });
 document.getElementById('mcFit')?.addEventListener('click',()=>{
   try{if(typeof fitMapToAll==='function')fitMapToAll();}catch(e){}
-});
-document.getElementById('mcWake')?.addEventListener('click',()=>{
-  document.getElementById('waWake')?.click();
 });
 
 // ── Leave button in header ─────────────────────────────
