@@ -1,5 +1,5 @@
 /**
- * Bộ Đàm Web — Server v11.0.3
+ * Bộ Đàm Web — Server v11.0.4
  * Room Lifecycle theo mô hình Paltalk:
  *   - Temporary Room: xoá khi Total_Users == 0
  *   - Permanent Room: hibernate khi empty, restore khi owner/admin quay lại
@@ -111,7 +111,7 @@ const io = new Server(server, {
   pingInterval: 10000,
 });
 
-app.get('/health', async (_, res) => res.json({ status:'ok', version:'11.0.3' }));
+app.get('/health', async (_, res) => res.json({ status:'ok', version:'11.0.4' }));
 
 // ══════════════════════════════════════════════════════════
 //  TTS PROVIDER MANAGER — tự động fallback, admin quản lý
@@ -857,4 +857,4 @@ io.on('connection', socket => {
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`[Bộ Đàm Web] Server v11.0.3 on port ${PORT}`));
+server.listen(PORT, () => console.log(`[Bộ Đàm Web] Server v11.0.4 on port ${PORT}`));

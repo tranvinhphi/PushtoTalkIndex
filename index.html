@@ -629,7 +629,7 @@ input,select,textarea{font-family:inherit;color:inherit}
           <div class="ptt-wave-r" id="pttWaveR"></div>
           <button id="pttBtn" class="locked">
             <svg viewBox="0 0 24 24" fill="none"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3Z" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><path d="M19 11a7 7 0 0 1-14 0M12 18v3" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
-            <span class="ptt-txt">NHẤN ĐỂ<br>NÓI</span>
+            <span class="ptt-txt" id="pttLabel">NHẤN ĐỂ<br>NÓI</span>
           </button>
         </div>
       </div>
@@ -667,7 +667,7 @@ input,select,textarea{font-family:inherit;color:inherit}
 // ── V11 TRAILTAK UI OVERRIDES ─────────────────────────
 
 const SRV='https://pushtotalk-anqr.onrender.com';
-const CHUNK=350,VFPS=5,VW=160,VH=120,SK='bdv1103';
+const CHUNK=350,VFPS=5,VW=160,VH=120,SK='bdv1104';
 const EMOJIS=['😂','🤣','😭','😢','😡','😠','😱','😍','🥳','😴','🤔','👍','👎','❤️','🔥','💯','🎉','😅','🙄','🤯'];
 const $=id=>document.getElementById(id);
 
@@ -694,7 +694,7 @@ const ownerBlock=$('ownerBlock'),setPublic=$('setPublic'),setApproval=$('setAppr
 const setAprvSec=$('setAprvSec'),setAprvItems=$('setAprvItems');
 const rdOpenRow=$('rdOpenRow'),sosRow=$('sosRow'),setLeave=$('setLeave');
 const tabMap=$('tabMap'),tabChat=$('tabChat'),tabMembers=$('tabMembers'),tabSettings=$('tabSettings');
-const pttBtn=$('pttBtn'),pttOuter=document.querySelector('.ptt-outer'),pttRing=$('pttRing'),pttLabel=$('pttLabel');
+const pttBtn=$('pttBtn'),pttOuter=$('pttOuter'),pttRing=$('pttWaveR'),pttLabel=$('pttLabel');
 const reactLayer=$('reactLayer');
 const qrMov=$('qrMov'),qrBd=$('qrBd'),qrCanvas=$('qrCanvas'),qrLink=$('qrLink'),qrCopy=$('qrCopy'),qrClose=$('qrClose');
 const emojiMov=$('emojiMov'),emojiBd=$('emojiBd'),emojiGrid=$('emojiGrid'),emojiClose=$('emojiClose');
@@ -1269,7 +1269,7 @@ function connectServer(roomCode,username,password,createOpts){
   socket.on('mic-granted',()=>{beepOk();vib([20,40,20]);setTalk('talking');startChunked()});
   socket.on('mic-denied',({holder})=>{beepNo();vib(60);setTalk('idle');toast(`😅 ${holder} đang giữ mic`,'warn')});
   socket.on('speaking-start',({username})=>{speakingSet.add(username);currentSpeaker=username;renderMembers();renderAvStrip();setStat(`🎙️ ${username} đang nói`,'var(--green)');if(username!==currentUsername)toast(`🎧 ${username} đang nói`)});
-  socket.on('speaking-stop',({username})=>{speakingSet.delete(username);if(currentSpeaker===username)currentSpeaker=null;renderMembers();renderAvStrip();if(statLine.textContent===`🎙️ ${username} đang nói`)setStat('Phòng đang trống','')});
+  socket.on('speaking-stop',({username})=>{speakingSet.delete(username);if(currentSpeaker===username)currentSpeaker=null;renderMembers();renderAvStrip();if(statLine&&statLine.textContent===`🎙️ ${username} đang nói`)setStat('Phòng đang trống','')});
   socket.on('audio-data',({username,audio})=>enqAudio(audio,username));
   socket.on('reaction',({username,emoji})=>spawnR(username,emoji));
   socket.on('chat-message',({username,text,ts})=>appendChat(username,text,ts,false));
@@ -1336,7 +1336,7 @@ function showRoom(rc){
   const svfr=$('setVoiceForRoom');
   if(svfr)svfr.style.display=isOwner?'block':'none';
 }
-function setStat(t,color){statLine.textContent=t;statLine.style.color=color||'var(--text3)'}
+function setStat(t,color){if(statLine){statLine.textContent=t;statLine.style.color=color||'var(--text3)'}}
 
 // CAM/MIC REQUEST HANDLERS
 camAccept.addEventListener('click',()=>{camReqBan.classList.remove('show');startCam()});
@@ -1361,6 +1361,7 @@ function makePinIcon(username,isSp,color){
   return L.divIcon({html,className:'',iconSize:[60,58],iconAnchor:[30,58]});
 }
 function renderMapMarkers(){
+  if(!leafletFull)return; // map not ready yet
   if(!leafletFull)return;
   const wl=participants.filter(p=>p.lat!=null&&p.lng!=null);
   mapFullEmpty.style.display=wl.length?'none':'flex';
@@ -1529,10 +1530,14 @@ async function requestMicPerm(){try{mediaStream=await navigator.mediaDevices.get
 pttBtn.addEventListener('click',()=>{if(!audioUnlocked)unlockAudio();if(talkState==='idle')reqMic();else if(talkState==='talking')stopTalking()});
 function reqMic(){setTalk('preparing');if(socket)socket.emit('start-speaking')}
 function setTalk(s){
-  talkState=s;pttBtn.classList.remove('preparing','talking');pttOuter.classList.remove('talking');
-  if(s==='idle'){setStat(currentSpeaker?`🎙️ ${currentSpeaker} đang nói`:'Phòng đang trống',currentSpeaker?'var(--green)':'');pttLabel.textContent='PUSH TO TALK';pttLabel.style.color='var(--text3)'}
-  else if(s==='preparing'){pttBtn.classList.add('preparing');setStat('Đang xin mic...','var(--warn)');pttLabel.textContent='ĐANG CHỜ...';pttLabel.style.color='var(--warn)'}
-  else if(s==='talking'){pttBtn.classList.add('talking');pttOuter.classList.add('talking');setStat('🎙️ Bạn đang nói — Bấm để dừng','var(--green)');pttLabel.textContent='ĐANG PHÁT — BẤM ĐỂ DỪNG';pttLabel.style.color='var(--green)'}
+  talkState=s;
+  pttBtn?.classList.remove('preparing','talking');
+  pttOuter?.classList.remove('talking');
+  // Sync pttOuter for v11 animation
+  document.getElementById('pttOuter')?.classList.remove('talking');
+  if(s==='idle'){setStat(currentSpeaker?`🎙️ ${currentSpeaker} đang nói`:'Phòng đang trống',currentSpeaker?'var(--green)':'');if(pttLabel){pttLabel.textContent='NHẤN ĐỂ NÓI';pttLabel.style.color=''}}
+  else if(s==='preparing'){pttBtn?.classList.add('preparing');setStat('Đang xin mic...','var(--warn)');if(pttLabel){pttLabel.textContent='ĐANG CHỜ...';pttLabel.style.color='var(--warn)'}}
+  else if(s==='talking'){pttBtn?.classList.add('talking');document.getElementById('pttOuter')?.classList.add('talking');setStat('🎙️ Bạn đang nói — Bấm để dừng','var(--green)');if(pttLabel){pttLabel.textContent='ĐANG PHÁT — BẤM ĐỂ DỪNG';pttLabel.style.color='var(--green)'}}
 }
 function startChunked(){recordNext()}
 function recordNext(){if(talkState!=='talking'||!mediaStream)return;const lc=[];let rec;try{rec=mimeType?new MediaRecorder(mediaStream,{mimeType}):new MediaRecorder(mediaStream)}catch(e){return}chunkRecorder=rec;rec.ondataavailable=ev=>{if(ev.data?.size>0)lc.push(ev.data)};rec.onstop=async()=>{if(lc.length&&socket?.connected){const blob=new Blob(lc,{type:mimeType||'audio/webm'}),buf=await blob.arrayBuffer();socket.emit('audio-data',buf)}if(talkState==='talking')recordNext()};rec.start();chunkTimer=setTimeout(()=>{if(rec.state!=='inactive')rec.stop()},CHUNK)}
