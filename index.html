@@ -310,7 +310,7 @@ input,select,textarea{font-family:inherit;color:inherit}
 .ptt-zone{
   flex-shrink:0;border-top:1px solid var(--border);padding:14px 20px calc(12px + var(--sb));
   display:flex;align-items:center;justify-content:space-between;
-  background:transparent;position:relative;
+  background:rgba(8,8,8,.98);position:relative;z-index:10;
 }
 #reactLayer{position:absolute;bottom:100%;left:0;right:0;height:80px;pointer-events:none;overflow:visible;z-index:50}
 /* Side controls */
@@ -481,6 +481,7 @@ input,select,textarea{font-family:inherit;color:inherit}
 
   <!-- MAP full screen -->
   <div id="mapFull"></div>
+  <div id="mapFullEmpty" style="display:none;position:absolute;inset:0;z-index:2;align-items:center;justify-content:center;flex-direction:column;gap:8px;pointer-events:none"><span style="font-size:32px">🗺️</span><span style="font-size:12px;color:rgba(255,255,255,.4);font-weight:700">Chưa có vị trí thành viên</span></div>
   <div class="map-vignette"></div>
 
   <!-- TOP HEADER -->
@@ -505,6 +506,7 @@ input,select,textarea{font-family:inherit;color:inherit}
           <button class="sopt" data-s="offline"><span class="sopt-ico">⚫</span><div class="sopt-info"><div class="sopt-lbl">Offline</div><div class="sopt-sub">Không đọc, không thông báo</div></div></button>
         </div>
       </div>
+      <button class="rha" id="shareChip" title="Chia sẻ">📤</button>
       <button class="rha" id="waTTS" title="Đọc chat">🔊</button>
       <button class="rha" id="waNoti" title="Thông báo">🔔</button>
       <button class="rha" id="waLeave" style="color:var(--red)" title="Rời phòng">🚪</button>
@@ -520,6 +522,7 @@ input,select,textarea{font-family:inherit;color:inherit}
 
   <!-- Banners (below header) -->
   <div class="banners" style="top:calc(58px + var(--st))">
+    <div id="aprvBan" style="display:none;background:rgba(245,158,11,.15);border-bottom:1px solid rgba(245,158,11,.3);padding:8px 16px;font-size:12px;font-weight:700;color:#f59e0b"><span>⏳ Có người xin vào phòng</span><div id="aprvBanList" style="margin-top:6px"></div></div>
     <div class="ban ban-recon" id="recon">⚡ Đang kết nối lại...</div>
     <div class="ban ban-ios" id="iosB"><span class="bx" id="iosBX">✕</span>📲 Safari → <b>Thêm vào màn hình chính</b></div>
     <div class="vmemo" id="vmemo"><div class="vmemo-row"><button class="vmemo-btn" id="vmemoPlay">▶ Phát lại</button><div class="vmemo-info" id="vmemoInfo">Tin nhắn thoại</div><button class="vmemo-x" id="vmemoX">✕</button></div></div>
@@ -680,7 +683,7 @@ const dBack=$('dBack'),dRefresh=$('dRefresh'),dSearch=$('dSearch'),roomListEl=$(
 const waitSub=$('waitSub'),waitCancel=$('waitCancel');
 const roomLabel=$('roomLabel'),connDot=$('connDot'),shareChip=$('shareChip');
 const recon=$('recon'),iosB=$('iosB'),iosBX=$('iosBX');
-const waCam=$('waCam'),waWake=$('waWake'),waNoti=$('waNoti'),waLeave=$('waLeave');
+const waCam=$('waCam'),waWake=$('mcWake'),waNoti=$('waNoti'),waLeave=$('waLeave');
 const vmemo=$('vmemo'),vmemoPlay=$('vmemoPlay'),vmemoInfo=$('vmemoInfo'),vmemoX=$('vmemoX');
 const aprvBan=$('aprvBan'),aprvBanList=$('aprvBanList');
 const camReqBan=$('camReqBan'),camReqSub=$('camReqSub'),camAccept=$('camAccept'),camDecline=$('camDecline');
@@ -1364,7 +1367,7 @@ function renderMapMarkers(){
   if(!leafletFull)return; // map not ready yet
   if(!leafletFull)return;
   const wl=participants.filter(p=>p.lat!=null&&p.lng!=null);
-  mapFullEmpty.style.display=wl.length?'none':'flex';
+  if(mapFullEmpty)mapFullEmpty.style.display=wl.length?'none':'flex';
   const seen=new Set();
   wl.forEach(p=>{
     seen.add(p.username);const color=colorFor(p.username),isSp=speakingSet.has(p.username);
@@ -1403,9 +1406,9 @@ function renderAvStrip(){
 // APPROVAL
 function renderApproval(){
   const keys=Object.keys(pendingApprovals);
-  aprvBan.classList.toggle('show',keys.length>0);
+  if(aprvBan)aprvBan.classList.toggle('show',keys.length>0);
   setAprvSec.style.display=keys.length?'block':'none';
-  aprvBanList.innerHTML='';setAprvItems.innerHTML='';
+  if(aprvBanList)aprvBanList.innerHTML='';if(setAprvItems)setAprvItems.innerHTML='';
   keys.forEach(id=>{
     const name=pendingApprovals[id];
     function mk(container){
@@ -1415,7 +1418,7 @@ function renderApproval(){
       i.querySelector('[data-a="no"]').addEventListener('click',()=>socket.emit('reject-user',{targetSocketId:id}));
       container.appendChild(i);
     }
-    mk(aprvBanList);mk(setAprvItems);
+    if(aprvBanList)mk(aprvBanList);if(setAprvItems)mk(setAprvItems);
   });
 }
 
@@ -1549,7 +1552,7 @@ async function playNext(){if(!playQ.length){isPlaying=false;return}isPlaying=tru
 
 // TABS (original - renamed to avoid conflict with v11 IIFE)
 const allTabs0=[tabMap,tabChat,tabMembers,tabSettings];
-const allPanels0=[panelMap,panelChat,panelMembers,panelSettings];
+const allPanels0=[panelChat,panelMembers,panelSettings].filter(Boolean);
 // Tab listeners handled by v11 override below
 function switchPanel(pid,tel){
   allPanels0.forEach(p=>p.classList.remove('active'));allTabs0.forEach(t=>t.classList.remove('active'));
@@ -1610,7 +1613,7 @@ sosDismiss.addEventListener('click',()=>sosOv.classList.remove('show'));
 
 // QR
 function getRoomUrl(rc){return window.location.origin+window.location.pathname+'?room='+encodeURIComponent(rc)}
-shareChip.addEventListener('click',()=>{if(!currentRoom)return;const url=getRoomUrl(currentRoom);qrLink.textContent=url;drawQR(url);qrMov.classList.add('show');if(navigator.share)navigator.share({title:`Phòng "${currentRoom}"`,url}).catch(()=>{})});
+shareChip?.addEventListener('click',()=>{if(!currentRoom)return;const url=getRoomUrl(currentRoom);qrLink.textContent=url;drawQR(url);qrMov.classList.add('show');if(navigator.share)navigator.share({title:`Phòng "${currentRoom}"`,url}).catch(()=>{})});
 qrBd.addEventListener('click',()=>qrMov.classList.remove('show'));
 qrClose.addEventListener('click',()=>qrMov.classList.remove('show'));
 qrCopy.addEventListener('click',async()=>{try{await navigator.clipboard.writeText(getRoomUrl(currentRoom));qrCopy.textContent='✓ Đã sao chép';setTimeout(()=>qrCopy.textContent='Sao chép',2000)}catch(e){toast('Không sao chép được','err')}});
@@ -1686,9 +1689,9 @@ if(setVoiceForRoom){
   });
 }
 function syncTTSUI(){
-  raTTS.classList.toggle('on',ttsEnabled);
+  if(raTTS)raTTS.classList.toggle('on',ttsEnabled);
   if(setTTS)setTTS.className='tog'+(ttsEnabled?' on':'');
-  raTTSlbl.textContent='Đọc chat';
+  if(raTTSlbl)raTTSlbl.textContent='Đọc chat';
 }
 waTTS.addEventListener('click',()=>{
   ttsEnabled=!ttsEnabled;
@@ -1803,7 +1806,7 @@ function doLeave(){
   ownerBlock.style.display='none';
   activePanel='panelChat';switchPanel('panelChat',tabChat);
   voiceMemRaw=null;vmemo.classList.remove('show');
-  aprvBan.classList.remove('show');camReqBan.classList.remove('show');micReqBan.classList.remove('show');
+  aprvBan?.classList.remove('show');camReqBan?.classList.remove('show');micReqBan?.classList.remove('show');
   Object.keys(pendingApprovals).forEach(k=>delete pendingApprovals[k]);
   ttsStop();
   currentRoom='';currentUsername='';
@@ -1971,9 +1974,6 @@ const origST=window.startTalking,origSp=window.stopTalking;
 if(origST){window.startTalking=function(){pttOuter2?.classList.add('talking');origST.call(this);};}
 if(origSp){window.stopTalking=function(){pttOuter2?.classList.remove('talking');origSp.call(this);};}
 
-// Init: start with map tab (collapsed sheet)
-openPanel(null,tabMap);
-setTimeout(()=>{try{leafletFull?.invalidateSize();}catch(e){}},500);
 // Init: start with map tab (collapsed sheet)
 openPanel(null,tabMap);
 setTimeout(()=>{try{leafletFull?.invalidateSize();}catch(e){}},500);
