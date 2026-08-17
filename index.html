@@ -631,7 +631,7 @@ input,select{font-family:inherit}
 
 <script>
 const SRV='https://pushtotalk-anqr.onrender.com';
-const CHUNK=350,VFPS=5,VW=160,VH=120,SK='bdv1060';
+const CHUNK=350,VFPS=5,VW=160,VH=120,SK='bdv1100';
 const EMOJIS=['😂','🤣','😭','😢','😡','😠','😱','😍','🥳','😴','🤔','👍','👎','❤️','🔥','💯','🎉','😅','🙄','🤯'];
 const $=id=>document.getElementById(id);
 
@@ -1810,5 +1810,72 @@ tabSettings.addEventListener('click',()=>switchPanel2('panelSettings',tabSetting
 // Start with map view (no panel open)
 switchPanel2(null,tabMap);
 </script>
+<script>
+// ── V11 TAB LOGIC: Map always visible, content panel slides ──
+(function(){
+  const contentArea=document.getElementById('contentArea');
+  const panelChat=document.getElementById('panelChat');
+  const panelMembers=document.getElementById('panelMembers');
+  const panelSettings=document.getElementById('panelSettings');
+  const tabMap2=document.getElementById('tabMap');
+  const tabChat2=document.getElementById('tabChat');
+  const tabMembers2=document.getElementById('tabMembers');
+  const tabSettings2=document.getElementById('tabSettings');
+  const allPanels=[panelChat,panelMembers,panelSettings].filter(Boolean);
+  const allTabs=[tabMap2,tabChat2,tabMembers2,tabSettings2].filter(Boolean);
+
+  function openPanel(panelId, tabEl){
+    allPanels.forEach(p=>{p.classList.remove('active');p.style.display='none';});
+    allTabs.forEach(t=>t.classList.remove('active'));
+    if(tabEl)tabEl.classList.add('active');
+    if(panelId){
+      const p=document.getElementById(panelId);
+      if(p){p.style.display='flex';p.classList.add('active');}
+      if(contentArea){contentArea.classList.add('panel-open');contentArea.style.maxHeight='45vh';}
+    } else {
+      // Map tab — hide content
+      if(contentArea){contentArea.classList.remove('panel-open');contentArea.style.maxHeight='0';}
+      setTimeout(()=>{try{if(typeof leafletFull!=='undefined')leafletFull?.invalidateSize();}catch(e){}},100);
+    }
+  }
+
+  if(tabMap2)tabMap2.addEventListener('click',()=>openPanel(null,tabMap2));
+  if(tabChat2)tabChat2.addEventListener('click',()=>{openPanel('panelChat',tabChat2);setTimeout(()=>chatMsgs?.scrollTo(0,chatMsgs?.scrollHeight),80);});
+  if(tabMembers2)tabMembers2.addEventListener('click',()=>openPanel('panelMembers',tabMembers2));
+  if(tabSettings2)tabSettings2.addEventListener('click',()=>openPanel('panelSettings',tabSettings2));
+
+  // Override switchPanel used by socket events
+  window.switchPanel=function(panelId,tabEl){
+    if(panelId==='panelChat')openPanel('panelChat',tabChat2);
+    else if(panelId==='panelMembers')openPanel('panelMembers',tabMembers2);
+    else if(panelId==='panelSettings')openPanel('panelSettings',tabSettings2);
+    else openPanel(null,tabMap2);
+  };
+
+  // Status dropdown — position dynamically
+  const statusBtn=document.getElementById('statusBtn');
+  const statusDrop=document.getElementById('statusDrop');
+  if(statusBtn&&statusDrop){
+    statusBtn.addEventListener('click',e=>{
+      e.stopPropagation();
+      const rect=statusBtn.getBoundingClientRect();
+      statusDrop.style.top=(rect.bottom+6)+'px';
+      statusDrop.style.display=statusDrop.style.display==='block'?'none':'block';
+    });
+    document.addEventListener('click',()=>{if(statusDrop)statusDrop.style.display='none';});
+    document.querySelectorAll('.sopt').forEach(btn=>{
+      btn.addEventListener('click',e=>{
+        e.stopPropagation();
+        if(typeof setUserStatus==='function')setUserStatus(btn.dataset.s);
+        statusDrop.style.display='none';
+      });
+    });
+  }
+
+  // Default: show members panel
+  openPanel('panelMembers',tabMembers2);
+})();
+</script>
+
 </body>
 </html>
