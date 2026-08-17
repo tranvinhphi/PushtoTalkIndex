@@ -663,10 +663,11 @@ input,select,textarea{font-family:inherit;color:inherit}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
+(function(){
 // ── V11 TRAILTAK UI OVERRIDES ─────────────────────────
 
 const SRV='https://pushtotalk-anqr.onrender.com';
-const CHUNK=350,VFPS=5,VW=160,VH=120,SK='bdv1102';
+const CHUNK=350,VFPS=5,VW=160,VH=120,SK='bdv1103';
 const EMOJIS=['😂','🤣','😭','😢','😡','😠','😱','😍','🥳','😴','🤔','👍','👎','❤️','🔥','💯','🎉','😅','🙄','🤯'];
 const $=id=>document.getElementById(id);
 
@@ -1541,13 +1542,13 @@ function stopTalking(){setTalk('idle');beepEnd();vib(25);if(chunkTimer)clearTime
 function enqAudio(buf,u){playQ.push({arrayBuffer:buf,username:u});if(!isPlaying)playNext()}
 async function playNext(){if(!playQ.length){isPlaying=false;return}isPlaying=true;const{arrayBuffer}=playQ.shift();if(!audioUnlocked)unlockAudio();try{const buf=await audioCtx.decodeAudioData(arrayBuffer.slice(0)),src=audioCtx.createBufferSource(),f=audioCtx.createBiquadFilter(),g=audioCtx.createGain();f.type='bandpass';f.frequency.value=1800;f.Q.value=0.7;g.gain.value=1.15;src.buffer=buf;src.connect(f);f.connect(g);g.connect(audioCtx.destination);src.onended=()=>playNext();src.start(0)}catch(e){playNext()}}
 
-// TABS
-const allTabs=[tabMap,tabChat,tabMembers,tabSettings];
-const allPanels=[panelMap,panelChat,panelMembers,panelSettings];
-allTabs.forEach(t=>{if(t.dataset.p)t.addEventListener('click',()=>switchPanel(t.dataset.p,t))});
+// TABS (original - renamed to avoid conflict with v11 IIFE)
+const allTabs0=[tabMap,tabChat,tabMembers,tabSettings];
+const allPanels0=[panelMap,panelChat,panelMembers,panelSettings];
+// Tab listeners handled by v11 override below
 function switchPanel(pid,tel){
-  allPanels.forEach(p=>p.classList.remove('active'));allTabs.forEach(t=>t.classList.remove('active'));
-  $(pid).classList.add('active');if(tel)tel.classList.add('active');
+  allPanels0.forEach(p=>p.classList.remove('active'));allTabs0.forEach(t=>t.classList.remove('active'));
+  if($(pid))$(pid).classList.add('active');if(tel)tel.classList.add('active');
   activePanel=pid;
   if(pid==='panelChat'){chatUnread=0;tabChat.classList.remove('has-dot')}
   if(pid==='panelMap')setTimeout(()=>{try{leafletFull?.invalidateSize()}catch(e){}},150);
@@ -1840,13 +1841,13 @@ if(bsH){
 const panelMembers2=document.getElementById('panelMembers');
 const panelChat2=document.getElementById('panelChat');
 const panelSettings2=document.getElementById('panelSettings');
-const allPanels=[panelMembers2,panelChat2,panelSettings2].filter(Boolean);
-const allTabs=[tabMembers,tabChat,tabMap,tabSettings].filter(Boolean);
+const allPanelsV11=[panelMembers2,panelChat2,panelSettings2].filter(Boolean);
+const allTabsV11=[tabMembers,tabChat,tabMap,tabSettings].filter(Boolean);
 let activeTabV11='members';
 
 function closeAllPanels(){
-  allPanels.forEach(p=>{p.classList.remove('active');});
-  allTabs.forEach(t=>t.classList.remove('active'));
+  allPanelsV11.forEach(p=>{p.classList.remove('active');});
+  allTabsV11.forEach(t=>t.classList.remove('active'));
 }
 
 function openPanel(panelId,tabEl){
@@ -1968,6 +1969,10 @@ if(origSp){window.stopTalking=function(){pttOuter2?.classList.remove('talking');
 // Init: start with map tab (collapsed sheet)
 openPanel(null,tabMap);
 setTimeout(()=>{try{leafletFull?.invalidateSize();}catch(e){}},500);
+// Init: start with map tab (collapsed sheet)
+openPanel(null,tabMap);
+setTimeout(()=>{try{leafletFull?.invalidateSize();}catch(e){}},500);
+})();
 </script>
 </body>
 </html>
