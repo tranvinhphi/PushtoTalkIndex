@@ -1063,13 +1063,13 @@ input{font-family:inherit;color:var(--text);background:none;border:none;outline:
 <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
 <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
 <script>
+
 (function(){
 // ── V11 TRAILTAK UI OVERRIDES ─────────────────────────
 
 const SRV='https://pushtotalk-anqr.onrender.com';
-const CHUNK=350,VFPS=5,VW=160,VH=120,SK='bdv1211';
+const CHUNK=350,VFPS=5,VW=160,VH=120,SK='bdv1104';
 const EMOJIS=['😂','🤣','😭','😢','😡','😠','😱','😍','🥳','😴','🤔','👍','👎','❤️','🔥','💯','🎉','😅','🙄','🤯'];
 const $=id=>document.getElementById(id);
 
@@ -1788,27 +1788,18 @@ function requestGeo(){
 
 // AVATAR STRIP
 function renderAvStrip(){
-  if(!avStrip)return;
   avStrip.innerHTML='';
-  [...participants].sort((a,b)=>{
-    if(speakingSet.has(a.username)&&!speakingSet.has(b.username))return -1;
-    if(!speakingSet.has(a.username)&&speakingSet.has(b.username))return 1;
-    return 0;
-  }).forEach(p=>{
+  const sorted=[...participants].sort((a,b)=>{const as=speakingSet.has(a.username)?2:a.isOwner?1:0,bs=speakingSet.has(b.username)?2:b.isOwner?1:0;if(as!==bs)return bs-as;return a.username===currentUsername?-1:b.username===currentUsername?1:0});
+  sorted.forEach(p=>{
     const isSp=speakingSet.has(p.username),isMe=p.username===currentUsername,isOw=p.isOwner;
-    const item=document.createElement('div');
-    item.className='av-item'+(isSp?' speaking-card':'');
-    const ringClass='av-ring '+(isSp?'speaking':isOw?'owner-r':isMe?'me-r':'idle');
-    item.innerHTML=`<div class="${ringClass}"><div class="av-inner" style="background:${colorFor(p.username)}">${ini(p.username)}</div></div>
-    <div class="av-info">
-      <div class="av-name">${esc(p.username)}${isMe?' (Bạn)':''}</div>
-      <div class="av-stat ${isSp?'speaking':''}">${isSp?'<span class="av-stat-dot"></span>Đang nói...':'Đang nghe'}</div>
-    </div>
-    ${isSp?'<div class="av-vol"><span class="av-vol-ico">🔊</span></div>':''}`;
+    const color=colorFor(p.username);
+    const item=document.createElement('div');item.className='av-item';
+    const ringClass=isSp?'speaking':isOw?'owner-ring':isMe?'me-ring':'idle';
+    item.innerHTML=`<div class="av-ring ${ringClass}"><div class="av-inner" style="background:${color}">${ini(p.username)}</div></div>
+    <div class="av-name">${esc(isMe?'Bạn':p.username)}${isOw?' 👑':''}</div>
+    <div class="av-status ${isSp?'speaking':isOw?'owner':''}">${isSp?'🎙️ Nói':isOw?'Admin':'Online'}</div>`;
     avStrip.appendChild(item);
   });
-  const cnt=$('avOnlineCount');
-  if(cnt)cnt.textContent=`${participants.length} online`;
 }
 
 // APPROVAL
@@ -2241,7 +2232,7 @@ function doLeave(){
 // ── Bottom sheet drag & height ─────────────────────────
 const bottomSheet=document.getElementById('bottomSheet');
 const memberStripView=document.getElementById('memberStripView');
-const BS_MIN=140, BS_MID=340, BS_FULL='72vh'; // MIN=PTT+tabbar only
+const BS_MIN=310, BS_MID=360, BS_FULL='72vh';
 
 function setBSH(h){
   bottomSheet.style.height=typeof h==='number'?h+'px':h;
@@ -2294,11 +2285,10 @@ function openPanel(panelId,tabEl){
     setBSH(BS_FULL);
     activeTabV11=panelId;
   } else {
-    // Tab Bản đồ → sheet trong suốt, chỉ ptt+tabbar hiển thị
+    // Tab Bản đồ → sheet trong suốt hoàn toàn, chỉ ptt+tabbar hiển thị
     bottomSheet.classList.add('map-mode');
     if(videoGrid)videoGrid.classList.remove('vis');
-    // Remove height constraint — let CSS auto-size to PTT+tabbar
-    bottomSheet.style.height = 'auto';
+    setBSH(BS_MIN);
     activeTabV11='map';
     setTimeout(()=>{ if(typeof renderVidGrid==='function') renderVidGrid(); },100);
     setTimeout(()=>{try{leafletFull?.invalidateSize();}catch(e){}},150);
@@ -2405,293 +2395,6 @@ const origST=window.startTalking,origSp=window.stopTalking;
 if(origST){window.startTalking=function(){pttOuter2?.classList.add('talking');origST.call(this);};}
 if(origSp){window.stopTalking=function(){pttOuter2?.classList.remove('talking');origSp.call(this);};}
 
-
-// ════════════════════════════════════════════════════════
-//  KIDS SCHEDULER — Loa Nhắc Lịch Cho Bé
-//  Runs independently, persists across tab switches
-// ════════════════════════════════════════════════════════
-window.kTasks = JSON.parse(localStorage.getItem('kidsTasks') || '[]');
-window.kCurrentAppTab = 'walkie';
-
-// Save tasks to localStorage
-function kSave() {
-  localStorage.setItem('kidsTasks', JSON.stringify(window.kTasks));
-  kRender();
-  kUpdateStats();
-}
-
-// Add new task
-window.kAddTask = function() {
-  const name = document.getElementById('kTaskName')?.value.trim();
-  const time = document.getElementById('kTaskTime')?.value;
-  const voice = document.getElementById('kVoiceStyle')?.value;
-  if (!name) { kToast('⚠️ Nhập tên việc cần làm nhé!'); return; }
-  if (!time) { kToast('⚠️ Chọn giờ nhắc nhé!'); return; }
-  const task = {
-    id: Date.now(),
-    name, time, voice,
-    done: false,
-    createdAt: new Date().toDateString()
-  };
-  window.kTasks.push(task);
-  // Sort by time
-  window.kTasks.sort((a,b) => a.time.localeCompare(b.time));
-  kSave();
-  // Clear inputs
-  if (document.getElementById('kTaskName')) document.getElementById('kTaskName').value = '';
-  kToast('✅ Đã lưu lịch nhắc thành công!');
-};
-
-// Delete task
-window.kDeleteTask = function(id) {
-  window.kTasks = window.kTasks.filter(t => t.id !== id);
-  kSave();
-};
-
-// Render task list
-function kRender() {
-  const list = document.getElementById('kTaskList');
-  if (!list) return;
-  // Filter: today's tasks only (reset done status for new day)
-  const today = new Date().toDateString();
-  window.kTasks.forEach(t => { if (t.createdAt !== today) { t.done = false; t.createdAt = today; } });
-
-  const pending = window.kTasks.filter(t => !t.done);
-  const badge = document.getElementById('kTaskLeftBadge');
-  if (badge) badge.textContent = `${pending.length} việc còn lại`;
-
-  if (!window.kTasks.length) {
-    list.innerHTML = `<div style="text-align:center;padding:32px;color:#cbd5e1;font-size:13px;font-weight:600">
-      <div style="font-size:36px;margin-bottom:8px">📅</div>Chưa có lịch nào. Thêm lịch đầu tiên nào!</div>`;
-    return;
-  }
-
-  list.innerHTML = '';
-  const now = new Date();
-  const nowMin = now.getHours() * 60 + now.getMinutes();
-
-  window.kTasks.forEach(task => {
-    const [h, m] = task.time.split(':').map(Number);
-    const taskMin = h * 60 + m;
-    const isUpcoming = !task.done && taskMin > nowMin;
-    const isDone = task.done;
-    const ampm = h >= 12 ? 'PM' : 'AM';
-    const h12 = h % 12 || 12;
-    const timeStr = `${String(h12).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
-
-    // Colors
-    let timeBg = isDone ? '#f1f5f9' : isUpcoming ? '#eff6ff' : '#fef3c7';
-    let timeColor = isDone ? '#94a3b8' : isUpcoming ? '#3b82f6' : '#f59e0b';
-    let cardBorder = isDone ? '#e2e8f0' : isUpcoming ? '#3b82f6' : '#f59e0b';
-    let cardBg = isDone ? '#f8fafc' : '#fff';
-    let statusBadge = isDone
-      ? `<span style="font-size:9px;font-weight:800;color:#10b981;text-transform:uppercase;letter-spacing:.06em">✓ XONG</span>`
-      : isUpcoming
-        ? `<span style="font-size:9px;font-weight:800;color:#3b82f6;text-transform:uppercase;letter-spacing:.06em">SẮP TỚI</span>`
-        : `<span style="font-size:9px;font-weight:800;color:#f59e0b;text-transform:uppercase;letter-spacing:.06em">⏰ SẮP</span>`;
-
-    const card = document.createElement('div');
-    card.style.cssText = `background:${cardBg};border-radius:18px;padding:14px;display:flex;align-items:center;gap:12px;border:1.5px solid ${cardBorder};transition:all .3s;${isDone?'opacity:0.65':''}`;
-
-    card.innerHTML = `
-      <div style="background:${timeBg};border-radius:12px;padding:8px 10px;text-align:center;flex-shrink:0;min-width:54px">
-        <div style="font-size:18px;font-weight:900;color:${timeColor};font-family:monospace;line-height:1">${timeStr}</div>
-        <div style="font-size:10px;font-weight:700;color:${timeColor};opacity:.7">${ampm}</div>
-      </div>
-      <div style="flex:1;min-width:0">
-        ${statusBadge}
-        <div style="font-size:14px;font-weight:800;color:${isDone?'#94a3b8':'#1e293b'};${isDone?'text-decoration:line-through':''}margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${task.name}</div>
-        <div style="font-size:11px;color:#94a3b8;margin-top:2px;font-style:italic;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">"${task.voice}"</div>
-      </div>
-      <div style="display:flex;flex-direction:column;align-items:center;gap:6px;flex-shrink:0">
-        ${isDone
-          ? `<div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#10b981,#059669);display:flex;align-items:center;justify-content:center;font-size:16px">✓</div>`
-          : `<button onclick="kSpeakNow(${task.id})" title="Đọc ngay" style="width:32px;height:32px;border-radius:50%;background:#eff6ff;border:1.5px solid #3b82f6;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center">🔊</button>`}
-        <button onclick="kDeleteTask(${task.id})" title="Xóa" style="width:28px;height:28px;border-radius:50%;background:#fef2f2;border:1.5px solid #fca5a5;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;color:#ef4444">🗑️</button>
-      </div>`;
-
-    list.appendChild(card);
-  });
-}
-
-// Speak a task immediately (manual trigger)
-window.kSpeakNow = function(id) {
-  const task = window.kTasks.find(t => t.id === id);
-  if (!task) return;
-  kSpeak(task);
-  task.done = true;
-  kSave();
-};
-
-// TTS function — Vietnamese voice
-let kSpeaking = false;
-function kSpeak(task) {
-  if (!window.speechSynthesis) { kToast('⚠️ Trình duyệt chưa hỗ trợ TTS'); return; }
-  window.speechSynthesis.cancel();
-  const [h,m] = task.time.split(':').map(Number);
-  const ampm = h >= 12 ? 'chiều' : 'sáng';
-  const h12 = h % 12 || 12;
-  const text = `${h12} giờ ${m > 0 ? m + ' phút ' : ''}${ampm}. ${task.name}. ${task.voice}`;
-  const utt = new SpeechSynthesisUtterance(text);
-  utt.lang = 'vi-VN';
-  utt.rate = 0.9;
-  utt.pitch = 1.1;
-  utt.volume = 1;
-  // Find Vietnamese voice if available
-  const voices = window.speechSynthesis.getVoices();
-  const viVoice = voices.find(v => v.lang.startsWith('vi'));
-  if (viVoice) utt.voice = viVoice;
-  utt.onstart = () => kSpeaking = true;
-  utt.onend = () => kSpeaking = false;
-  window.speechSynthesis.speak(utt);
-}
-
-// Background interval — runs every second regardless of active tab
-// This is the KEY: setInterval at global scope, not inside any tab
-let kLastFired = {};
-setInterval(function kCheckAlarms() {
-  const now = new Date();
-  const nowH = now.getHours();
-  const nowM = now.getMinutes();
-  const nowS = now.getSeconds();
-  const today = now.toDateString();
-  if (nowS !== 0) return; // Only fire at :00 seconds
-
-  window.kTasks.forEach(task => {
-    if (task.done) return;
-    const [h, m] = task.time.split(':').map(Number);
-    if (h === nowH && m === nowM) {
-      const fireKey = `${task.id}-${today}-${h}:${m}`;
-      if (kLastFired[fireKey]) return; // Prevent double firing
-      kLastFired[fireKey] = true;
-      // Fire alarm!
-      kSpeak(task);
-      task.done = true;
-      kSave();
-      // Show toast regardless of active tab
-      kToast(`🔔 Đến giờ: ${task.name}!`);
-      // Vibrate if supported
-      if (navigator.vibrate) navigator.vibrate([300, 100, 300, 100, 300]);
-    }
-  });
-}, 1000);
-
-// App-level tab switcher
-window.switchAppTab = function(tab) {
-  window.kCurrentAppTab = tab;
-  const kScreen = document.getElementById('kidsScreen');
-  const rScreen = document.getElementById('roomScreen');
-  const jScreen = document.getElementById('joinScreen');
-  const dScreen = document.getElementById('discoverScreen');
-  const wScreen = document.getElementById('waitScreen');
-  const tabNav = document.getElementById('appTabNav');
-  const btnWalkie = document.getElementById('appTabWalkie');
-  const btnKids = document.getElementById('appTabKids');
-
-  if (tab === 'kids') {
-    if (kScreen) kScreen.style.display = 'block';
-    // Hide walkie screens
-    [rScreen, jScreen, dScreen, wScreen].forEach(s => { if(s) s.style.zIndex = '50'; });
-    if (btnWalkie) {
-      btnWalkie.querySelector('span:last-child').style.color = '#9CA3AF';
-    }
-    if (btnKids) {
-      btnKids.querySelector('span:last-child').style.color = '#f59e0b';
-    }
-    kRender();
-  } else {
-    if (kScreen) kScreen.style.display = 'none';
-    [rScreen, jScreen, dScreen, wScreen].forEach(s => { if(s) s.style.zIndex = ''; });
-    if (btnWalkie) {
-      btnWalkie.querySelector('span:last-child').style.color = '#3B82F6';
-    }
-    if (btnKids) {
-      btnKids.querySelector('span:last-child').style.color = '#9CA3AF';
-    }
-  }
-};
-
-// Show app tab nav always (except when kids screen would hide it)
-function kShowTabNav() {
-  const nav = document.getElementById('appTabNav');
-  if (nav) {
-    nav.style.display = 'flex';
-    // Add padding-bottom to all screens to not overlap with nav
-    const pb = 'calc(56px + env(safe-area-inset-bottom,0px))';
-    const rs = document.getElementById('roomScreen');
-    if (rs) rs.style.paddingBottom = pb;
-  }
-}
-
-// Toast for kids section
-function kToast(msg) {
-  const layer = document.getElementById('toastLayer');
-  if (!layer) return;
-  const el = document.createElement('div');
-  el.style.cssText = 'padding:10px 18px;border-radius:30px;font-size:13px;font-weight:700;color:#fff;background:rgba(245,158,11,0.95);border:1px solid rgba(251,191,36,0.5);backdrop-filter:blur(16px);box-shadow:0 8px 32px rgba(0,0,0,0.3);text-align:center;max-width:100%';
-  el.textContent = msg;
-  layer.appendChild(el);
-  setTimeout(() => el.remove(), 3000);
-}
-
-// Update stats
-function kUpdateStats() {
-  const total = window.kTasks.length;
-  const done = window.kTasks.filter(t => t.done).length;
-  const pct = total ? Math.round(done / total * 100) : 0;
-  const c1 = document.getElementById('kStatConsistency');
-  const c2 = document.getElementById('kStatTotal');
-  const c3 = document.getElementById('kStatDone');
-  if (c1) c1.textContent = pct + '%';
-  if (c2) c2.textContent = total;
-  if (c3) c3.textContent = done;
-}
-
-// Init
-setTimeout(() => {
-  kShowTabNav();
-  kRender();
-  kUpdateStats();
-  // Load voices for TTS
-  if (window.speechSynthesis) {
-    window.speechSynthesis.getVoices();
-    window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
-  }
-  // Add some CSS for kids section buttons hover
-  const style = document.createElement('style');
-  style.textContent = `
-    .app-tab-btn:active { transform: scale(.95); }
-    #kidsScreen input:focus { border-color:#0ea5e9 !important; outline:2px solid rgba(14,165,233,0.2) !important; }
-    #kidsScreen select:focus { border-color:#0ea5e9 !important; }
-    #kidsScreen button:active { transform:scale(.97); opacity:.9; }
-    @media(min-width:600px){
-      #kidsScreen{padding-bottom:80px}
-      #appTabNav{max-width:440px;left:50%;transform:translateX(-50%);right:auto;width:440px;border-radius:0;border-left:1px solid #f0e8c8;border-right:1px solid #f0e8c8}
-    }
-  `;
-  document.head.appendChild(style);
-}, 300);
-
-
-
-// Mute mic toggle
-window.toggleMuteMic = function(btn) {
-  const isMuted = btn.classList.contains('muted-state');
-  if (isMuted) {
-    btn.classList.remove('muted-state');
-    btn.style.background = 'rgba(255,255,255,.1)';
-    btn.style.borderColor = 'rgba(255,255,255,.2)';
-    btn.querySelector('span').textContent = '🎙️';
-    btn.nextElementSibling && (btn.nextElementSibling.style.color = 'rgba(255,255,255,.5)');
-  } else {
-    btn.classList.add('muted-state');
-    btn.style.background = 'rgba(248,113,113,.15)';
-    btn.style.borderColor = 'rgba(248,113,113,.4)';
-    btn.querySelector('span').textContent = '🔇';
-    btn.nextElementSibling && (btn.nextElementSibling.style.color = 'var(--red)');
-  }
-};
-
 // Init: đảm bảo tất cả panels đóng, bắt đầu với tab bản đồ
 [panelChat,panelMembers,panelSettings].filter(Boolean).forEach(p=>p.classList.remove('active'));
 allTabsV11.forEach(t=>t.classList.remove('active'));
@@ -2699,6 +2402,242 @@ bottomSheet.classList.add('map-mode');
 openPanel(null,tabMap);
 setTimeout(()=>{try{leafletFull?.invalidateSize();}catch(e){}},500);
 })();
+
+
+// ═══════════════════════════════════════════════════════
+//  KIDS SCHEDULER — Loa Nhắc Lịch Cho Bé
+// ═══════════════════════════════════════════════════════
+window.kTasks=JSON.parse(localStorage.getItem('kTasks_v2')||'[]');
+
+function kSave(){localStorage.setItem('kTasks_v2',JSON.stringify(window.kTasks));kRender();kUpdateStats();}
+
+window.kAddTask=function(){
+  const name=(document.getElementById('kTaskName')?.value||'').trim();
+  const time=document.getElementById('kTaskTime')?.value;
+  const voice=document.getElementById('kVoiceStyle')?.value||'Đến giờ rồi bé ơi!';
+  if(!name){kToast('⚠️ Nhập tên việc cần làm!');return;}
+  if(!time){kToast('⚠️ Chọn giờ nhắc!');return;}
+  window.kTasks.push({id:Date.now(),name,time,voice,done:false,day:new Date().toDateString()});
+  window.kTasks.sort((a,b)=>a.time.localeCompare(b.time));
+  kSave();
+  if(document.getElementById('kTaskName'))document.getElementById('kTaskName').value='';
+  kToast('✅ Đã lưu lịch nhắc!');
+};
+
+window.kDeleteTask=function(id){window.kTasks=window.kTasks.filter(t=>t.id!==id);kSave();};
+
+window.kSpeakNow=function(id){
+  const t=window.kTasks.find(x=>x.id===id);
+  if(!t)return;
+  kSpeak(t);
+  t.done=true;kSave();
+};
+
+function kSpeak(task){
+  if(!window.speechSynthesis){kToast('⚠️ Trình duyệt chưa hỗ trợ TTS');return;}
+  window.speechSynthesis.cancel();
+  const[h,m]=task.time.split(':').map(Number);
+  const ampm=h>=12?'chiều':'sáng';
+  const h12=h%12||12;
+  const text=`${h12} giờ ${m>0?m+' phút ':'' }${ampm}. ${task.name}. ${task.voice}`;
+  const utt=new SpeechSynthesisUtterance(text);
+  utt.lang='vi-VN';utt.rate=0.9;utt.pitch=1.1;utt.volume=1;
+  const vv=window.speechSynthesis.getVoices();
+  const vi=vv.find(v=>v.lang.startsWith('vi'));
+  if(vi)utt.voice=vi;
+  window.speechSynthesis.speak(utt);
+}
+
+function kRender(){
+  const list=document.getElementById('kTaskList');
+  if(!list)return;
+  const today=new Date().toDateString();
+  window.kTasks.forEach(t=>{if(t.day!==today){t.done=false;t.day=today;}});
+  const pending=window.kTasks.filter(t=>!t.done);
+  const badge=document.getElementById('kTaskLeftBadge');
+  if(badge)badge.textContent=`${pending.length} việc còn lại`;
+  if(!window.kTasks.length){
+    list.innerHTML='<div style="text-align:center;padding:32px;color:#cbd5e1;font-size:13px;font-weight:600"><div style="font-size:36px;margin-bottom:8px">📅</div>Chưa có lịch nào. Thêm lịch đầu tiên!</div>';
+    return;
+  }
+  list.innerHTML='';
+  const now=new Date();
+  const nowMin=now.getHours()*60+now.getMinutes();
+  window.kTasks.forEach(task=>{
+    const[h,m]=task.time.split(':').map(Number);
+    const taskMin=h*60+m;
+    const isDone=task.done;
+    const isNext=!isDone&&taskMin>=nowMin;
+    const ampm=h>=12?'PM':'AM';
+    const h12=h%12||12;
+    const timeStr=`${String(h12).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+    let tbBg=isDone?'#f1f5f9':isNext?'#e0f2fe':'#fef3c7';
+    let tbColor=isDone?'#94a3b8':isNext?'#0369a1':'#92400e';
+    let border=isDone?'transparent':isNext?'#f59e0b':'transparent';
+    let statusHtml=isDone
+      ?'<span class="k-status-badge" style="background:#dcfce7;color:#16a34a">✓ Xong</span>'
+      :isNext
+        ?'<span class="k-status-badge" style="background:#fff7ed;color:#f59e0b">Sắp đến</span>'
+        :'<span class="k-status-badge" style="background:#f0f9ff;color:#0369a1">Chờ nhắc</span>';
+    const card=document.createElement('div');
+    card.className='k-task-card'+(isDone?' k-task-done':'');
+    card.style.borderColor=border;
+    card.innerHTML=`
+      <div class="k-time-badge" style="background:${tbBg}">
+        <span class="t-time" style="color:${tbColor}">${timeStr}</span>
+        <span class="t-ampm" style="color:${tbColor}">${ampm}</span>
+      </div>
+      <div class="k-task-info">
+        ${statusHtml}
+        <div class="k-task-name">${task.name}</div>
+        <div class="k-task-phrase">"${task.voice}"</div>
+      </div>
+      <div class="k-task-actions">
+        ${isDone
+          ?'<div class="k-action-btn k-btn-done">✓</div>'
+          :`<button class="k-action-btn k-btn-play" onclick="kSpeakNow(${task.id})" title="Đọc ngay"><i class="fa-solid fa-play fa-xs"></i></button>`}
+        <button class="k-action-btn k-btn-del" onclick="kDeleteTask(${task.id})" title="Xóa"><i class="fa-solid fa-trash-can fa-xs"></i></button>
+      </div>`;
+    list.appendChild(card);
+  });
+}
+
+function kUpdateStats(){
+  const total=window.kTasks.length;
+  const done=window.kTasks.filter(t=>t.done).length;
+  const pct=total?Math.round(done/total*100):0;
+  const c1=document.getElementById('kStatConsistency');
+  const c2=document.getElementById('kStatTotal');
+  const c3=document.getElementById('kStatDone');
+  if(c1)c1.textContent=pct+'%';
+  if(c2)c2.textContent=total;
+  if(c3)c3.textContent=done;
+}
+
+function kToast(msg){
+  const layer=document.getElementById('toastLayer');if(!layer)return;
+  const el=document.createElement('div');
+  el.style.cssText='padding:10px 18px;border-radius:30px;font-size:13px;font-weight:700;color:#fff;background:rgba(14,165,233,0.95);border:1px solid rgba(14,165,233,.5);backdrop-filter:blur(16px);box-shadow:0 8px 32px rgba(0,0,0,.3);text-align:center';
+  el.textContent=msg;layer.appendChild(el);
+  setTimeout(()=>el.remove(),3000);
+}
+
+// Background alarm check — runs every second regardless of active tab
+let kFiredAlarms={};
+setInterval(function(){
+  const now=new Date();
+  const nowH=now.getHours(),nowM=now.getMinutes(),nowS=now.getSeconds();
+  if(nowS!==0)return;
+  const today=now.toDateString();
+  window.kTasks.forEach(task=>{
+    if(task.done)return;
+    const[h,m]=task.time.split(':').map(Number);
+    if(h===nowH&&m===nowM){
+      const key=`${task.id}-${today}-${h}:${m}`;
+      if(kFiredAlarms[key])return;
+      kFiredAlarms[key]=true;
+      kSpeak(task);task.done=true;kSave();
+      kToast('🔔 Đến giờ: '+task.name+'!');
+      if(navigator.vibrate)navigator.vibrate([300,100,300,100,300]);
+    }
+  });
+},1000);
+
+// Init
+setTimeout(()=>{
+  kRender();kUpdateStats();
+  if(window.speechSynthesis){
+    window.speechSynthesis.getVoices();
+    if(window.speechSynthesis.onvoiceschanged===null)
+      window.speechSynthesis.onvoiceschanged=()=>window.speechSynthesis.getVoices();
+  }
+},400);
+
+
+// ── V12 UI BRIDGE ──────────────────────────────────────
+// Map controls
+document.getElementById('mcLoc')?.addEventListener('click',()=>{
+  if(navigator.geolocation)navigator.geolocation.getCurrentPosition(p=>{
+    try{leafletFull?.setView([p.coords.latitude,p.coords.longitude],16);}catch(e){}
+  });
+});
+document.getElementById('mcZoomIn')?.addEventListener('click',()=>{try{leafletFull?.zoomIn();}catch(e){}});
+document.getElementById('mcZoomOut')?.addEventListener('click',()=>{try{leafletFull?.zoomOut();}catch(e){}});
+
+// LOA button (mcWake2 in PTT zone) → toggle waWake behavior
+const _mcW2=document.getElementById('mcWake2');
+if(_mcW2)_mcW2.addEventListener('click',()=>{
+  document.getElementById('mcWake')?.click();
+  _mcW2.classList.toggle('btn-loa-on');
+});
+
+// sosBtn → trigger SOS
+document.getElementById('sosBtn')?.addEventListener('click',()=>{
+  if(typeof sendSOS==='function')sendSOS();
+  else document.getElementById('sosOv')?.classList.add('show');
+});
+
+// waLeave → setLeaveBtn
+document.getElementById('waLeave')?.addEventListener('click',()=>document.getElementById('setLeaveBtn')?.click());
+
+// shareChip → QR
+document.getElementById('shareChip')?.addEventListener('click',()=>{
+  const m=document.getElementById('qrMov');if(m)m.classList.add('show');
+});
+
+// waTTS2 → same as waTTS
+document.getElementById('waTTS2')?.addEventListener('click',()=>document.getElementById('waTTS')?.click());
+
+// Keep member count updated in header
+function _updateHeaderCount(){
+  const el=document.getElementById('memberCountLbl');
+  if(el&&typeof participants!=='undefined')el.textContent=participants.length+' thành viên online';
+  const badge=document.getElementById('avOnlineCount');
+  if(badge&&typeof participants!=='undefined')badge.textContent=participants.length+' online';
+}
+// Patch renderMembers and renderAvStrip to also update header
+const __rm=window.renderMembers,__ra=window.renderAvStrip;
+if(typeof __rm==='function')window.renderMembers=function(){__rm();_updateHeaderCount();};
+if(typeof __ra==='function')window.renderAvStrip=function(){__ra();_updateHeaderCount();};
+
+// PTT label sync
+const _pttTxt=document.getElementById('pttTxtLabel');
+const __st=window.setTalk;
+if(typeof __st==='function'){
+  window.setTalk=function(s){
+    __st(s);
+    if(!_pttTxt)return;
+    if(s==='idle')_pttTxt.textContent='Nhấn để nói';
+    else if(s==='preparing')_pttTxt.textContent='Đang chờ...';
+    else if(s==='talking')_pttTxt.textContent='Bấm để dừng';
+  };
+}
+
+// App tab switcher
+window.kCurrentAppTab='walkie';
+window.switchAppTab=function(tab){
+  const kScreen=document.getElementById('kidsScreen');
+  const btnW=document.getElementById('appTabWalkie');
+  const btnK=document.getElementById('appTabKids');
+  window.kCurrentAppTab=tab;
+  [document.getElementById('roomScreen'),
+   document.getElementById('joinScreen'),
+   document.getElementById('discoverScreen'),
+   document.getElementById('waitScreen')
+  ].forEach(s=>{if(s)s.style.zIndex=tab==='kids'?'10':'';});
+  if(tab==='kids'){
+    if(kScreen){kScreen.style.display='block';}
+    btnW?.classList.remove('active');
+    btnK?.classList.add('kids-active');
+    kRender();kUpdateStats();
+  }else{
+    if(kScreen)kScreen.style.display='none';
+    btnW?.classList.add('active');
+    btnK?.classList.remove('kids-active');
+    setTimeout(()=>{try{leafletFull?.invalidateSize();}catch(e){}},300);
+  }
+};
+
 </script>
 </body>
 </html>
