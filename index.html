@@ -16,14 +16,15 @@
 /* ═══ TRAILTAK v12 — CONVOY DARK STYLE ══════════════════ */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
 :root{
-  --bg:#0a0a0a;--bg2:#111;--surf:#1a1a1a;--surf2:#222;
-  --border:rgba(255,255,255,0.08);--border2:rgba(255,255,255,0.13);
-  --green:#39FF14;--greens:rgba(57,255,20,0.12);
-  --orange:#FF5F1F;--oranges:rgba(255,95,31,0.18);
-  --blue:#3b82f6;--blues:rgba(59,130,246,0.18);
-  --red:#ef4444;--reds:rgba(239,68,68,0.14);
-  --warn:#f59e0b;--gold:#fbbf24;
-  --text:#fff;--text2:#a1a1aa;--text3:#52525b;--text4:#3f3f46;
+  /* KidsVoiceAlarm warm dark tone */
+  --bg:#111008;--bg2:#1a1710;--surf:#252218;--surf2:#302c20;
+  --border:rgba(255,220,100,0.10);--border2:rgba(255,220,100,0.18);
+  --green:#4ade80;--greens:rgba(74,222,128,0.12);
+  --orange:#f59e0b;--oranges:rgba(245,158,11,0.18);
+  --blue:#22d3ee;--blues:rgba(34,211,238,0.18);
+  --red:#f87171;--reds:rgba(248,113,113,0.14);
+  --warn:#fbbf24;--gold:#fbbf24;
+  --text:#fffef0;--text2:#b8b097;--text3:#6b6047;--text4:#3d3820;
   --sb:env(safe-area-inset-bottom,0px);--st:env(safe-area-inset-top,0px);
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -113,22 +114,23 @@ input{font-family:inherit;color:var(--text);background:none;border:none;outline:
 
 /* Topographic dark overlay */
 .map-dark-ov{position:absolute;inset:0;z-index:2;pointer-events:none;background:rgba(0,0,0,.25)}
-.map-top-fade{position:absolute;top:0;left:0;right:0;height:160px;z-index:3;pointer-events:none;background:linear-gradient(to bottom,rgba(0,0,0,.85) 0%,rgba(0,0,0,.3) 60%,transparent 100%)}
-.map-bottom-fade{position:absolute;bottom:0;left:0;right:0;height:65%;z-index:2;pointer-events:none;background:linear-gradient(to top,rgba(0,0,0,.95) 0%,rgba(0,0,0,.5) 40%,transparent 100%)}
+.map-top-fade{position:absolute;top:0;left:0;right:0;height:160px;z-index:3;pointer-events:none;background:linear-gradient(to bottom,rgba(10,9,3,.88) 0%,rgba(10,9,3,.2) 60%,transparent 100%)}
+.map-bottom-fade{position:absolute;bottom:0;left:0;right:0;height:65%;z-index:2;pointer-events:none;background:linear-gradient(to top,rgba(10,9,3,.97) 0%,rgba(10,9,3,.4) 40%,transparent 100%)}
 
 /* ── TOPBAR (Convoy style) ──────────────────────────────── */
 #roomTopbar{
   position:absolute;top:0;left:0;right:0;z-index:30;
-  display:flex;align-items:flex-start;justify-content:space-between;
-  padding:calc(14px + var(--st)) 14px 10px;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:calc(8px + var(--st)) 12px 8px;
 }
 /* Left: room name + status */
 .rtb-left{flex:1;min-width:0}
 .rtb-room{
-  font-size:20px;font-weight:900;letter-spacing:-.02em;
-  text-transform:uppercase;text-shadow:0 2px 12px rgba(0,0,0,.9);
+  font-size:15px;font-weight:900;letter-spacing:-.01em;
+  text-transform:uppercase;text-shadow:0 2px 8px rgba(0,0,0,.9);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-  display:flex;align-items:center;gap:8px;
+  display:flex;align-items:center;gap:6px;
+  max-width:140px;
 }
 .rtb-live{
   font-size:9px;font-weight:900;padding:2px 7px;border-radius:4px;
@@ -136,16 +138,15 @@ input{font-family:inherit;color:var(--text);background:none;border:none;outline:
   animation:livePulse 2s ease-in-out infinite;
 }
 @keyframes livePulse{0%,100%{opacity:1}50%{opacity:.7}}
-.rtb-status{display:flex;align-items:center;gap:8px;margin-top:5px}
-.rtb-dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);flex-shrink:0;animation:dotPulse 2s ease-in-out infinite}
-@keyframes dotPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.7;transform:scale(.85)}}
-.rtb-sub{font-size:11px;font-weight:700;color:rgba(255,255,255,.65);text-transform:uppercase;letter-spacing:.04em}
-.rtb-sep{color:rgba(255,255,255,.25);font-size:11px}
-.rtb-signal{font-size:11px;font-weight:700;color:var(--green)}
+.rtb-status{display:flex;align-items:center;gap:5px;margin-top:3px}
+.rtb-dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);flex-shrink:0}
+.rtb-sub{font-size:10px;font-weight:600;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.02em}
+.rtb-sep{color:rgba(255,255,255,.2);font-size:10px}
+.rtb-signal{font-size:10px;font-weight:600;color:var(--green)}
 
 /* Right: action buttons */
-.rtb-right{display:flex;gap:8px;flex-shrink:0;margin-top:2px}
-.rha{width:40px;height:40px;border-radius:12px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);backdrop-filter:blur(12px);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;transition:background .15s}
+.rtb-right{display:flex;gap:5px;flex-shrink:0;align-items:center}
+.rha{width:34px;height:34px;border-radius:10px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);backdrop-filter:blur(12px);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;transition:background .15s}
 .rha:active{background:rgba(255,255,255,.18);transform:scale(.9)}
 .rha.on{background:rgba(57,255,20,.2);border-color:rgba(57,255,20,.4)}
 
@@ -165,9 +166,9 @@ input{font-family:inherit;color:var(--text);background:none;border:none;outline:
 
 /* ── MAP CONTROLS ───────────────────────────────────────── */
 .map-ctrl{position:absolute;right:14px;z-index:20;display:flex;flex-direction:column;gap:8px;top:calc(80px + var(--st))}
-.mc-btn{width:42px;height:42px;border-radius:50%;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.15);backdrop-filter:blur(12px);display:flex;align-items:center;justify-content:center;font-size:16px;color:#fff;transition:background .15s;font-weight:700}
+.mc-btn{width:42px;height:42px;border-radius:50%;background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.3);backdrop-filter:blur(12px);display:flex;align-items:center;justify-content:center;font-size:16px;color:#fcd34d;transition:background .15s;font-weight:700}
 .mc-btn:active{background:rgba(255,255,255,.2);transform:scale(.9)}
-.mc-btn.blue-mc{background:var(--blue);border-color:rgba(59,130,246,.5);box-shadow:0 4px 16px rgba(59,130,246,.4)}
+.mc-btn.blue-mc{background:rgba(34,211,238,.2);border-color:rgba(34,211,238,.5);color:#22d3ee;box-shadow:0 4px 16px rgba(34,211,238,.3)}
 
 /* ── AVATAR MARKERS ON MAP ──────────────────────────────── */
 .map-marker-wrap{display:flex;flex-direction:column;align-items:center;gap:4px}
@@ -238,7 +239,7 @@ input{font-family:inherit;color:var(--text);background:none;border:none;outline:
   position:absolute;bottom:0;left:0;right:0;z-index:40;
   display:flex;flex-direction:column;
   border-radius:24px 24px 0 0;
-  background:rgba(8,8,8,.97);
+  background:rgba(12,10,4,.97);
   backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
   border-top:1px solid rgba(255,255,255,.1);
   transition:height .3s cubic-bezier(.4,0,.2,1);
@@ -246,9 +247,12 @@ input{font-family:inherit;color:var(--text);background:none;border:none;outline:
 }
 #bottomSheet.map-mode{
   background:transparent;backdrop-filter:none;-webkit-backdrop-filter:none;border-top:none;
+  /* Height = PTT zone + tabbar only — no scroll area */
 }
-#bottomSheet.map-mode #sheetScrollArea{display:none}
-#bottomSheet.map-mode .bs-handle-wrap{display:none}
+#bottomSheet.map-mode #sheetScrollArea{display:none !important}
+#bottomSheet.map-mode .bs-handle-wrap{display:none !important}
+/* In map mode, sheet height is auto (just PTT+tabbar) */
+#bottomSheet.map-mode{height:auto !important;transition:none}
 .bs-handle-wrap{display:flex;justify-content:center;padding:10px 0 2px;flex-shrink:0;cursor:grab}
 .bs-handle{width:36px;height:4px;background:rgba(255,255,255,.18);border-radius:2px}
 
@@ -283,7 +287,7 @@ input{font-family:inherit;color:var(--text);background:none;border:none;outline:
 .av-vol-ico{font-size:14px;color:var(--green)}
 
 /* ── CONTENT PANELS ──────────────────────────────────────── */
-.content-panel{display:none;flex-direction:column;position:absolute;inset:0;border-radius:24px 24px 0 0;background:rgba(8,8,8,.99);z-index:5;overflow:hidden}
+.content-panel{display:none;flex-direction:column;position:absolute;inset:0;border-radius:24px 24px 0 0;background:rgba(12,10,4,.99);z-index:5;overflow:hidden}
 .content-panel.active{display:flex}
 .cp-hdr{display:flex;align-items:center;gap:10px;padding:16px 16px 10px;border-bottom:1px solid var(--border);flex-shrink:0}
 .cp-title{font-size:15px;font-weight:900;flex:1;letter-spacing:-.02em}
@@ -338,7 +342,7 @@ input{font-family:inherit;color:var(--text);background:none;border:none;outline:
 .cmsg.system .bubble{background:rgba(255,255,255,.05);color:var(--text3);font-size:11px;font-weight:600;border-radius:20px;padding:5px 14px}
 .cmeta{font-size:10px;color:var(--text3);margin-top:3px;padding:0 4px;display:flex;align-items:center;gap:4px}
 .tts-msg-btn{background:none;border:none;color:var(--text3);font-size:12px;padding:0;cursor:pointer}
-.chat-input-row{display:flex;gap:8px;padding:9px 14px;border-top:1px solid var(--border);background:rgba(8,8,8,.99);flex-shrink:0;padding-bottom:calc(9px + var(--sb))}
+.chat-input-row{display:flex;gap:8px;padding:9px 14px;border-top:1px solid var(--border);background:rgba(12,10,4,.99);flex-shrink:0;padding-bottom:calc(9px + var(--sb))}
 .chat-inp{flex:1;height:40px;padding:0 14px;background:var(--surf);border:1px solid var(--border2);border-radius:22px;font-size:14px;color:var(--text)}
 .chat-inp:focus{border-color:rgba(57,255,20,.4)}
 .cemoji{width:40px;height:40px;border-radius:50%;background:var(--surf);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
@@ -374,7 +378,7 @@ input{font-family:inherit;color:var(--text);background:none;border:none;outline:
   flex-shrink:0;
   display:flex;align-items:center;justify-content:space-between;
   padding:12px 20px calc(10px + var(--sb));
-  background:rgba(8,8,8,.99);
+  background:rgba(12,10,4,.99);
   border-top:1px solid rgba(255,255,255,.08);
   position:relative;z-index:10;
 }
@@ -403,11 +407,11 @@ input{font-family:inherit;color:var(--text);background:none;border:none;outline:
 @keyframes pWave{0%{transform:scale(.78);opacity:.8}100%{transform:scale(1.8);opacity:0}}
 #pttBtn{
   width:82px;height:82px;border-radius:50%;
-  background:radial-gradient(circle at 35% 30%, #FF8C00, #FF5F1F 60%, #cc3300);
+  background:radial-gradient(circle at 35% 30%, #fcd34d, #f59e0b 55%, #d97706);
   border:none;
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
   transition:all .1s;position:relative;z-index:1;
-  box-shadow:0 0 40px rgba(255,95,31,.5),0 8px 24px rgba(0,0,0,.5);
+  box-shadow:0 0 40px rgba(245,158,11,.55),0 8px 24px rgba(0,0,0,.5);
   color:#fff;
 }
 #pttBtn svg{width:28px;height:28px;color:#fff;filter:drop-shadow(0 2px 4px rgba(0,0,0,.4))}
@@ -415,7 +419,7 @@ input{font-family:inherit;color:var(--text);background:none;border:none;outline:
 #pttBtn.locked{background:radial-gradient(circle at 35% 30%,#3a3a3a,#1a1a1a);box-shadow:none;opacity:.55;pointer-events:none}
 #pttBtn.locked svg{color:rgba(255,255,255,.3)}
 #pttBtn.preparing{background:radial-gradient(circle at 35% 30%,#fbbf24,#ca8a04 60%,#92400e);box-shadow:0 0 0 8px rgba(245,158,11,.15),0 0 32px rgba(245,158,11,.4)}
-#pttBtn.talking{background:radial-gradient(circle at 35% 30%,#4ade80,#16a34a 60%,#14532d);box-shadow:0 0 0 10px rgba(57,255,20,.18),0 0 40px rgba(57,255,20,.5)}
+#pttBtn.talking{background:radial-gradient(circle at 35% 30%,#86efac,#4ade80 60%,#16a34a);box-shadow:0 0 0 10px rgba(57,255,20,.18),0 0 40px rgba(57,255,20,.5)}
 #pttBtn:active:not(.locked){transform:scale(.9);box-shadow:0 0 20px rgba(255,95,31,.4)}
 
 /* SOS button */
@@ -430,7 +434,7 @@ input{font-family:inherit;color:var(--text);background:none;border:none;outline:
 
 /* ── TABBAR ──────────────────────────────────────────────── */
 .tabbar{
-  flex-shrink:0;display:flex;background:rgba(8,8,8,.99);
+  flex-shrink:0;display:flex;background:rgba(12,10,4,.99);
   border-top:1px solid rgba(255,255,255,.06);
   padding-bottom:var(--sb);
 }
@@ -438,8 +442,8 @@ input{font-family:inherit;color:var(--text);background:none;border:none;outline:
 .ti:active{opacity:.55}
 .tii{font-size:20px;line-height:1.15;transition:transform .15s}
 .til{font-size:9px;font-weight:800;color:var(--text3);white-space:nowrap;text-transform:uppercase;letter-spacing:.05em}
-.ti.active .til{color:var(--green)}
-.ti.active .tii{transform:scale(1.1)}
+.ti.active .til{color:var(--orange)}
+.ti.active .tii{transform:scale(1.12);filter:drop-shadow(0 2px 6px rgba(245,158,11,.5))}
 .tdot{position:absolute;top:6px;right:calc(50% - 18px);width:8px;height:8px;border-radius:50%;background:var(--red);border:1.5px solid #0a0a0a;display:none}
 .ti.has-dot .tdot{display:block}
 
@@ -447,7 +451,7 @@ input{font-family:inherit;color:var(--text);background:none;border:none;outline:
 .mov{display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.8);align-items:flex-end;justify-content:center;backdrop-filter:blur(8px)}
 .mov.show{display:flex}
 .mbd{position:absolute;inset:0}
-.msheet{position:relative;background:rgba(8,8,8,.98);border-top-left-radius:26px;border-top-right-radius:26px;border:1px solid var(--border2);border-bottom:none;padding:0 18px calc(18px + var(--sb));width:100%;max-width:480px;max-height:90dvh;overflow-y:auto;box-shadow:0 -12px 50px rgba(0,0,0,.8);backdrop-filter:blur(20px)}
+.msheet{position:relative;background:rgba(12,10,4,.98);border-top-left-radius:26px;border-top-right-radius:26px;border:1px solid var(--border2);border-bottom:none;padding:0 18px calc(18px + var(--sb));width:100%;max-width:480px;max-height:90dvh;overflow-y:auto;box-shadow:0 -12px 50px rgba(0,0,0,.8);backdrop-filter:blur(20px)}
 .mhandle{width:36px;height:4px;border-radius:2px;background:rgba(255,255,255,.15);margin:12px auto 16px}
 .mtitle{font-size:16px;font-weight:900;margin-bottom:16px;letter-spacing:-.02em}
 .qr-cw{display:flex;justify-content:center;margin-bottom:14px}
@@ -485,6 +489,125 @@ input{font-family:inherit;color:var(--text);background:none;border:none;outline:
 </head>
 <body>
 <div id="toastLayer"></div>
+
+<!-- ── APP TAB NAV (Top level) ────────────────────────── -->
+<div id="appTabNav" style="
+  display:none;
+  position:fixed;bottom:0;left:0;right:0;z-index:9998;
+  background:#1a1710;border-top:1px solid rgba(245,158,11,.2);
+  display:flex;padding-bottom:env(safe-area-inset-bottom,0px);
+  box-shadow:0 -4px 20px rgba(0,0,0,0.4);
+">
+  <button class="app-tab-btn active" id="appTabWalkie" onclick="switchAppTab('walkie')"
+    style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:8px 4px;border:none;background:none;cursor:pointer;transition:all .2s">
+    <span style="font-size:22px">📻</span>
+    <span style="font-size:10px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:#3B82F6">Bộ Đàm</span>
+  </button>
+  <button class="app-tab-btn" id="appTabKids" onclick="switchAppTab('kids')"
+    style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:8px 4px;border:none;background:none;cursor:pointer;transition:all .2s">
+    <span style="font-size:22px">🔔</span>
+    <span style="font-size:10px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:#9CA3AF">Nhắc Lịch Bé</span>
+  </button>
+</div>
+
+<!-- ── KIDS SCHEDULER SCREEN ─────────────────────────── -->
+<div id="kidsScreen" style="display:none;position:fixed;inset:0;z-index:200;overflow-y:auto;background:#fffef7;padding-bottom:72px">
+  <!-- Header -->
+  <div style="text-align:center;padding:calc(20px + env(safe-area-inset-top,0px)) 20px 16px;background:#fffef7">
+    <div style="width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,#e0f2fe,#bfdbfe);margin:0 auto 12px;display:flex;align-items:center;justify-content:center;font-size:40px;box-shadow:0 4px 16px rgba(59,130,246,0.2)">🕐</div>
+    <h1 style="font-size:22px;font-weight:900;color:#1e293b;margin:0 0 4px;letter-spacing:-.03em">🔔 Loa Nhắc Lịch Cho Bé</h1>
+    <p style="font-size:13px;color:#94a3b8;margin:0;font-style:italic">Biến thói quen thành niềm vui mỗi ngày!</p>
+  </div>
+
+  <div style="max-width:480px;margin:0 auto;padding:0 16px">
+
+    <!-- Add Task Card -->
+    <div style="background:#fff;border-radius:24px;padding:20px;margin-bottom:20px;box-shadow:0 4px 20px rgba(0,0,0,0.06);border:1.5px solid #e2e8f0">
+      <h2 style="font-size:16px;font-weight:800;color:#0ea5e9;margin:0 0 16px;display:flex;align-items:center;gap:8px">
+        ✨ Thêm Lịch Nhắc Mới
+      </h2>
+
+      <!-- Task name -->
+      <div style="margin-bottom:12px">
+        <label style="font-size:12px;font-weight:700;color:#64748b;display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em">Tên việc cần làm?</label>
+        <input id="kTaskName" type="text" placeholder="e.g., Giờ uống sữa 🍼"
+          style="width:100%;padding:12px 14px;border:1.5px solid #e2e8f0;border-radius:14px;font-size:14px;font-family:inherit;outline:none;background:#f8fafc;color:#1e293b;box-sizing:border-box"
+          onfocus="this.style.borderColor='#0ea5e9'" onblur="this.style.borderColor='#e2e8f0'"/>
+      </div>
+
+      <!-- Time picker -->
+      <div style="margin-bottom:12px">
+        <label style="font-size:12px;font-weight:700;color:#64748b;display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em">Giờ nhắc?</label>
+        <div style="background:linear-gradient(135deg,#e0f9f9,#ccf2f4);border-radius:14px;padding:14px;display:flex;align-items:center;gap:12px;border:1.5px solid #99e6e6">
+          <span style="font-size:28px;font-weight:900;color:#0891b2;flex:1;font-family:monospace" id="kTimeDisplay">08:30</span>
+          <input id="kTaskTime" type="time" value="08:30"
+            style="padding:8px 12px;border:1.5px solid #0891b2;border-radius:10px;font-size:15px;font-weight:700;font-family:monospace;color:#0891b2;background:#fff;outline:none;cursor:pointer"
+            oninput="document.getElementById('kTimeDisplay').textContent=this.value"/>
+        </div>
+      </div>
+
+      <!-- Voice style -->
+      <div style="margin-bottom:16px">
+        <label style="font-size:12px;font-weight:700;color:#64748b;display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em">Câu nói thú vị cho bé!</label>
+        <select id="kVoiceStyle"
+          style="width:100%;padding:12px 14px;border:1.5px solid #e2e8f0;border-radius:14px;font-size:13px;font-family:inherit;outline:none;background:#f8fafc;color:#1e293b;cursor:pointer;appearance:none;-webkit-appearance:none">
+          <option value="Bé yêu ơi, mau nhanh chân lên nào!">🐰 Bé yêu ơi, mau nhanh chân lên nào!</option>
+          <option value="Biến hình thôi các siêu anh hùng ơi, tới giờ rồi!">🦸 Biến hình thôi siêu anh hùng, tới giờ rồi!</option>
+          <option value="Ting ting ting! Đến giờ rồi bé ơi, nhanh lên nào!">🔔 Ting ting! Đến giờ rồi bé ơi, nhanh lên!</option>
+          <option value="Mau lên nào bé yêu, thỏ con đang đợi đấy!">🐇 Mau lên nào, thỏ con đang đợi đấy!</option>
+          <option value="Bắt đầu nhiệm vụ không gian thôi các phi hành gia!">🚀 Bắt đầu nhiệm vụ không gian thôi phi hành gia!</option>
+          <option value="Chú robot nhắc bé rồi đây, mau lên nào!">🤖 Chú robot nhắc bé rồi, mau lên nào!</option>
+          <option value="Ôi chà! Đến giờ của bé yêu rồi, vui lên nào!">⭐ Ôi chà! Đến giờ bé yêu rồi, vui lên!</option>
+        </select>
+      </div>
+
+      <!-- Save button -->
+      <button onclick="kAddTask()"
+        style="width:100%;padding:15px;background:linear-gradient(135deg,#f59e0b,#fbbf24);border:none;border-radius:16px;font-size:16px;font-weight:800;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 6px 20px rgba(245,158,11,0.4);transition:all .2s;letter-spacing:-.01em">
+        ✅ Lưu Lịch Nhắc
+      </button>
+    </div>
+
+    <!-- Today's Schedule -->
+    <div style="margin-bottom:20px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <h2 style="font-size:17px;font-weight:900;color:#1e293b;margin:0">Lịch Hôm Nay</h2>
+        <span id="kTaskLeftBadge" style="background:#fff7ed;color:#f59e0b;border:1.5px solid #fed7aa;border-radius:20px;padding:4px 12px;font-size:12px;font-weight:800">0 việc còn lại</span>
+      </div>
+      <div id="kTaskList" style="display:flex;flex-direction:column;gap:10px">
+        <div style="text-align:center;padding:32px;color:#cbd5e1;font-size:13px;font-weight:600">
+          <div style="font-size:36px;margin-bottom:8px">📅</div>
+          Chưa có lịch nào. Thêm lịch đầu tiên nào!
+        </div>
+      </div>
+    </div>
+
+    <!-- Stats row -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:24px">
+      <div style="background:#fff;border-radius:16px;padding:14px;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,0.05);border:1px solid #f0f0f0">
+        <div style="font-size:22px;font-weight:900;color:#0ea5e9" id="kStatConsistency">0%</div>
+        <div style="font-size:9px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.06em">Hoàn thành</div>
+      </div>
+      <div style="background:#fff;border-radius:16px;padding:14px;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,0.05);border:1px solid #f0f0f0">
+        <div style="font-size:22px;font-weight:900;color:#f59e0b" id="kStatTotal">0</div>
+        <div style="font-size:9px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.06em">Tổng lịch</div>
+      </div>
+      <div style="background:#fff;border-radius:16px;padding:14px;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,0.05);border:1px solid #f0f0f0">
+        <div style="font-size:22px;font-weight:900;color:#10b981" id="kStatDone">0</div>
+        <div style="font-size:9px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.06em">Đã nhắc</div>
+      </div>
+    </div>
+
+    <!-- Pro tip -->
+    <div style="background:linear-gradient(135deg,#f0fdf4,#dcfce7);border:1.5px dashed #86efac;border-radius:16px;padding:14px 16px;display:flex;align-items:flex-start;gap:10px;margin-bottom:16px">
+      <span style="font-size:20px;flex-shrink:0">💡</span>
+      <p style="font-size:12px;color:#166534;font-weight:600;margin:0;line-height:1.6">
+        <strong>Mẹo:</strong> Sử dụng giọng "Siêu anh hùng" giúp bé thực hiện lịch nhanh hơn 40%! Bật loa to để bé nghe rõ nhé.
+      </p>
+    </div>
+
+  </div>
+</div>
 
 <!-- ── JOIN ─────────────────────────────────────────── -->
 <div id="joinScreen" class="screen">
@@ -552,21 +675,20 @@ input{font-family:inherit;color:var(--text);background:none;border:none;outline:
     <div class="rtb-left">
       <div class="rtb-room">
         <span id="roomLabel">CASAROOM</span>
-        <span class="rtb-live">LIVE</span>
+        <span class="rtb-live" style="font-size:8px;padding:1px 5px">LIVE</span>
       </div>
       <div class="rtb-status">
         <div class="rtb-dot" id="connDot"></div>
         <span class="rtb-sub" id="memberCountLbl">0 thành viên</span>
-        <span class="rtb-sep">|</span>
-        <span class="rtb-signal">📶 TUYỆT VỜI</span>
+
       </div>
     </div>
     <div class="rtb-right">
       <!-- Status -->
       <div class="status-wrap">
-        <button class="status-btn" id="statusBtn">
+        <button class="status-btn" id="statusBtn" style="padding:4px 8px;font-size:10px">
           <span class="status-dot-btn" id="statusDotBtn"></span>
-          <span id="statusLbl">Online</span>
+          <span id="statusLbl" style="font-size:10px">Online</span>
           <span class="status-arr">▾</span>
         </button>
         <div id="statusDrop">
@@ -660,7 +782,7 @@ input{font-family:inherit;color:var(--text);background:none;border:none;outline:
 
       <!-- Member strip header -->
       <div class="bs-members-hdr">
-        <span class="bs-members-title">Đội viên đang online</span>
+        <span class="bs-members-title" style="color:rgba(245,158,11,.7)">ĐỘI VIÊN ONLINE</span>
         <span class="bs-members-count" id="avOnlineCount">0 online</span>
       </div>
 
@@ -809,12 +931,14 @@ input{font-family:inherit;color:var(--text);background:none;border:none;outline:
     <div class="ptt-zone">
       <div id="reactLayer"></div>
 
-      <!-- Trái: Mute -->
+      <!-- Trái: Mute mic -->
       <div class="ptt-side">
-        <button class="ptt-side-btn muted" id="waCam" title="Camera / Mute">
+        <button class="ptt-side-btn" id="muteMicBtn" title="Tắt/Bật mic"
+          style="background:rgba(255,255,255,.1);border:1.5px solid rgba(255,255,255,.2)"
+          onclick="toggleMuteMic(this)">
           <span style="font-size:22px">🎙️</span>
         </button>
-        <span class="ptt-side-lbl">Mute</span>
+        <span class="ptt-side-lbl" style="color:rgba(255,255,255,.5)">Mute</span>
       </div>
 
       <!-- Giữa: PTT button -->
@@ -832,14 +956,20 @@ input{font-family:inherit;color:var(--text);background:none;border:none;outline:
         </div>
       </div>
 
-      <!-- Phải: Speaker + SOS -->
-      <div class="ptt-side" style="gap:6px;flex-direction:row;align-items:center">
-        <div style="display:flex;flex-direction:column;align-items:center;gap:4px">
-          <button class="ptt-side-btn on" id="mcWake" style="width:42px;height:42px;border-radius:12px;font-size:17px">🔊</button>
-          <span class="ptt-side-lbl">Loa</span>
+      <!-- Phải: LOA + SOS -->
+      <div style="display:flex;gap:8px;align-items:flex-end">
+        <div class="ptt-side">
+          <button class="ptt-side-btn on" id="mcWake"
+            style="width:46px;height:46px;border-radius:12px;font-size:18px;background:rgba(57,255,20,.15);border:1.5px solid rgba(57,255,20,.4)">
+            🔊
+          </button>
+          <span class="ptt-side-lbl" style="color:var(--green)">Loa</span>
         </div>
-        <div style="display:flex;flex-direction:column;align-items:center;gap:4px">
-          <button class="sos-btn" id="sosBtn">SOS</button>
+        <div class="ptt-side">
+          <button class="sos-btn" id="sosBtn"
+            style="width:46px;height:46px;border-radius:12px;background:rgba(239,68,68,.15);border:1.5px solid rgba(239,68,68,.5);font-size:11px;font-weight:900;color:var(--red)">
+            SOS
+          </button>
           <span class="ptt-side-lbl" style="color:var(--red)">Khẩn</span>
         </div>
       </div>
@@ -850,20 +980,20 @@ input{font-family:inherit;color:var(--text);background:none;border:none;outline:
       <button class="ti" id="tabMembers" data-panel="panelMembers">
         <div class="tdot"></div>
         <span class="tii">👥</span>
-        <span class="til">Đội nhóm</span>
+        <span class="til" style="font-size:8px">ĐỘI NHÓM</span>
       </button>
       <button class="ti" id="tabChat" data-panel="panelChat">
         <div class="tdot"></div>
         <span class="tii">💬</span>
-        <span class="til">Chat</span>
+        <span class="til" style="font-size:8px">CHAT</span>
       </button>
       <button class="ti" id="tabMap" data-panel="">
         <span class="tii">🗺️</span>
-        <span class="til">Bản đồ</span>
+        <span class="til" style="font-size:8px">BẢN ĐỒ</span>
       </button>
       <button class="ti" id="tabSettings" data-panel="panelSettings">
         <span class="tii">⚙️</span>
-        <span class="til">Cài đặt</span>
+        <span class="til" style="font-size:8px">CÀI ĐẶT</span>
       </button>
     </div>
   </div><!-- /bottomSheet -->
@@ -939,7 +1069,7 @@ input{font-family:inherit;color:var(--text);background:none;border:none;outline:
 // ── V11 TRAILTAK UI OVERRIDES ─────────────────────────
 
 const SRV='https://pushtotalk-anqr.onrender.com';
-const CHUNK=350,VFPS=5,VW=160,VH=120,SK='bdv1200';
+const CHUNK=350,VFPS=5,VW=160,VH=120,SK='bdv1211';
 const EMOJIS=['😂','🤣','😭','😢','😡','😠','😱','😍','🥳','😴','🤔','👍','👎','❤️','🔥','💯','🎉','😅','🙄','🤯'];
 const $=id=>document.getElementById(id);
 
@@ -2111,7 +2241,7 @@ function doLeave(){
 // ── Bottom sheet drag & height ─────────────────────────
 const bottomSheet=document.getElementById('bottomSheet');
 const memberStripView=document.getElementById('memberStripView');
-const BS_MIN=310, BS_MID=360, BS_FULL='72vh';
+const BS_MIN=140, BS_MID=340, BS_FULL='72vh'; // MIN=PTT+tabbar only
 
 function setBSH(h){
   bottomSheet.style.height=typeof h==='number'?h+'px':h;
@@ -2164,10 +2294,11 @@ function openPanel(panelId,tabEl){
     setBSH(BS_FULL);
     activeTabV11=panelId;
   } else {
-    // Tab Bản đồ → sheet trong suốt hoàn toàn, chỉ ptt+tabbar hiển thị
+    // Tab Bản đồ → sheet trong suốt, chỉ ptt+tabbar hiển thị
     bottomSheet.classList.add('map-mode');
     if(videoGrid)videoGrid.classList.remove('vis');
-    setBSH(BS_MIN);
+    // Remove height constraint — let CSS auto-size to PTT+tabbar
+    bottomSheet.style.height = 'auto';
     activeTabV11='map';
     setTimeout(()=>{ if(typeof renderVidGrid==='function') renderVidGrid(); },100);
     setTimeout(()=>{try{leafletFull?.invalidateSize();}catch(e){}},150);
@@ -2273,6 +2404,293 @@ const pttOuter2=document.getElementById('pttOuter');
 const origST=window.startTalking,origSp=window.stopTalking;
 if(origST){window.startTalking=function(){pttOuter2?.classList.add('talking');origST.call(this);};}
 if(origSp){window.stopTalking=function(){pttOuter2?.classList.remove('talking');origSp.call(this);};}
+
+
+// ════════════════════════════════════════════════════════
+//  KIDS SCHEDULER — Loa Nhắc Lịch Cho Bé
+//  Runs independently, persists across tab switches
+// ════════════════════════════════════════════════════════
+window.kTasks = JSON.parse(localStorage.getItem('kidsTasks') || '[]');
+window.kCurrentAppTab = 'walkie';
+
+// Save tasks to localStorage
+function kSave() {
+  localStorage.setItem('kidsTasks', JSON.stringify(window.kTasks));
+  kRender();
+  kUpdateStats();
+}
+
+// Add new task
+window.kAddTask = function() {
+  const name = document.getElementById('kTaskName')?.value.trim();
+  const time = document.getElementById('kTaskTime')?.value;
+  const voice = document.getElementById('kVoiceStyle')?.value;
+  if (!name) { kToast('⚠️ Nhập tên việc cần làm nhé!'); return; }
+  if (!time) { kToast('⚠️ Chọn giờ nhắc nhé!'); return; }
+  const task = {
+    id: Date.now(),
+    name, time, voice,
+    done: false,
+    createdAt: new Date().toDateString()
+  };
+  window.kTasks.push(task);
+  // Sort by time
+  window.kTasks.sort((a,b) => a.time.localeCompare(b.time));
+  kSave();
+  // Clear inputs
+  if (document.getElementById('kTaskName')) document.getElementById('kTaskName').value = '';
+  kToast('✅ Đã lưu lịch nhắc thành công!');
+};
+
+// Delete task
+window.kDeleteTask = function(id) {
+  window.kTasks = window.kTasks.filter(t => t.id !== id);
+  kSave();
+};
+
+// Render task list
+function kRender() {
+  const list = document.getElementById('kTaskList');
+  if (!list) return;
+  // Filter: today's tasks only (reset done status for new day)
+  const today = new Date().toDateString();
+  window.kTasks.forEach(t => { if (t.createdAt !== today) { t.done = false; t.createdAt = today; } });
+
+  const pending = window.kTasks.filter(t => !t.done);
+  const badge = document.getElementById('kTaskLeftBadge');
+  if (badge) badge.textContent = `${pending.length} việc còn lại`;
+
+  if (!window.kTasks.length) {
+    list.innerHTML = `<div style="text-align:center;padding:32px;color:#cbd5e1;font-size:13px;font-weight:600">
+      <div style="font-size:36px;margin-bottom:8px">📅</div>Chưa có lịch nào. Thêm lịch đầu tiên nào!</div>`;
+    return;
+  }
+
+  list.innerHTML = '';
+  const now = new Date();
+  const nowMin = now.getHours() * 60 + now.getMinutes();
+
+  window.kTasks.forEach(task => {
+    const [h, m] = task.time.split(':').map(Number);
+    const taskMin = h * 60 + m;
+    const isUpcoming = !task.done && taskMin > nowMin;
+    const isDone = task.done;
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    const h12 = h % 12 || 12;
+    const timeStr = `${String(h12).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+
+    // Colors
+    let timeBg = isDone ? '#f1f5f9' : isUpcoming ? '#eff6ff' : '#fef3c7';
+    let timeColor = isDone ? '#94a3b8' : isUpcoming ? '#3b82f6' : '#f59e0b';
+    let cardBorder = isDone ? '#e2e8f0' : isUpcoming ? '#3b82f6' : '#f59e0b';
+    let cardBg = isDone ? '#f8fafc' : '#fff';
+    let statusBadge = isDone
+      ? `<span style="font-size:9px;font-weight:800;color:#10b981;text-transform:uppercase;letter-spacing:.06em">✓ XONG</span>`
+      : isUpcoming
+        ? `<span style="font-size:9px;font-weight:800;color:#3b82f6;text-transform:uppercase;letter-spacing:.06em">SẮP TỚI</span>`
+        : `<span style="font-size:9px;font-weight:800;color:#f59e0b;text-transform:uppercase;letter-spacing:.06em">⏰ SẮP</span>`;
+
+    const card = document.createElement('div');
+    card.style.cssText = `background:${cardBg};border-radius:18px;padding:14px;display:flex;align-items:center;gap:12px;border:1.5px solid ${cardBorder};transition:all .3s;${isDone?'opacity:0.65':''}`;
+
+    card.innerHTML = `
+      <div style="background:${timeBg};border-radius:12px;padding:8px 10px;text-align:center;flex-shrink:0;min-width:54px">
+        <div style="font-size:18px;font-weight:900;color:${timeColor};font-family:monospace;line-height:1">${timeStr}</div>
+        <div style="font-size:10px;font-weight:700;color:${timeColor};opacity:.7">${ampm}</div>
+      </div>
+      <div style="flex:1;min-width:0">
+        ${statusBadge}
+        <div style="font-size:14px;font-weight:800;color:${isDone?'#94a3b8':'#1e293b'};${isDone?'text-decoration:line-through':''}margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${task.name}</div>
+        <div style="font-size:11px;color:#94a3b8;margin-top:2px;font-style:italic;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">"${task.voice}"</div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:6px;flex-shrink:0">
+        ${isDone
+          ? `<div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#10b981,#059669);display:flex;align-items:center;justify-content:center;font-size:16px">✓</div>`
+          : `<button onclick="kSpeakNow(${task.id})" title="Đọc ngay" style="width:32px;height:32px;border-radius:50%;background:#eff6ff;border:1.5px solid #3b82f6;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center">🔊</button>`}
+        <button onclick="kDeleteTask(${task.id})" title="Xóa" style="width:28px;height:28px;border-radius:50%;background:#fef2f2;border:1.5px solid #fca5a5;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;color:#ef4444">🗑️</button>
+      </div>`;
+
+    list.appendChild(card);
+  });
+}
+
+// Speak a task immediately (manual trigger)
+window.kSpeakNow = function(id) {
+  const task = window.kTasks.find(t => t.id === id);
+  if (!task) return;
+  kSpeak(task);
+  task.done = true;
+  kSave();
+};
+
+// TTS function — Vietnamese voice
+let kSpeaking = false;
+function kSpeak(task) {
+  if (!window.speechSynthesis) { kToast('⚠️ Trình duyệt chưa hỗ trợ TTS'); return; }
+  window.speechSynthesis.cancel();
+  const [h,m] = task.time.split(':').map(Number);
+  const ampm = h >= 12 ? 'chiều' : 'sáng';
+  const h12 = h % 12 || 12;
+  const text = `${h12} giờ ${m > 0 ? m + ' phút ' : ''}${ampm}. ${task.name}. ${task.voice}`;
+  const utt = new SpeechSynthesisUtterance(text);
+  utt.lang = 'vi-VN';
+  utt.rate = 0.9;
+  utt.pitch = 1.1;
+  utt.volume = 1;
+  // Find Vietnamese voice if available
+  const voices = window.speechSynthesis.getVoices();
+  const viVoice = voices.find(v => v.lang.startsWith('vi'));
+  if (viVoice) utt.voice = viVoice;
+  utt.onstart = () => kSpeaking = true;
+  utt.onend = () => kSpeaking = false;
+  window.speechSynthesis.speak(utt);
+}
+
+// Background interval — runs every second regardless of active tab
+// This is the KEY: setInterval at global scope, not inside any tab
+let kLastFired = {};
+setInterval(function kCheckAlarms() {
+  const now = new Date();
+  const nowH = now.getHours();
+  const nowM = now.getMinutes();
+  const nowS = now.getSeconds();
+  const today = now.toDateString();
+  if (nowS !== 0) return; // Only fire at :00 seconds
+
+  window.kTasks.forEach(task => {
+    if (task.done) return;
+    const [h, m] = task.time.split(':').map(Number);
+    if (h === nowH && m === nowM) {
+      const fireKey = `${task.id}-${today}-${h}:${m}`;
+      if (kLastFired[fireKey]) return; // Prevent double firing
+      kLastFired[fireKey] = true;
+      // Fire alarm!
+      kSpeak(task);
+      task.done = true;
+      kSave();
+      // Show toast regardless of active tab
+      kToast(`🔔 Đến giờ: ${task.name}!`);
+      // Vibrate if supported
+      if (navigator.vibrate) navigator.vibrate([300, 100, 300, 100, 300]);
+    }
+  });
+}, 1000);
+
+// App-level tab switcher
+window.switchAppTab = function(tab) {
+  window.kCurrentAppTab = tab;
+  const kScreen = document.getElementById('kidsScreen');
+  const rScreen = document.getElementById('roomScreen');
+  const jScreen = document.getElementById('joinScreen');
+  const dScreen = document.getElementById('discoverScreen');
+  const wScreen = document.getElementById('waitScreen');
+  const tabNav = document.getElementById('appTabNav');
+  const btnWalkie = document.getElementById('appTabWalkie');
+  const btnKids = document.getElementById('appTabKids');
+
+  if (tab === 'kids') {
+    if (kScreen) kScreen.style.display = 'block';
+    // Hide walkie screens
+    [rScreen, jScreen, dScreen, wScreen].forEach(s => { if(s) s.style.zIndex = '50'; });
+    if (btnWalkie) {
+      btnWalkie.querySelector('span:last-child').style.color = '#9CA3AF';
+    }
+    if (btnKids) {
+      btnKids.querySelector('span:last-child').style.color = '#f59e0b';
+    }
+    kRender();
+  } else {
+    if (kScreen) kScreen.style.display = 'none';
+    [rScreen, jScreen, dScreen, wScreen].forEach(s => { if(s) s.style.zIndex = ''; });
+    if (btnWalkie) {
+      btnWalkie.querySelector('span:last-child').style.color = '#3B82F6';
+    }
+    if (btnKids) {
+      btnKids.querySelector('span:last-child').style.color = '#9CA3AF';
+    }
+  }
+};
+
+// Show app tab nav always (except when kids screen would hide it)
+function kShowTabNav() {
+  const nav = document.getElementById('appTabNav');
+  if (nav) {
+    nav.style.display = 'flex';
+    // Add padding-bottom to all screens to not overlap with nav
+    const pb = 'calc(56px + env(safe-area-inset-bottom,0px))';
+    const rs = document.getElementById('roomScreen');
+    if (rs) rs.style.paddingBottom = pb;
+  }
+}
+
+// Toast for kids section
+function kToast(msg) {
+  const layer = document.getElementById('toastLayer');
+  if (!layer) return;
+  const el = document.createElement('div');
+  el.style.cssText = 'padding:10px 18px;border-radius:30px;font-size:13px;font-weight:700;color:#fff;background:rgba(245,158,11,0.95);border:1px solid rgba(251,191,36,0.5);backdrop-filter:blur(16px);box-shadow:0 8px 32px rgba(0,0,0,0.3);text-align:center;max-width:100%';
+  el.textContent = msg;
+  layer.appendChild(el);
+  setTimeout(() => el.remove(), 3000);
+}
+
+// Update stats
+function kUpdateStats() {
+  const total = window.kTasks.length;
+  const done = window.kTasks.filter(t => t.done).length;
+  const pct = total ? Math.round(done / total * 100) : 0;
+  const c1 = document.getElementById('kStatConsistency');
+  const c2 = document.getElementById('kStatTotal');
+  const c3 = document.getElementById('kStatDone');
+  if (c1) c1.textContent = pct + '%';
+  if (c2) c2.textContent = total;
+  if (c3) c3.textContent = done;
+}
+
+// Init
+setTimeout(() => {
+  kShowTabNav();
+  kRender();
+  kUpdateStats();
+  // Load voices for TTS
+  if (window.speechSynthesis) {
+    window.speechSynthesis.getVoices();
+    window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
+  }
+  // Add some CSS for kids section buttons hover
+  const style = document.createElement('style');
+  style.textContent = `
+    .app-tab-btn:active { transform: scale(.95); }
+    #kidsScreen input:focus { border-color:#0ea5e9 !important; outline:2px solid rgba(14,165,233,0.2) !important; }
+    #kidsScreen select:focus { border-color:#0ea5e9 !important; }
+    #kidsScreen button:active { transform:scale(.97); opacity:.9; }
+    @media(min-width:600px){
+      #kidsScreen{padding-bottom:80px}
+      #appTabNav{max-width:440px;left:50%;transform:translateX(-50%);right:auto;width:440px;border-radius:0;border-left:1px solid #f0e8c8;border-right:1px solid #f0e8c8}
+    }
+  `;
+  document.head.appendChild(style);
+}, 300);
+
+
+
+// Mute mic toggle
+window.toggleMuteMic = function(btn) {
+  const isMuted = btn.classList.contains('muted-state');
+  if (isMuted) {
+    btn.classList.remove('muted-state');
+    btn.style.background = 'rgba(255,255,255,.1)';
+    btn.style.borderColor = 'rgba(255,255,255,.2)';
+    btn.querySelector('span').textContent = '🎙️';
+    btn.nextElementSibling && (btn.nextElementSibling.style.color = 'rgba(255,255,255,.5)');
+  } else {
+    btn.classList.add('muted-state');
+    btn.style.background = 'rgba(248,113,113,.15)';
+    btn.style.borderColor = 'rgba(248,113,113,.4)';
+    btn.querySelector('span').textContent = '🔇';
+    btn.nextElementSibling && (btn.nextElementSibling.style.color = 'var(--red)');
+  }
+};
 
 // Init: đảm bảo tất cả panels đóng, bắt đầu với tab bản đồ
 [panelChat,panelMembers,panelSettings].filter(Boolean).forEach(p=>p.classList.remove('active'));
