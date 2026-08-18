@@ -1065,11 +1065,11 @@ input{font-family:inherit;color:var(--text);background:none;border:none;outline:
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 
-(function(){
+// === GLOBAL SCOPE ===
 // ── V11 TRAILTAK UI OVERRIDES ─────────────────────────
 
 const SRV='https://pushtotalk-anqr.onrender.com';
-const CHUNK=350,VFPS=5,VW=160,VH=120,SK='bdv1104';
+const CHUNK=350,VFPS=5,VW=160,VH=120,SK='bdv1230';
 const EMOJIS=['😂','🤣','😭','😢','😡','😠','😱','😍','🥳','😴','🤔','👍','👎','❤️','🔥','💯','🎉','😅','🙄','🤯'];
 const $=id=>document.getElementById(id);
 
@@ -1128,13 +1128,13 @@ const ls=()=>{try{const d=localStorage.getItem(SK);return d?JSON.parse(d):null}c
 const cs=()=>{try{localStorage.removeItem(SK)}catch(e){}};
 
 // INIT
-(function(){
+
   const p=new URLSearchParams(window.location.search),ur=p.get('room');
   if(ur)roomCodeInput.value=ur;
   else{const s=ls();if(s){roomCodeInput.value=s.roomCode;usernameInput.value=s.username;joinBtn.textContent=`↩ Vào lại "${s.roomCode}"`}}
   roomCodeInput.addEventListener('input',()=>{const s=ls();joinBtn.textContent=(s&&roomCodeInput.value.trim()===s.roomCode)?`↩ Vào lại "${s.roomCode}"`:'Vào phòng'});
   showScreen('join');
-})();
+// === END INIT ===
 
 function showScreen(name){
   [joinScreen,discoverScreen,waitScreen].forEach(el=>el.classList.remove('active'));
@@ -2199,7 +2199,7 @@ async function enableNotify(){if(!('Notification' in window)||!('PushManager' in
 waNoti.addEventListener('click',()=>{if(!notifSub)enableNotify()});
 
 // iOS
-(function(){const isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent),isStandalone=window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone===true;if(isIOS&&!isStandalone)iosB.classList.add('show')})();
+const isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent),isStandalone=window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone===true;if(isIOS&&!isStandalone)iosB.classList.add('show')
 iosBX.addEventListener('click',()=>iosB.classList.remove('show'));
 
 // SW
@@ -2401,15 +2401,15 @@ allTabsV11.forEach(t=>t.classList.remove('active'));
 bottomSheet.classList.add('map-mode');
 openPanel(null,tabMap);
 setTimeout(()=>{try{leafletFull?.invalidateSize();}catch(e){}},500);
-})();
+
 
 
 // ═══════════════════════════════════════════════════════
-//  KIDS SCHEDULER — Loa Nhắc Lịch Cho Bé
+// KIDS SCHEDULER
 // ═══════════════════════════════════════════════════════
-window.kTasks=JSON.parse(localStorage.getItem('kTasks_v2')||'[]');
+window.kTasks=JSON.parse(localStorage.getItem('kTasks_v3')||'[]');
 
-function kSave(){localStorage.setItem('kTasks_v2',JSON.stringify(window.kTasks));kRender();kUpdateStats();}
+function kSave(){localStorage.setItem('kTasks_v3',JSON.stringify(window.kTasks));kRender();kUpdateStats();}
 
 window.kAddTask=function(){
   const name=(document.getElementById('kTaskName')?.value||'').trim();
@@ -2420,17 +2420,20 @@ window.kAddTask=function(){
   window.kTasks.push({id:Date.now(),name,time,voice,done:false,day:new Date().toDateString()});
   window.kTasks.sort((a,b)=>a.time.localeCompare(b.time));
   kSave();
-  if(document.getElementById('kTaskName'))document.getElementById('kTaskName').value='';
+  const inp=document.getElementById('kTaskName');
+  if(inp)inp.value='';
   kToast('✅ Đã lưu lịch nhắc!');
 };
 
-window.kDeleteTask=function(id){window.kTasks=window.kTasks.filter(t=>t.id!==id);kSave();};
+window.kDeleteTask=function(id){
+  window.kTasks=window.kTasks.filter(t=>t.id!==id);
+  kSave();
+};
 
 window.kSpeakNow=function(id){
   const t=window.kTasks.find(x=>x.id===id);
   if(!t)return;
-  kSpeak(t);
-  t.done=true;kSave();
+  kSpeak(t);t.done=true;kSave();
 };
 
 function kSpeak(task){
@@ -2439,7 +2442,7 @@ function kSpeak(task){
   const[h,m]=task.time.split(':').map(Number);
   const ampm=h>=12?'chiều':'sáng';
   const h12=h%12||12;
-  const text=`${h12} giờ ${m>0?m+' phút ':'' }${ampm}. ${task.name}. ${task.voice}`;
+  const text=`${h12} giờ ${m>0?m+' phút ':''}${ampm}. ${task.name}. ${task.voice}`;
   const utt=new SpeechSynthesisUtterance(text);
   utt.lang='vi-VN';utt.rate=0.9;utt.pitch=1.1;utt.volume=1;
   const vv=window.speechSynthesis.getVoices();
@@ -2448,7 +2451,7 @@ function kSpeak(task){
   window.speechSynthesis.speak(utt);
 }
 
-function kRender(){
+window.kRender=function kRender(){
   const list=document.getElementById('kTaskList');
   if(!list)return;
   const today=new Date().toDateString();
@@ -2457,7 +2460,7 @@ function kRender(){
   const badge=document.getElementById('kTaskLeftBadge');
   if(badge)badge.textContent=`${pending.length} việc còn lại`;
   if(!window.kTasks.length){
-    list.innerHTML='<div style="text-align:center;padding:32px;color:#cbd5e1;font-size:13px;font-weight:600"><div style="font-size:36px;margin-bottom:8px">📅</div>Chưa có lịch nào. Thêm lịch đầu tiên!</div>';
+    list.innerHTML='<div style="text-align:center;padding:32px;color:#cbd5e1;font-size:13px;font-weight:600"><div style="font-size:36px;margin-bottom:8px">📅</div>Chưa có lịch nào!</div>';
     return;
   }
   list.innerHTML='';
@@ -2473,7 +2476,7 @@ function kRender(){
     const timeStr=`${String(h12).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
     let tbBg=isDone?'#f1f5f9':isNext?'#e0f2fe':'#fef3c7';
     let tbColor=isDone?'#94a3b8':isNext?'#0369a1':'#92400e';
-    let border=isDone?'transparent':isNext?'#f59e0b':'transparent';
+    let border=isNext?'#f59e0b':'transparent';
     let statusHtml=isDone
       ?'<span class="k-status-badge" style="background:#dcfce7;color:#16a34a">✓ Xong</span>'
       :isNext
@@ -2495,14 +2498,14 @@ function kRender(){
       <div class="k-task-actions">
         ${isDone
           ?'<div class="k-action-btn k-btn-done">✓</div>'
-          :`<button class="k-action-btn k-btn-play" onclick="kSpeakNow(${task.id})" title="Đọc ngay"><i class="fa-solid fa-play fa-xs"></i></button>`}
-        <button class="k-action-btn k-btn-del" onclick="kDeleteTask(${task.id})" title="Xóa"><i class="fa-solid fa-trash-can fa-xs"></i></button>
+          :`<button class="k-action-btn k-btn-play" onclick="kSpeakNow(${task.id})"><i class="fa-solid fa-play fa-xs"></i></button>`}
+        <button class="k-action-btn k-btn-del" onclick="kDeleteTask(${task.id})"><i class="fa-solid fa-trash-can fa-xs"></i></button>
       </div>`;
     list.appendChild(card);
   });
-}
+};
 
-function kUpdateStats(){
+window.kUpdateStats=function kUpdateStats(){
   const total=window.kTasks.length;
   const done=window.kTasks.filter(t=>t.done).length;
   const pct=total?Math.round(done/total*100):0;
@@ -2512,28 +2515,29 @@ function kUpdateStats(){
   if(c1)c1.textContent=pct+'%';
   if(c2)c2.textContent=total;
   if(c3)c3.textContent=done;
-}
+};
 
 function kToast(msg){
   const layer=document.getElementById('toastLayer');if(!layer)return;
   const el=document.createElement('div');
-  el.style.cssText='padding:10px 18px;border-radius:30px;font-size:13px;font-weight:700;color:#fff;background:rgba(14,165,233,0.95);border:1px solid rgba(14,165,233,.5);backdrop-filter:blur(16px);box-shadow:0 8px 32px rgba(0,0,0,.3);text-align:center';
+  el.style.cssText='padding:10px 18px;border-radius:30px;font-size:13px;font-weight:700;color:#fff;background:rgba(14,165,233,.95);border:1px solid rgba(14,165,233,.5);backdrop-filter:blur(16px);box-shadow:0 8px 32px rgba(0,0,0,.3);text-align:center;margin-bottom:4px';
   el.textContent=msg;layer.appendChild(el);
   setTimeout(()=>el.remove(),3000);
 }
 
-// Background alarm check — runs every second regardless of active tab
-let kFiredAlarms={};
+// Background alarm — always running
+var kFiredAlarms={};
 setInterval(function(){
-  const now=new Date();
-  const nowH=now.getHours(),nowM=now.getMinutes(),nowS=now.getSeconds();
+  var now=new Date();
+  var nowH=now.getHours(),nowM=now.getMinutes(),nowS=now.getSeconds();
   if(nowS!==0)return;
-  const today=now.toDateString();
-  window.kTasks.forEach(task=>{
+  var today=now.toDateString();
+  window.kTasks.forEach(function(task){
     if(task.done)return;
-    const[h,m]=task.time.split(':').map(Number);
+    var parts=task.time.split(':');
+    var h=parseInt(parts[0]),m=parseInt(parts[1]);
     if(h===nowH&&m===nowM){
-      const key=`${task.id}-${today}-${h}:${m}`;
+      var key=task.id+'-'+today+'-'+h+':'+m;
       if(kFiredAlarms[key])return;
       kFiredAlarms[key]=true;
       kSpeak(task);task.done=true;kSave();
@@ -2543,100 +2547,74 @@ setInterval(function(){
   });
 },1000);
 
-// Init
-setTimeout(()=>{
-  kRender();kUpdateStats();
-  if(window.speechSynthesis){
-    window.speechSynthesis.getVoices();
-    if(window.speechSynthesis.onvoiceschanged===null)
-      window.speechSynthesis.onvoiceschanged=()=>window.speechSynthesis.getVoices();
-  }
-},400);
-
-
-// ── V12 UI BRIDGE ──────────────────────────────────────
-// Map controls
-document.getElementById('mcLoc')?.addEventListener('click',()=>{
-  if(navigator.geolocation)navigator.geolocation.getCurrentPosition(p=>{
-    try{leafletFull?.setView([p.coords.latitude,p.coords.longitude],16);}catch(e){}
-  });
-});
-document.getElementById('mcZoomIn')?.addEventListener('click',()=>{try{leafletFull?.zoomIn();}catch(e){}});
-document.getElementById('mcZoomOut')?.addEventListener('click',()=>{try{leafletFull?.zoomOut();}catch(e){}});
-
-// LOA button (mcWake2 in PTT zone) → toggle waWake behavior
-const _mcW2=document.getElementById('mcWake2');
-if(_mcW2)_mcW2.addEventListener('click',()=>{
-  document.getElementById('mcWake')?.click();
-  _mcW2.classList.toggle('btn-loa-on');
-});
-
-// sosBtn → trigger SOS
-document.getElementById('sosBtn')?.addEventListener('click',()=>{
-  if(typeof sendSOS==='function')sendSOS();
-  else document.getElementById('sosOv')?.classList.add('show');
-});
-
-// waLeave → setLeaveBtn
-document.getElementById('waLeave')?.addEventListener('click',()=>document.getElementById('setLeaveBtn')?.click());
-
-// shareChip → QR
-document.getElementById('shareChip')?.addEventListener('click',()=>{
-  const m=document.getElementById('qrMov');if(m)m.classList.add('show');
-});
-
-// waTTS2 → same as waTTS
-document.getElementById('waTTS2')?.addEventListener('click',()=>document.getElementById('waTTS')?.click());
-
-// Keep member count updated in header
-function _updateHeaderCount(){
-  const el=document.getElementById('memberCountLbl');
-  if(el&&typeof participants!=='undefined')el.textContent=participants.length+' thành viên online';
-  const badge=document.getElementById('avOnlineCount');
-  if(badge&&typeof participants!=='undefined')badge.textContent=participants.length+' online';
-}
-// Patch renderMembers and renderAvStrip to also update header
-const __rm=window.renderMembers,__ra=window.renderAvStrip;
-if(typeof __rm==='function')window.renderMembers=function(){__rm();_updateHeaderCount();};
-if(typeof __ra==='function')window.renderAvStrip=function(){__ra();_updateHeaderCount();};
-
-// PTT label sync
-const _pttTxt=document.getElementById('pttTxtLabel');
-const __st=window.setTalk;
-if(typeof __st==='function'){
-  window.setTalk=function(s){
-    __st(s);
-    if(!_pttTxt)return;
-    if(s==='idle')_pttTxt.textContent='Nhấn để nói';
-    else if(s==='preparing')_pttTxt.textContent='Đang chờ...';
-    else if(s==='talking')_pttTxt.textContent='Bấm để dừng';
-  };
-}
-
-// App tab switcher
-window.kCurrentAppTab='walkie';
+// App tab switcher — must be global
 window.switchAppTab=function(tab){
-  const kScreen=document.getElementById('kidsScreen');
-  const btnW=document.getElementById('appTabWalkie');
-  const btnK=document.getElementById('appTabKids');
+  var kScreen=document.getElementById('kidsScreen');
+  var rScreen=document.getElementById('roomScreen');
+  var jScreen=document.getElementById('joinScreen');
+  var dScreen=document.getElementById('discoverScreen');
+  var wScreen=document.getElementById('waitScreen');
+  var btnW=document.getElementById('appTabWalkie');
+  var btnK=document.getElementById('appTabKids');
   window.kCurrentAppTab=tab;
-  [document.getElementById('roomScreen'),
-   document.getElementById('joinScreen'),
-   document.getElementById('discoverScreen'),
-   document.getElementById('waitScreen')
-  ].forEach(s=>{if(s)s.style.zIndex=tab==='kids'?'10':'';});
   if(tab==='kids'){
-    if(kScreen){kScreen.style.display='block';}
-    btnW?.classList.remove('active');
-    btnK?.classList.add('kids-active');
-    kRender();kUpdateStats();
+    if(kScreen)kScreen.style.display='block';
+    [rScreen,jScreen,dScreen,wScreen].forEach(function(s){if(s)s.style.zIndex='10';});
+    if(btnW){btnW.classList.remove('active');}
+    if(btnK){btnK.classList.add('kids-active');btnK.classList.remove('app-tab-btn');}
+    window.kRender();window.kUpdateStats();
   }else{
     if(kScreen)kScreen.style.display='none';
-    btnW?.classList.add('active');
-    btnK?.classList.remove('kids-active');
-    setTimeout(()=>{try{leafletFull?.invalidateSize();}catch(e){}},300);
+    [rScreen,jScreen,dScreen,wScreen].forEach(function(s){if(s)s.style.zIndex='';});
+    if(btnW)btnW.classList.add('active');
+    if(btnK){btnK.classList.remove('kids-active');}
+    setTimeout(function(){try{leafletFull&&leafletFull.invalidateSize();}catch(e){}},300);
   }
 };
+window.kCurrentAppTab='walkie';
+
+// Init kids on load
+document.addEventListener('DOMContentLoaded',function(){
+  window.kRender();window.kUpdateStats();
+  if(window.speechSynthesis){
+    window.speechSynthesis.getVoices();
+    window.speechSynthesis.onvoiceschanged=function(){window.speechSynthesis.getVoices();};
+  }
+  // Wire extra buttons
+  var mcW2=document.getElementById('mcWake2');
+  if(mcW2)mcW2.addEventListener('click',function(){
+    var mcW=document.getElementById('mcWake');
+    if(mcW)mcW.click();
+    mcW2.classList.toggle('active');
+  });
+  var sosBtn=document.getElementById('sosBtn');
+  if(sosBtn)sosBtn.addEventListener('click',function(){
+    if(typeof sendSOS==='function')sendSOS();
+    else{var o=document.getElementById('sosOv');if(o)o.classList.add('show');}
+  });
+  var waLeave=document.getElementById('waLeave');
+  if(waLeave)waLeave.addEventListener('click',function(){
+    var sl=document.getElementById('setLeaveBtn');if(sl)sl.click();
+  });
+  var shareChip=document.getElementById('shareChip');
+  if(shareChip)shareChip.addEventListener('click',function(){
+    var m=document.getElementById('qrMov');if(m)m.classList.add('show');
+  });
+  var waTTS2=document.getElementById('waTTS2');
+  if(waTTS2)waTTS2.addEventListener('click',function(){
+    var w=document.getElementById('waTTS');if(w)w.click();
+  });
+  var mcLoc=document.getElementById('mcLoc');
+  if(mcLoc)mcLoc.addEventListener('click',function(){
+    if(navigator.geolocation)navigator.geolocation.getCurrentPosition(function(p){
+      try{if(leafletFull)leafletFull.setView([p.coords.latitude,p.coords.longitude],16);}catch(e){}
+    });
+  });
+  var mcZI=document.getElementById('mcZoomIn');
+  if(mcZI)mcZI.addEventListener('click',function(){try{if(leafletFull)leafletFull.zoomIn();}catch(e){}});
+  var mcZO=document.getElementById('mcZoomOut');
+  if(mcZO)mcZO.addEventListener('click',function(){try{if(leafletFull)leafletFull.zoomOut();}catch(e){}});
+});
 
 </script>
 </body>
