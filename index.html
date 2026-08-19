@@ -397,85 +397,73 @@ input{font-family:inherit;color:var(--text);background:none;border:none;outline:
 .map-pin-label{font-size:10px;font-weight:800;color:#fff;background:rgba(0,0,0,.65);padding:1px 5px;border-radius:5px;white-space:nowrap;margin-bottom:3px;text-align:center}
 .map-pin-speaking{color:var(--green);background:rgba(57,255,20,.2)}
 
-/* ══ SPEEDOMETER ══════════════════════════════════════ */
+/* ════ SPEEDOMETER ════════════════════════════════════ */
 #speedoWrap{
-  position:absolute;bottom:calc(var(--bs-h,340px) + 10px);left:14px;z-index:20;
-  transition:bottom .3s ease;
+  position:absolute;left:14px;z-index:20;
+  transition:bottom .3s cubic-bezier(.4,0,.2,1);
+  bottom:360px; /* updated by poiUpdateLayout() */
 }
 #speedo{
   background:rgba(10,9,3,.88);backdrop-filter:blur(12px);
   border:1.5px solid rgba(245,158,11,.3);border-radius:16px;
-  padding:10px 14px;min-width:90px;text-align:center;
+  padding:10px 14px;min-width:80px;text-align:center;
   box-shadow:0 4px 16px rgba(0,0,0,.5);
 }
-.spd-val{font-size:30px;font-weight:900;color:#fff;line-height:1;font-family:monospace}
-.spd-unit{font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.06em}
-.spd-limit{display:flex;align-items:center;justify-content:center;gap:5px;margin-top:6px}
+.spd-val{font-size:28px;font-weight:900;color:#fff;line-height:1;font-family:monospace}
+.spd-unit{font-size:9px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-top:2px}
+.spd-limit-row{display:flex;align-items:center;justify-content:center;gap:4px;margin-top:6px}
 .spd-limit-circle{
-  width:32px;height:32px;border-radius:50%;
+  width:30px;height:30px;border-radius:50%;
   border:3px solid var(--red);background:#fff;
   display:flex;align-items:center;justify-content:center;
-  font-size:11px;font-weight:900;color:#000;
+  font-size:10px;font-weight:900;color:#000;
 }
-.spd-limit-circle.warn{border-color:var(--red);background:var(--red);color:#fff;animation:speedWarn .5s ease-in-out infinite alternate}
-@keyframes speedWarn{from{transform:scale(1)}to{transform:scale(1.08)}}
-.spd-limit-lbl{font-size:9px;color:var(--text2);font-weight:600}
+.spd-limit-circle.warn{border-color:var(--red);background:var(--red);color:#fff;
+  animation:sWarn .5s ease-in-out infinite alternate}
+@keyframes sWarn{from{transform:scale(1)}to{transform:scale(1.1)}}
 
-/* POI Layers toggle */
-#poiToggle{
-  position:absolute;z-index:20;
+/* ════ POI TOGGLE BUTTONS ══════════════════════════════ */
+#poiPanel{
+  position:absolute;left:10px;z-index:20;
   display:flex;flex-direction:column;gap:6px;
+  top:70px; /* updated by poiUpdateLayout() */
 }
 .poi-btn{
-  width:40px;height:40px;border-radius:12px;
-  background:rgba(10,9,3,.8);backdrop-filter:blur(10px);
-  border:1.5px solid rgba(255,255,255,.12);
+  width:38px;height:38px;border-radius:11px;
+  background:rgba(10,9,3,.82);backdrop-filter:blur(10px);
+  border:1.5px solid rgba(255,255,255,.1);
   display:flex;align-items:center;justify-content:center;
-  font-size:18px;cursor:pointer;transition:all .2s;position:relative;
+  font-size:17px;cursor:pointer;transition:all .18s;
+  position:relative;
 }
-.poi-btn.active{background:rgba(245,158,11,.2);border-color:rgba(245,158,11,.5)}
-.poi-btn:active{transform:scale(.9)}
-.poi-btn .poi-count{
+.poi-btn.active{background:rgba(245,158,11,.18);border-color:rgba(245,158,11,.5)}
+.poi-btn:active{transform:scale(.88)}
+.poi-count{
   position:absolute;top:-4px;right:-4px;
-  width:16px;height:16px;border-radius:50%;
+  width:15px;height:15px;border-radius:50%;
   background:var(--red);color:#fff;
-  font-size:8px;font-weight:900;
+  font-size:7px;font-weight:900;
   display:none;align-items:center;justify-content:center;
+  border:1.5px solid rgba(10,9,3,1);
 }
 .poi-btn.has-data .poi-count{display:flex}
 
-/* POI Alert banner */
+/* ════ POI ALERT BANNER ════════════════════════════════ */
 #poiAlert{
-  display:none;position:absolute;z-index:28;
-  left:14px;right:60px;
-  background:rgba(10,9,3,.92);backdrop-filter:blur(12px);
+  display:none;
+  position:absolute;left:14px;right:56px;z-index:28;
+  background:rgba(10,9,3,.92);backdrop-filter:blur(14px);
   border:1.5px solid rgba(245,158,11,.4);border-radius:14px;
-  padding:10px 14px;
-  animation:slideInLeft .3s ease;
+  padding:10px 12px;gap:10px;align-items:center;
+  animation:slideInLeft .25s ease;
 }
-#poiAlert.show{display:flex;align-items:center;gap:10px}
-@keyframes slideInLeft{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:none}}
-.poi-alert-ico{font-size:22px;flex-shrink:0}
-.poi-alert-body{flex:1;min-width:0}
-.poi-alert-title{font-size:12px;font-weight:800;color:var(--text)}
-.poi-alert-sub{font-size:10px;color:var(--text2);margin-top:2px}
-.poi-alert-close{font-size:16px;color:var(--text3);padding:4px;flex-shrink:0}
-
-/* Custom Leaflet markers */
-.poi-marker{
-  background:none !important;border:none !important;
-}
-.poi-marker-inner{
-  width:32px;height:32px;border-radius:10px;
-  display:flex;align-items:center;justify-content:center;
-  font-size:16px;box-shadow:0 3px 10px rgba(0,0,0,.5);
-  border:2px solid rgba(255,255,255,.3);
-}
-.pm-gas{background:#1a3a1a;border-color:rgba(74,222,128,.4)}
-.pm-ev{background:#1a2a3a;border-color:rgba(34,211,238,.4)}
-.pm-rest{background:#3a2a1a;border-color:rgba(245,158,11,.4)}
-.pm-cam{background:#3a1a1a;border-color:rgba(248,113,113,.4)}
-.pm-sign{background:#2a2a3a;border-color:rgba(148,163,184,.4)}
+#poiAlert.show{display:flex}
+@keyframes slideInLeft{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:none}}
+.pai-ico{font-size:22px;flex-shrink:0}
+.pai-body{flex:1;min-width:0}
+.pai-title{font-size:12px;font-weight:800;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pai-sub{font-size:10px;color:var(--text2);margin-top:2px}
+.pai-close{font-size:15px;color:var(--text3);flex-shrink:0;padding:4px}
 
 </style>
 
@@ -544,31 +532,33 @@ input{font-family:inherit;color:var(--text);background:none;border:none;outline:
   <div class="map-bottom-fade"></div>
 
   <!-- SPEEDOMETER -->
-  <div id="speedoWrap"><div id="speedo">
-    <div class="spd-val" id="spdVal">0</div>
-    <div class="spd-unit">km/h</div>
-    <div class="spd-limit" id="spdLimitWrap" style="display:none">
-      <div class="spd-limit-circle" id="spdLimitCircle">--</div>
+  <div id="speedoWrap">
+    <div id="speedo">
+      <div class="spd-val" id="spdVal">--</div>
+      <div class="spd-unit">km/h</div>
+      <div class="spd-limit-row" id="spdLimitRow" style="display:none">
+        <div class="spd-limit-circle" id="spdLimitCircle">--</div>
+      </div>
     </div>
-  </div></div>
+  </div>
 
-  <!-- POI LAYER TOGGLES -->
-  <div id="poiToggle" style="top:50%;transform:translateY(-50%);left:10px">
-    <button class="poi-btn" id="poiBtnGas" onclick="togglePOI('gas')" title="Trạm xăng">⛽<span class="poi-count" id="cntGas">0</span></button>
-    <button class="poi-btn" id="poiBtnEV" onclick="togglePOI('ev')" title="Sạc EV">🔋<span class="poi-count" id="cntEV">0</span></button>
-    <button class="poi-btn" id="poiBtnRest" onclick="togglePOI('rest')" title="Trạm dừng">🍽️<span class="poi-count" id="cntRest">0</span></button>
-    <button class="poi-btn" id="poiBtnCam" onclick="togglePOI('cam')" title="Camera tốc độ">📷<span class="poi-count" id="cntCam">0</span></button>
-    <button class="poi-btn" id="poiBtnSign" onclick="togglePOI('sign')" title="Biển báo">🚦<span class="poi-count" id="cntSign">0</span></button>
+  <!-- POI PANEL -->
+  <div id="poiPanel">
+    <button class="poi-btn" id="poiBtnGas"  onclick="kPOI('gas')"  title="Trạm xăng">⛽<span class="poi-count" id="poiCntGas"></span></button>
+    <button class="poi-btn" id="poiBtnEv"   onclick="kPOI('ev')"   title="Sạc EV">🔋<span class="poi-count" id="poiCntEv"></span></button>
+    <button class="poi-btn" id="poiBtnRest" onclick="kPOI('rest')" title="Trạm dừng">🍽️<span class="poi-count" id="poiCntRest"></span></button>
+    <button class="poi-btn" id="poiBtnCam"  onclick="kPOI('cam')"  title="Camera tốc độ">📷<span class="poi-count" id="poiCntCam"></span></button>
+    <button class="poi-btn" id="poiBtnSign" onclick="kPOI('sign')" title="Biển báo">🚦<span class="poi-count" id="poiCntSign"></span></button>
   </div>
 
   <!-- POI ALERT -->
   <div id="poiAlert">
-    <span class="poi-alert-ico" id="poiAlertIco">⚠️</span>
-    <div class="poi-alert-body">
-      <div class="poi-alert-title" id="poiAlertTitle">Biển báo phía trước</div>
-      <div class="poi-alert-sub" id="poiAlertSub">150m</div>
+    <span class="pai-ico" id="paiIco">⚠️</span>
+    <div class="pai-body">
+      <div class="pai-title" id="paiTitle">Phía trước</div>
+      <div class="pai-sub"   id="paiSub">--</div>
     </div>
-    <button class="poi-alert-close" onclick="document.getElementById('poiAlert').classList.remove('show')">✕</button>
+    <button class="pai-close" onclick="document.getElementById('poiAlert').classList.remove('show')">✕</button>
   </div>
 
   <!-- TOPBAR -->
@@ -2301,359 +2291,290 @@ allTabsV11.forEach(t=>t.classList.remove('active'));
 bottomSheet.classList.add('map-mode');
 openPanel(null,tabMap);
 setTimeout(()=>{try{leafletFull?.invalidateSize();}catch(e){}},500);
-})();
 
 // ════════════════════════════════════════════════════════
-// SPEEDOMETER + POI (Gas/EV/Rest/Camera/Signs)
-// Data: OpenStreetMap Overpass API — miễn phí
+// POI + SPEEDOMETER — v11.2.0
+// Không ảnh hưởng các chức năng khác
 // ════════════════════════════════════════════════════════
 
-// -- Speedometer --
-var gpsSpeed = 0;
-var gpsSpeedInterval = null;
+// ── Cấu hình ──────────────────────────────────────────
+var POI_RADIUS = 5000;    // bán kính query (m)
+var POI_REQUERY = 400;    // di chuyển bao nhiêu mét thì query lại
+var POI_ALERT_DIST = {cam:300, sign:150, gas:600, ev:600, rest:600};
 
-function startSpeedometer() {
-  if (!navigator.geolocation) return;
-  var lastPos = null, lastTime = null;
-
-  navigator.geolocation.watchPosition(function(pos) {
-    var speed = pos.coords.speed; // m/s, null nếu không có
-    var kmh = 0;
-
-    if (speed !== null && speed >= 0) {
-      kmh = Math.round(speed * 3.6);
-    } else if (lastPos) {
-      // Tính thủ công nếu GPS không trả speed
-      var dt = (pos.timestamp - lastTime) / 1000;
-      if (dt > 0) {
-        var d = haversineM(lastPos.coords.latitude, lastPos.coords.longitude,
-                           pos.coords.latitude, pos.coords.longitude);
-        kmh = Math.round((d / dt) * 3.6);
-      }
-    }
-    lastPos = pos; lastTime = pos.timestamp;
-    gpsSpeed = kmh;
-    updateSpeedo(kmh);
-
-    // Check POI proximity mỗi khi vị trí thay đổi
-    checkPOIProximity(pos.coords.latitude, pos.coords.longitude);
-
-    // Query Overpass nếu đã đi xa 300m khỏi vị trí query cuối
-    if (shouldRequery(pos.coords.latitude, pos.coords.longitude)) {
-      fetchAllPOI(pos.coords.latitude, pos.coords.longitude);
-      lastQueryPos = {lat: pos.coords.latitude, lng: pos.coords.longitude};
-    }
-  }, null, {enableHighAccuracy: true, maximumAge: 2000, timeout: 10000});
-}
-
-function haversineM(lat1, lon1, lat2, lon2) {
-  var R = 6371000, dLat = (lat2-lat1)*Math.PI/180, dLon = (lon2-lon1)*Math.PI/180;
-  var a = Math.sin(dLat/2)*Math.sin(dLat/2) +
-          Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*
-          Math.sin(dLon/2)*Math.sin(dLon/2);
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-}
-
-function updateSpeedo(kmh) {
-  var el = document.getElementById('spdVal');
-  if (!el) return;
-  el.textContent = kmh;
-  // Đổi màu theo tốc độ
-  el.style.color = kmh > currentSpeedLimit * 1.1 ? '#f87171' :
-                   kmh > currentSpeedLimit * 0.9 ? '#fbbf24' : '#fff';
-  // Update speedo position based on bottomSheet
-  updateSpeedoPosition();
-}
-
-function updateSpeedoPosition() {
-  var wrap = document.getElementById('speedoWrap');
-  if (!wrap || !bottomSheet) return;
-  var bsH = bottomSheet.offsetHeight || 340;
-  wrap.style.bottom = (bsH + 10) + 'px';
-}
-
-// -- Speed limit từ OSM --
-var currentSpeedLimit = 999;
-
-function updateSpeedLimit(limit) {
-  currentSpeedLimit = limit || 999;
-  var wrap = document.getElementById('spdLimitWrap');
-  var circle = document.getElementById('spdLimitCircle');
-  if (!wrap || !circle) return;
-  if (limit && limit < 999) {
-    wrap.style.display = 'flex';
-    circle.textContent = limit;
-    circle.className = 'spd-limit-circle' + (gpsSpeed > limit ? ' warn' : '');
-  } else {
-    wrap.style.display = 'none';
-  }
-}
-
-// -- POI Layers --
-var poiLayers = {
-  gas:  {active: false, markers: [], data: [], icon: '⛽', label: 'Trạm xăng', color: '#4ade80'},
-  ev:   {active: false, markers: [], data: [], icon: '🔋', label: 'Trạm sạc EV', color: '#22d3ee'},
-  rest: {active: false, markers: [], data: [], icon: '🍽️', label: 'Trạm dừng', color: '#f59e0b'},
-  cam:  {active: false, markers: [], data: [], icon: '📷', label: 'Camera tốc độ', color: '#f87171'},
-  sign: {active: false, markers: [], data: [], icon: '🚦', label: 'Biển báo', color: '#94a3b8'},
+// ── State ──────────────────────────────────────────────
+var poiState = {
+  gas:  {on:false, data:[], marks:[], icon:'⛽', label:'Trạm xăng',     cls:'pm-gas'},
+  ev:   {on:false, data:[], marks:[], icon:'🔋', label:'Trạm sạc EV',   cls:'pm-ev'},
+  rest: {on:false, data:[], marks:[], icon:'🍽️', label:'Trạm dừng',     cls:'pm-rest'},
+  cam:  {on:false, data:[], marks:[], icon:'📷', label:'Camera tốc độ', cls:'pm-cam'},
+  sign: {on:false, data:[], marks:[], icon:'🚦', label:'Biển báo',       cls:'pm-sign'},
 };
+var poiLastPos   = null;
+var poiFetching  = false;
+var poiAlerted   = {};
+var poiAlertTmr  = null;
+var spdWatchId   = null;
+var spdCurrent   = 0;
+var spdLimit     = 0;
+var poiInited    = false;
 
-var lastQueryPos = null;
-var poiAlertCooldown = {};
-
-function shouldRequery(lat, lng) {
-  if (!lastQueryPos) return true;
-  return haversineM(lat, lng, lastQueryPos.lat, lastQueryPos.lng) > 300;
+// ── Haversine ──────────────────────────────────────────
+function poiDist(la1,lo1,la2,lo2){
+  var R=6371000, dLa=(la2-la1)*Math.PI/180, dLo=(lo2-lo1)*Math.PI/180;
+  var a=Math.sin(dLa/2)*Math.sin(dLa/2)+
+        Math.cos(la1*Math.PI/180)*Math.cos(la2*Math.PI/180)*
+        Math.sin(dLo/2)*Math.sin(dLo/2);
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
 }
 
-function togglePOI(type) {
-  if (!poiLayers[type]) return;
-  var layer = poiLayers[type];
-  layer.active = !layer.active;
-  var btn = document.getElementById('poiBtn' + type.charAt(0).toUpperCase() + type.slice(1));
-  if (btn) btn.classList.toggle('active', layer.active);
-
-  if (layer.active) {
-    // Fetch nếu chưa có data
-    if (layer.data.length === 0 && myLat && myLng) {
-      fetchAllPOI(myLat, myLng);
-    } else {
-      renderPOILayer(type);
+// ── Speedometer ───────────────────────────────────────
+function startSpeedometer(){
+  if(spdWatchId)return;
+  if(!navigator.geolocation)return;
+  var lastP=null, lastT=null;
+  spdWatchId=navigator.geolocation.watchPosition(function(pos){
+    var spd=pos.coords.speed, kmh=0;
+    if(spd!=null&&spd>=0){ kmh=Math.round(spd*3.6); }
+    else if(lastP){
+      var dt=(pos.timestamp-lastT)/1000;
+      if(dt>0.5) kmh=Math.round(poiDist(lastP.coords.latitude,lastP.coords.longitude,
+                                         pos.coords.latitude,pos.coords.longitude)/dt*3.6);
     }
+    lastP=pos; lastT=pos.timestamp; spdCurrent=kmh;
+    renderSpeedo(kmh);
+    // check proximity
+    poiCheckNear(pos.coords.latitude, pos.coords.longitude);
+    // re-query nếu đi xa
+    if(!poiLastPos||poiDist(pos.coords.latitude,pos.coords.longitude,
+                             poiLastPos.lat,poiLastPos.lng)>POI_REQUERY){
+      poiLastPos={lat:pos.coords.latitude,lng:pos.coords.longitude};
+      poiFetch(pos.coords.latitude, pos.coords.longitude);
+    }
+  },null,{enableHighAccuracy:true,maximumAge:2000,timeout:15000});
+}
+
+function renderSpeedo(kmh){
+  var el=document.getElementById('spdVal');
+  if(!el)return;
+  el.textContent=kmh;
+  el.style.color = spdLimit>0&&kmh>spdLimit*1.05 ? '#f87171' :
+                   spdLimit>0&&kmh>spdLimit*0.9  ? '#fbbf24' : '#fff';
+  // update vị trí dựa theo bottomSheet
+  poiUpdateLayout();
+}
+
+// ── Layout: đặt speedo + poiPanel không chồng UI ─────
+function poiUpdateLayout(){
+  var wrap=document.getElementById('speedoWrap');
+  var panel=document.getElementById('poiPanel');
+  var alertEl=document.getElementById('poiAlert');
+  if(!wrap)return;
+  var bsEl=typeof bottomSheet!=='undefined'?bottomSheet:document.getElementById('bottomSheet');
+  var bsH=bsEl?bsEl.offsetHeight:340;
+  if(bsH<100)bsH=340;
+  // Speedo: trên bottomSheet, góc dưới trái
+  wrap.style.bottom=(bsH+12)+'px';
+  // POI panel: bên trái, căn giữa vùng map (giữa header và speedo)
+  if(panel){
+    var headerH=60;
+    var speedoTop=window.innerHeight-bsH-wrap.offsetHeight-12;
+    var panelH=panel.offsetHeight||220;
+    var freeH=speedoTop-headerH-8;
+    var top=headerH+8+Math.max(0,(freeH-panelH)/2);
+    panel.style.top=Math.round(top)+'px';
+  }
+  // Alert: ngay dưới header
+  if(alertEl) alertEl.style.top='calc(58px + var(--st) + 6px)';
+}
+
+// ── Toggle POI layer ──────────────────────────────────
+function kPOI(type){
+  var s=poiState[type]; if(!s)return;
+  s.on=!s.on;
+  var btn=document.getElementById('poiBtn'+type.charAt(0).toUpperCase()+type.slice(1));
+  if(btn)btn.classList.toggle('active',s.on);
+  if(s.on){
+    if(s.data.length===0&&myLat&&myLng) poiFetch(myLat,myLng);
+    else poiRenderLayer(type);
   } else {
-    clearPOILayer(type);
+    poiClearLayer(type);
   }
 }
 
-function clearPOILayer(type) {
-  var layer = poiLayers[type];
-  layer.markers.forEach(function(m) { try{leafletFull.removeLayer(m);}catch(e){} });
-  layer.markers = [];
+function poiClearLayer(type){
+  var s=poiState[type];
+  s.marks.forEach(function(m){try{leafletFull.removeLayer(m);}catch(e){}});
+  s.marks=[];
 }
 
-function renderPOILayer(type) {
-  if (!leafletFull) return;
-  var layer = poiLayers[type];
-  clearPOILayer(type);
-  if (!layer.active) return;
-
-  layer.data.forEach(function(poi) {
-    if (!poi.lat || !poi.lng) return;
-    var icon = L.divIcon({
-      className: 'poi-marker',
-      html: '<div class="poi-marker-inner pm-' + type + '">' + layer.icon + '</div>',
-      iconSize: [32, 32],
-      iconAnchor: [16, 16],
-      popupAnchor: [0, -18]
+function poiRenderLayer(type){
+  if(!leafletFull)return;
+  var s=poiState[type];
+  poiClearLayer(type);
+  if(!s.on)return;
+  s.data.forEach(function(poi){
+    if(!poi.lat||!poi.lng)return;
+    var ico=L.divIcon({
+      className:'',
+      html:'<div style="width:34px;height:34px;border-radius:10px;display:flex;align-items:center;'+
+           'justify-content:center;font-size:16px;box-shadow:0 3px 10px rgba(0,0,0,.6);'+
+           'background:rgba(10,9,3,.85);border:1.5px solid rgba(255,255,255,.18)">'+s.icon+'</div>',
+      iconSize:[34,34],iconAnchor:[17,17],popupAnchor:[0,-20]
     });
-    var marker = L.marker([poi.lat, poi.lng], {icon: icon}).addTo(leafletFull);
-    var popupHtml = '<div style="font-family:system-ui;min-width:160px">' +
-      '<div style="font-weight:800;font-size:13px;margin-bottom:4px">' + layer.icon + ' ' + (poi.name || layer.label) + '</div>' +
-      (poi.detail ? '<div style="font-size:11px;color:#666;margin-bottom:4px">' + poi.detail + '</div>' : '') +
-      (poi.brand ? '<div style="font-size:11px;color:#888">🏷️ ' + poi.brand + '</div>' : '') +
-      (poi.opening ? '<div style="font-size:11px;color:#888">🕐 ' + poi.opening + '</div>' : '') +
-      (poi.speed ? '<div style="font-size:12px;font-weight:700;color:#ef4444">⚡ Giới hạn: ' + poi.speed + ' km/h</div>' : '') +
-      '</div>';
-    marker.bindPopup(popupHtml, {maxWidth: 200});
-    layer.markers.push(marker);
+    var m=L.marker([poi.lat,poi.lng],{icon:ico}).addTo(leafletFull);
+    var html='<div style="font-family:system-ui;min-width:150px;font-size:13px">'
+      +'<b>'+s.icon+' '+(poi.name||s.label)+'</b>'
+      +(poi.detail?'<br><span style="color:#666;font-size:11px">'+poi.detail+'</span>':'')
+      +(poi.brand?'<br><span style="color:#888;font-size:11px">🏷️ '+poi.brand+'</span>':'')
+      +(poi.hours?'<br><span style="color:#888;font-size:11px">🕐 '+poi.hours+'</span>':'')
+      +(poi.speed?'<br><span style="color:#ef4444;font-weight:700">⚡ Giới hạn '+poi.speed+' km/h</span>':'')
+      +'</div>';
+    m.bindPopup(html,{maxWidth:220});
+    s.marks.push(m);
   });
 }
 
-// -- Overpass API query --
-function buildOverpassQuery(lat, lng, radius) {
-  var r = radius || 5000;
-  return '[out:json][timeout:25];(' +
-    // Trạm xăng
-    'node["amenity"="fuel"](around:' + r + ',' + lat + ',' + lng + ');' +
-    'way["amenity"="fuel"](around:' + r + ',' + lat + ',' + lng + ');' +
-    // Trạm sạc EV
-    'node["amenity"="charging_station"](around:' + r + ',' + lat + ',' + lng + ');' +
-    // Nhà hàng/trạm dừng
-    'node["highway"="rest_area"](around:' + r + ',' + lat + ',' + lng + ');' +
-    'node["amenity"="restaurant"](around:' + r + ',' + lat + ',' + lng + ');' +
-    'node["amenity"="fast_food"](around:' + r + ',' + lat + ',' + lng + ');' +
-    // Camera tốc độ
-    'node["highway"="speed_camera"](around:' + r + ',' + lat + ',' + lng + ');' +
-    'node["enforcement"="maxspeed"](around:' + r + ',' + lat + ',' + lng + ');' +
-    // Biển báo giao thông
-    'node["traffic_sign"](around:' + r + ',' + lat + ',' + lng + ');' +
-    'node["highway"="stop"](around:' + r + ',' + lat + ',' + lng + ');' +
-    'node["highway"="give_way"](around:' + r + ',' + lat + ',' + lng + ');' +
-    ');out body;';
-}
-
-var poiFetching = false;
-
-function fetchAllPOI(lat, lng) {
-  if (poiFetching) return;
-  poiFetching = true;
-  var query = buildOverpassQuery(lat, lng, 5000);
-  var url = 'https://overpass-api.de/api/interpreter?data=' + encodeURIComponent(query);
-
-  fetch(url, {signal: AbortSignal.timeout(20000)})
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-      poiFetching = false;
-      // Reset data
-      Object.keys(poiLayers).forEach(function(k) { poiLayers[k].data = []; });
-
-      data.elements.forEach(function(el) {
-        if (!el.lat && !el.lon && el.center) { el.lat = el.center.lat; el.lon = el.center.lon; }
-        if (!el.lat) return;
-        var tags = el.tags || {};
-        var base = {lat: el.lat, lng: el.lon, name: tags.name || tags['name:vi'] || '', brand: tags.brand || ''};
-
-        if (tags.amenity === 'fuel') {
-          poiLayers.gas.data.push(Object.assign({}, base, {
-            detail: tags['fuel:diesel'] === 'yes' ? 'Có dầu diesel' : (tags['fuel:octane_95'] === 'yes' ? 'RON 95' : ''),
-            opening: tags.opening_hours || ''
-          }));
-        } else if (tags.amenity === 'charging_station') {
-          poiLayers.ev.data.push(Object.assign({}, base, {
-            detail: (tags.capacity ? tags.capacity + ' cổng ' : '') + (tags.socket || ''),
-            opening: tags.opening_hours || ''
-          }));
-        } else if (tags.highway === 'rest_area' || tags.amenity === 'restaurant' || tags.amenity === 'fast_food') {
-          poiLayers.rest.data.push(Object.assign({}, base, {
-            detail: tags.amenity === 'rest_area' ? 'Trạm dừng nghỉ' : (tags.cuisine || 'Nhà hàng')
-          }));
-        } else if (tags.highway === 'speed_camera' || tags.enforcement === 'maxspeed') {
-          poiLayers.cam.data.push(Object.assign({}, base, {
-            name: base.name || 'Camera tốc độ',
-            speed: tags.maxspeed || tags['maxspeed:advisory'] || '',
-            detail: tags.direction ? 'Hướng: ' + tags.direction : ''
-          }));
-        } else if (tags.traffic_sign || tags.highway === 'stop' || tags.highway === 'give_way') {
-          var signType = tags.highway === 'stop' ? 'Biển DỪNG lại' :
-                         tags.highway === 'give_way' ? 'Nhường đường' :
-                         mapSignType(tags.traffic_sign);
-          poiLayers.sign.data.push(Object.assign({}, base, {
-            name: base.name || signType,
-            detail: tags.traffic_sign || ''
-          }));
+// ── Overpass query ────────────────────────────────────
+function poiFetch(lat,lng){
+  if(poiFetching)return;
+  poiFetching=true;
+  var r=POI_RADIUS;
+  var q='[out:json][timeout:25];('
+    +'node["amenity"="fuel"](around:'+r+','+lat+','+lng+');'
+    +'node["amenity"="charging_station"](around:'+r+','+lat+','+lng+');'
+    +'node["highway"="rest_area"](around:'+r+','+lat+','+lng+');'
+    +'node["amenity"="restaurant"](around:'+r+','+lat+','+lng+');'
+    +'node["amenity"="fast_food"](around:'+r+','+lat+','+lng+');'
+    +'node["highway"="speed_camera"](around:'+r+','+lat+','+lng+');'
+    +'node["enforcement"="maxspeed"](around:'+r+','+lat+','+lng+');'
+    +'node["traffic_sign"](around:'+r+','+lat+','+lng+');'
+    +'node["highway"="stop"](around:'+r+','+lat+','+lng+');'
+    +'node["highway"="give_way"](around:'+r+','+lat+','+lng+');'
+    +');out body;';
+  fetch('https://overpass-api.de/api/interpreter?data='+encodeURIComponent(q))
+    .then(function(res){return res.json();})
+    .then(function(data){
+      poiFetching=false;
+      // reset
+      Object.keys(poiState).forEach(function(k){poiState[k].data=[];});
+      data.elements.forEach(function(el){
+        if(!el.lat&&el.center){el.lat=el.center.lat;el.lon=el.center.lon;}
+        if(!el.lat)return;
+        var t=el.tags||{};
+        var b={lat:el.lat,lng:el.lon,
+               name:t.name||t['name:vi']||'',
+               brand:t.brand||'',
+               hours:t.opening_hours||''};
+        if(t.amenity==='fuel'){
+          poiState.gas.data.push(Object.assign({},b,{
+            detail:(t['fuel:octane_95']==='yes'?'RON 95 ':'')+(t['fuel:diesel']==='yes'?'Diesel':'').trim()||'Trạm xăng'}));
+        } else if(t.amenity==='charging_station'){
+          poiState.ev.data.push(Object.assign({},b,{
+            detail:(t.capacity?t.capacity+' cổng ':'')+(t.socket||'')||'Sạc điện'}));
+        } else if(t.highway==='rest_area'||t.amenity==='restaurant'||t.amenity==='fast_food'){
+          poiState.rest.data.push(Object.assign({},b,{
+            detail:t.highway==='rest_area'?'Trạm dừng nghỉ':(t.cuisine||t.amenity||'Ăn uống')}));
+        } else if(t.highway==='speed_camera'||t.enforcement==='maxspeed'){
+          poiState.cam.data.push(Object.assign({},b,{
+            name:b.name||'Camera tốc độ',
+            speed:t.maxspeed||'',
+            detail:t.direction?'Hướng '+t.direction:''}));
+        } else if(t.traffic_sign||t.highway==='stop'||t.highway==='give_way'){
+          var stype=t.highway==='stop'?'Biển DỪNG':
+                    t.highway==='give_way'?'Nhường đường':
+                    poiSignName(t.traffic_sign);
+          poiState.sign.data.push(Object.assign({},b,{name:b.name||stype,detail:t.traffic_sign||''}));
         }
       });
-
-      // Update count badges
-      updatePOICounts();
-      // Re-render active layers
-      Object.keys(poiLayers).forEach(function(type) {
-        if (poiLayers[type].active) renderPOILayer(type);
+      // update count badges
+      ['gas','ev','rest','cam','sign'].forEach(function(type){
+        var cnt=document.getElementById('poiCnt'+type.charAt(0).toUpperCase()+type.slice(1));
+        var btn=document.getElementById('poiBtn'+type.charAt(0).toUpperCase()+type.slice(1));
+        var n=poiState[type].data.length;
+        if(cnt)cnt.textContent=n>0?n:'';
+        if(btn)btn.classList.toggle('has-data',n>0);
+      });
+      // re-render active layers
+      Object.keys(poiState).forEach(function(type){
+        if(poiState[type].on)poiRenderLayer(type);
       });
     })
-    .catch(function(e) {
-      poiFetching = false;
-      console.warn('[POI] Overpass error:', e.message);
-    });
+    .catch(function(){poiFetching=false;});
 }
 
-function mapSignType(sign) {
-  if (!sign) return 'Biển báo';
-  var map = {
-    'stop': 'Biển DỪNG',
-    'give_way': 'Nhường đường',
-    'maxspeed': 'Giới hạn tốc độ',
-    'no_entry': 'Cấm vào',
-    'no_overtaking': 'Cấm vượt',
-    'no_parking': 'Cấm đỗ xe',
-    'no_stopping': 'Cấm dừng xe',
-    'speed_limit': 'Giới hạn tốc độ',
-    'roundabout': 'Vòng xuyến',
-    'school': 'Trường học - chú ý',
-  };
-  for (var k in map) {
-    if (sign.indexOf(k) >= 0) return map[k];
-  }
-  return 'Biển báo: ' + sign;
+function poiSignName(s){
+  if(!s)return 'Biển báo';
+  var m={stop:'Biển DỪNG',give_way:'Nhường đường',maxspeed:'Giới hạn tốc độ',
+         no_entry:'Cấm vào',no_overtaking:'Cấm vượt',no_parking:'Cấm đỗ',
+         no_stopping:'Cấm dừng',school_zone:'Khu vực trường học'};
+  for(var k in m)if(s.indexOf(k)>=0)return m[k];
+  return 'Biển báo';
 }
 
-function updatePOICounts() {
-  var types = {gas: 'cntGas', ev: 'cntEV', rest: 'cntRest', cam: 'cntCam', sign: 'cntSign'};
-  Object.keys(types).forEach(function(type) {
-    var el = document.getElementById(types[type]);
-    var btn = document.getElementById('poiBtn' + type.charAt(0).toUpperCase() + type.slice(1));
-    var count = poiLayers[type].data.length;
-    if (el) el.textContent = count;
-    if (btn) btn.classList.toggle('has-data', count > 0);
-  });
-}
-
-// -- Proximity alert (thông báo khi gần POI) --
-var ALERT_RADIUS_M = {cam: 300, sign: 200, gas: 500, ev: 500, rest: 500};
-
-function checkPOIProximity(lat, lng) {
-  var now = Date.now();
-  Object.keys(poiLayers).forEach(function(type) {
-    if (!poiLayers[type].active) return;
-    var radius = ALERT_RADIUS_M[type] || 300;
-    poiLayers[type].data.forEach(function(poi) {
-      var dist = haversineM(lat, lng, poi.lat, poi.lng);
-      if (dist < radius) {
-        var key = type + '_' + poi.lat + '_' + poi.lng;
-        if (poiAlertCooldown[key] && now - poiAlertCooldown[key] < 60000) return;
-        poiAlertCooldown[key] = now;
-        showPOIAlert(type, poi, Math.round(dist));
-
-        // TTS thông báo
-        var layer = poiLayers[type];
-        var msg = 'Phía trước ' + Math.round(dist) + ' mét có ' +
-                  (poi.name || layer.label) +
-                  (poi.speed ? '. Giới hạn tốc độ ' + poi.speed + ' km/h' : '') +
-                  (type === 'cam' ? '. Chú ý camera tốc độ' : '');
-        ttsSpeak(msg, '');
-      }
+// ── Proximity alert ───────────────────────────────────
+function poiCheckNear(lat,lng){
+  var now=Date.now();
+  Object.keys(poiState).forEach(function(type){
+    if(!poiState[type].on)return;
+    var rad=POI_ALERT_DIST[type]||300;
+    poiState[type].data.forEach(function(poi){
+      var d=poiDist(lat,lng,poi.lat,poi.lng);
+      if(d>rad)return;
+      var key=type+'_'+poi.lat+'_'+poi.lng;
+      if(poiAlerted[key]&&now-poiAlerted[key]<90000)return;
+      poiAlerted[key]=now;
+      poiShowAlert(type,poi,Math.round(d));
+      // TTS đọc cảnh báo
+      var msg=(poi.name||poiState[type].label)+' phía trước '+Math.round(d)+' mét'
+              +(poi.speed?'. Giới hạn tốc độ '+poi.speed+' kilômét giờ':'')
+              +(type==='cam'?'. Chú ý camera tốc độ':'');
+      if(typeof ttsSpeak==='function')ttsSpeak(msg,'');
     });
   });
 }
 
-function showPOIAlert(type, poi, distM) {
-  var layer = poiLayers[type];
-  var alertEl = document.getElementById('poiAlert');
-  var icoEl = document.getElementById('poiAlertIco');
-  var titleEl = document.getElementById('poiAlertTitle');
-  var subEl = document.getElementById('poiAlertSub');
-  if (!alertEl) return;
-
-  if (icoEl) icoEl.textContent = layer.icon;
-  if (titleEl) titleEl.textContent = poi.name || layer.label;
-  if (subEl) {
-    var sub = distM + 'm phía trước';
-    if (poi.speed) sub += ' · ' + poi.speed + ' km/h';
-    if (poi.detail) sub += ' · ' + poi.detail;
-    subEl.textContent = sub;
-  }
-
-  alertEl.classList.add('show');
-  // Tự ẩn sau 8s
-  clearTimeout(window._poiAlertTimer);
-  window._poiAlertTimer = setTimeout(function() {
-    alertEl.classList.remove('show');
-  }, 8000);
-
-  // Position alert below topbar
-  alertEl.style.top = 'calc(64px + var(--st))';
+function poiShowAlert(type,poi,distM){
+  var el=document.getElementById('poiAlert');
+  var ico=document.getElementById('paiIco');
+  var title=document.getElementById('paiTitle');
+  var sub=document.getElementById('paiSub');
+  if(!el)return;
+  if(ico)ico.textContent=poiState[type].icon;
+  if(title)title.textContent=poi.name||poiState[type].label;
+  var s=distM+'m phía trước';
+  if(poi.speed)s+=' · '+poi.speed+' km/h';
+  if(poi.detail)s+=' · '+poi.detail;
+  if(sub)sub.textContent=s;
+  el.classList.add('show');
+  clearTimeout(poiAlertTmr);
+  poiAlertTmr=setTimeout(function(){el.classList.remove('show');},8000);
 }
 
-// -- Init: bắt đầu khi vào phòng --
-var poiInitialized = false;
-function initPOIFeatures() {
-  if (poiInitialized) return;
-  poiInitialized = true;
+// ── Init: khởi động khi vào phòng ────────────────────
+function poiInit(){
+  if(poiInited)return;
+  poiInited=true;
   startSpeedometer();
-  updateSpeedoPosition();
-
-  // Update speedo position khi bottomSheet thay đổi
-  var bsObs = new MutationObserver(updateSpeedoPosition);
-  if (bottomSheet) bsObs.observe(bottomSheet, {attributes: true, attributeFilter: ['style']});
+  poiUpdateLayout();
+  // observe bottomSheet size change
+  if(window.ResizeObserver&&bottomSheet){
+    new ResizeObserver(poiUpdateLayout).observe(bottomSheet);
+  } else if(bottomSheet){
+    new MutationObserver(poiUpdateLayout).observe(bottomSheet,
+      {attributes:true,attributeFilter:['style','class']});
+  }
+  window.addEventListener('resize',poiUpdateLayout);
 }
 
-// Hook vào showRoom
-var _origShowRoom = window.showRoom;
-window.showRoom = function(rc) {
-  if (_origShowRoom) _origShowRoom(rc);
-  setTimeout(initPOIFeatures, 1000);
+// Hook vào showRoom (đã có trong v11.0.9)
+var _poiOldShowRoom=window.showRoom;
+window.showRoom=function(rc){
+  if(_poiOldShowRoom)_poiOldShowRoom(rc);
+  setTimeout(poiInit,800);
 };
 
+})();
 </script>
 </body>
 </html>
