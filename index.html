@@ -13,19 +13,20 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <style>
-/* ═══ TRAILTAK v12 — CONVOY DARK STYLE ══════════════════ */
+/* ═══ TRAILTAK v11 — DARK TRAIL STYLE ══════════════════════════════════ */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
 :root{
-  /* KidsVoiceAlarm warm dark tone */
-  --bg:#111008;--bg2:#1a1710;--surf:#252218;--surf2:#302c20;
-  --border:rgba(255,220,100,0.10);--border2:rgba(255,220,100,0.18);
-  --green:#4ade80;--greens:rgba(74,222,128,0.12);
-  --orange:#f59e0b;--oranges:rgba(245,158,11,0.18);
-  --blue:#22d3ee;--blues:rgba(34,211,238,0.18);
-  --red:#f87171;--reds:rgba(248,113,113,0.14);
-  --warn:#fbbf24;--gold:#fbbf24;
-  --text:#fffef0;--text2:#b8b097;--text3:#6b6047;--text4:#3d3820;
+  --bg:#0a0a0a;--bg2:#111111;--surf:#1a1a1a;--surf2:#222;
+  --border:rgba(255,255,255,0.08);--border2:rgba(255,255,255,0.13);
+  --green:#39FF14;--greens:rgba(57,255,20,0.12);
+  --orange:#FF5F1F;--oranges:rgba(255,95,31,0.18);
+  --blue:#3b82f6;--blues:rgba(59,130,246,0.18);
+  --red:#ef4444;--reds:rgba(239,68,68,0.14);
+  --warn:#f59e0b;--gold:#fbbf24;
+  --text:#fff;--text2:#a1a1aa;--text3:#52525b;--text4:#3f3f46;
+  --glass:rgba(10,10,10,0.88);--glass2:rgba(14,14,14,0.75);
   --sb:env(safe-area-inset-bottom,0px);--st:env(safe-area-inset-top,0px);
+  --radius:20px;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:'Inter',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
@@ -33,7 +34,7 @@ button{cursor:pointer;font-family:inherit;border:none;padding:0;background:none;
 input{font-family:inherit;color:var(--text);background:none;border:none;outline:none}
 ::-webkit-scrollbar{display:none}
 
-/* ── SCREENS ────────────────────────────────────────────── */
+/* ── SCREENS ───────────────────────────────────────────── */
 .screen{display:none;position:fixed;inset:0;z-index:100;flex-direction:column;align-items:center;justify-content:center;background:var(--bg)}
 .screen.active{display:flex}
 
@@ -45,22 +46,24 @@ input{font-family:inherit;color:var(--text);background:none;border:none;outline:
 .toast.warn{background:rgba(245,158,11,0.15);border-color:rgba(245,158,11,0.3);color:#fbbf24}
 @keyframes toastIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
 
-/* ── BUTTONS ─────────────────────────────────────────────── */
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:0 18px;height:44px;border-radius:12px;font-size:14px;font-weight:700;border:none;cursor:pointer;transition:opacity .12s,transform .1s;user-select:none}
+/* ── BUTTONS ───────────────────────────────────────────── */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:0 18px;height:44px;border-radius:12px;font-size:14px;font-weight:700;border:none;cursor:pointer;transition:opacity .12s,transform .1s;-webkit-user-select:none;user-select:none}
 .btn:active{opacity:.75;transform:scale(.97)}
 .btn-g{background:var(--green);color:#000}
 .btn-s{background:var(--surf2);color:var(--text2);border:1px solid var(--border2)}
 .btn-r{background:rgba(239,68,68,.15);color:var(--red);border:1px solid rgba(239,68,68,.3)}
-.btn-full{width:100%}.btn-lg{height:50px;font-size:15px;border-radius:14px}.btn-sm{height:32px;padding:0 12px;font-size:12px;border-radius:8px}
+.btn-full{width:100%}
+.btn-lg{height:50px;font-size:15px;border-radius:14px}
+.btn-sm{height:32px;padding:0 12px;font-size:12px;border-radius:8px}
 .btn:disabled{opacity:.35;pointer-events:none}
 
-/* ── INPUTS ─────────────────────────────────────────────── */
+/* ── INPUTS ────────────────────────────────────────────── */
 .inp{width:100%;height:46px;padding:0 14px;background:var(--surf);border:1px solid var(--border2);border-radius:12px;font-size:14px;font-weight:500;color:var(--text);transition:border-color .15s}
 .inp:focus{border-color:rgba(57,255,20,.5)}
 .lbl{font-size:11px;font-weight:700;color:var(--text3);margin-bottom:5px;display:block;text-transform:uppercase;letter-spacing:.06em}
 .fg{margin-bottom:12px}
 
-/* ── JOIN SCREEN ─────────────────────────────────────────── */
+/* ── JOIN SCREEN ───────────────────────────────────────── */
 .join-wrap{width:100%;max-width:400px;padding:24px 20px;overflow-y:auto;max-height:100vh;display:flex;flex-direction:column;align-items:center;gap:14px}
 .j-logo{font-size:48px;text-align:center}
 .j-title{font-size:26px;font-weight:900;letter-spacing:-.03em;text-align:center}
@@ -68,10 +71,10 @@ input{font-family:inherit;color:var(--text);background:none;border:none;outline:
 .j-card{background:var(--surf);border:1px solid var(--border2);border-radius:18px;padding:20px;width:100%}
 .j-card h3{font-size:11px;font-weight:800;color:var(--text3);margin-bottom:16px;text-transform:uppercase;letter-spacing:.07em}
 .j-err{color:var(--red);font-size:12px;font-weight:600;margin-top:8px;text-align:center;min-height:16px}
-.jdiv{text-align:center;font-size:11px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.06em;position:relative;width:100%;max-width:380px}
+.jdiv{text-align:center;font-size:11px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.06em;position:relative}
 .jdiv::before,.jdiv::after{content:'';position:absolute;top:50%;width:30%;height:1px;background:var(--border2)}
 .jdiv::before{left:0}.jdiv::after{right:0}
-.cr-card{background:var(--surf);border:1px solid var(--border2);border-radius:18px;overflow:hidden;width:100%;max-width:380px}
+.cr-card{background:var(--surf);border:1px solid var(--border2);border-radius:18px;overflow:hidden;width:100%}
 .cr-hdr{width:100%;padding:14px 16px;display:flex;align-items:center;gap:10px;font-size:14px;font-weight:700;background:none;border:none;color:var(--text)}
 .arr{transition:transform .2s;color:var(--text3)}
 .cr-body{display:none;padding:16px;border-top:1px solid var(--border)}
@@ -79,13 +82,13 @@ input{font-family:inherit;color:var(--text);background:none;border:none;outline:
 .trow{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)}
 .trow:last-of-type{border-bottom:none;margin-bottom:8px}
 .tl{font-size:13px;font-weight:600}.ts{font-size:11px;color:var(--text3);margin-top:2px}
-.tog{width:44px;height:26px;border-radius:13px;background:var(--surf2);border:1px solid var(--border2);position:relative;transition:background .2s;flex-shrink:0}
-.tog::after{content:'';position:absolute;top:4px;left:4px;width:18px;height:18px;border-radius:50%;background:var(--text3);transition:transform .2s,background .2s}
-.tog.on{background:rgba(57,255,20,.15);border-color:rgba(57,255,20,.4)}
+.tog{width:42px;height:24px;border-radius:12px;background:var(--surf2);border:1px solid var(--border2);position:relative;transition:background .2s;flex-shrink:0}
+.tog::after{content:'';position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:var(--text3);transition:transform .2s,background .2s}
+.tog.on{background:var(--greens);border-color:rgba(57,255,20,.3)}
 .tog.on::after{transform:translateX(18px);background:var(--green)}
 
-/* ── DISCOVER ─────────────────────────────────────────────── */
-.topbar{display:flex;align-items:center;gap:10px;padding:calc(10px + var(--st)) 16px 10px;background:rgba(10,10,10,.88);border-bottom:1px solid var(--border);flex-shrink:0;backdrop-filter:blur(16px);width:100%}
+/* ── DISCOVER SCREEN ───────────────────────────────────── */
+.topbar{display:flex;align-items:center;gap:10px;padding:calc(10px + var(--st)) 16px 10px;background:var(--glass);border-bottom:1px solid var(--border);flex-shrink:0;backdrop-filter:blur(16px);width:100%}
 .topbar h2{font-size:15px;font-weight:800;flex:1;letter-spacing:-.02em}
 .ib{width:36px;height:36px;border-radius:10px;background:var(--surf2);display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--text2)}
 .page{flex:1;overflow-y:auto;padding:12px 16px}
@@ -98,64 +101,39 @@ input{font-family:inherit;color:var(--text);background:none;border:none;outline:
 .rb2{font-size:11px;color:var(--text2);margin-left:auto;flex-shrink:0}
 .empt{text-align:center;padding:32px;color:var(--text3);font-size:13px}
 
-/* ── WAIT SCREEN ─────────────────────────────────────────── */
+/* ── WAIT SCREEN ───────────────────────────────────────── */
 .wi{font-size:56px;text-align:center;margin-bottom:16px}
 .wt{font-size:20px;font-weight:900;margin-bottom:8px;text-align:center}
 .ws{font-size:13px;color:var(--text3);text-align:center;margin-bottom:24px;line-height:1.5;padding:0 20px}
 
-/* ══ ROOM SCREEN ════════════════════════════════════════════ */
-#roomScreen{position:fixed;inset:0;overflow:hidden;background:#0a0a0a;display:none;flex-direction:column}
+/* ══ ROOM SCREEN ════════════════════════════════════════ */
+#roomScreen{position:fixed;inset:0;overflow:hidden;background:var(--bg);display:none;flex-direction:column}
 #roomScreen.active{display:flex}
 
 /* Map full background */
 #mapFull{position:absolute;inset:0;z-index:1}
-#mapFull .leaflet-tile{filter:brightness(.6) saturate(.5) contrast(1.1)}
 #mapFullEmpty{display:none;position:absolute;inset:0;z-index:2;align-items:center;justify-content:center;flex-direction:column;gap:8px;pointer-events:none}
 
-/* Topographic dark overlay */
-.map-dark-ov{position:absolute;inset:0;z-index:2;pointer-events:none;background:rgba(0,0,0,.25)}
-.map-top-fade{position:absolute;top:0;left:0;right:0;height:160px;z-index:3;pointer-events:none;background:linear-gradient(to bottom,rgba(10,9,3,.88) 0%,rgba(10,9,3,.2) 60%,transparent 100%)}
-.map-bottom-fade{position:absolute;bottom:0;left:0;right:0;height:65%;z-index:2;pointer-events:none;background:linear-gradient(to top,rgba(10,9,3,.97) 0%,rgba(10,9,3,.4) 40%,transparent 100%)}
+/* Map gradient overlay */
+.map-top-fade{position:absolute;top:0;left:0;right:0;height:140px;z-index:3;pointer-events:none;background:linear-gradient(to bottom,rgba(0,0,0,.75) 0%,transparent 100%)}
+.map-bottom-fade{position:absolute;bottom:0;left:0;right:0;height:60%;z-index:2;pointer-events:none;background:linear-gradient(to top,rgba(0,0,0,.85) 0%,rgba(0,0,0,.3) 50%,transparent 100%)}
 
-/* ── TOPBAR (Convoy style) ──────────────────────────────── */
+/* ── TOPBAR ─────────────────────────────────────────────── */
 #roomTopbar{
   position:absolute;top:0;left:0;right:0;z-index:30;
-  display:flex;align-items:center;justify-content:space-between;
-  padding:calc(8px + var(--st)) 12px 8px;
+  display:flex;align-items:center;gap:8px;
+  padding:calc(10px + var(--st)) 12px 10px;
 }
-/* Left: room name + status */
 .rtb-left{flex:1;min-width:0}
-.rtb-room{
-  font-size:15px;font-weight:900;letter-spacing:-.01em;
-  text-transform:uppercase;text-shadow:0 2px 8px rgba(0,0,0,.9);
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-  display:flex;align-items:center;gap:6px;
-  max-width:140px;
-}
-.rtb-live{
-  font-size:9px;font-weight:900;padding:2px 7px;border-radius:4px;
-  background:var(--red);color:#fff;letter-spacing:.06em;flex-shrink:0;
-  animation:livePulse 2s ease-in-out infinite;
-}
-@keyframes livePulse{0%,100%{opacity:1}50%{opacity:.7}}
-.rtb-status{display:flex;align-items:center;gap:5px;margin-top:3px}
-.rtb-dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);flex-shrink:0}
-.rtb-sub{font-size:10px;font-weight:600;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.02em}
-.rtb-sep{color:rgba(255,255,255,.2);font-size:10px}
-.rtb-signal{font-size:10px;font-weight:600;color:var(--green)}
-
-/* Right: action buttons */
-.rtb-right{display:flex;gap:5px;flex-shrink:0;align-items:center}
-.rha{width:34px;height:34px;border-radius:10px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);backdrop-filter:blur(12px);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;transition:background .15s}
-.rha:active{background:rgba(255,255,255,.18);transform:scale(.9)}
-.rha.on{background:rgba(57,255,20,.2);border-color:rgba(57,255,20,.4)}
-
-/* Status dropdown */
+.rtb-room{font-size:15px;font-weight:900;letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-shadow:0 2px 8px rgba(0,0,0,.8)}
+.rtb-status{display:flex;align-items:center;gap:6px;margin-top:2px}
+.rtb-dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);flex-shrink:0}
+.rtb-sub{font-size:10px;font-weight:700;color:rgba(255,255,255,.65);text-transform:uppercase;letter-spacing:.05em}
 .status-wrap{position:relative}
 .status-btn{display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:20px;background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.15);backdrop-filter:blur(10px);font-size:11px;font-weight:700;color:var(--text)}
 .status-dot-btn{width:7px;height:7px;border-radius:50%;background:var(--green)}
 .status-arr{font-size:9px;color:var(--text3)}
-#statusDrop{display:none;position:absolute;top:calc(100% + 8px);right:0;min-width:190px;background:rgba(12,12,12,.98);border:1px solid var(--border2);border-radius:16px;overflow:hidden;box-shadow:0 20px 50px rgba(0,0,0,.9);z-index:9999;backdrop-filter:blur(24px)}
+#statusDrop{display:none;position:absolute;top:calc(100% + 6px);left:0;min-width:200px;background:rgba(14,14,14,.98);border:1px solid var(--border2);border-radius:16px;overflow:hidden;box-shadow:0 20px 50px rgba(0,0,0,.9);z-index:9999;backdrop-filter:blur(24px)}
 #statusDrop.open{display:block}
 .sdrop-title{font-size:10px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;padding:10px 14px 6px}
 .sopt{width:100%;padding:11px 14px;text-align:left;font-size:13px;font-weight:700;display:flex;align-items:center;gap:12px;border:none;background:transparent;color:var(--text);border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer}
@@ -163,58 +141,21 @@ input{font-family:inherit;color:var(--text);background:none;border:none;outline:
 .sopt:active{background:rgba(255,255,255,.05)}
 .sopt-ico{font-size:16px;width:20px;text-align:center}
 .sopt-lbl{font-size:13px;font-weight:700}.sopt-sub{font-size:10px;color:var(--text3);margin-top:1px}
+.rha{width:38px;height:38px;border-radius:12px;background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.15);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;transition:background .15s}
+.rha:active{background:rgba(255,255,255,.1)}
+.rha.on{background:rgba(57,255,20,.2);border-color:rgba(57,255,20,.4)}
 
-/* ── MAP CONTROLS ───────────────────────────────────────── */
-.map-ctrl{position:absolute;right:14px;z-index:20;display:flex;flex-direction:column;gap:8px;top:calc(80px + var(--st))}
-.mc-btn{width:42px;height:42px;border-radius:50%;background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.3);backdrop-filter:blur(12px);display:flex;align-items:center;justify-content:center;font-size:16px;color:#fcd34d;transition:background .15s;font-weight:700}
-.mc-btn:active{background:rgba(255,255,255,.2);transform:scale(.9)}
-.mc-btn.blue-mc{background:rgba(34,211,238,.2);border-color:rgba(34,211,238,.5);color:#22d3ee;box-shadow:0 4px 16px rgba(34,211,238,.3)}
+/* ── MAP CONTROLS (right side) ─────────────────────────── */
+.map-ctrl{position:absolute;right:12px;z-index:20;display:flex;flex-direction:column;gap:8px;top:calc(68px + var(--st))}
+.mc-btn{width:42px;height:42px;border-radius:12px;background:rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.12);backdrop-filter:blur(12px);display:flex;align-items:center;justify-content:center;font-size:17px;color:var(--text2);transition:background .15s}
+.mc-btn:active{background:rgba(255,255,255,.12)}
 
-/* ── AVATAR MARKERS ON MAP ──────────────────────────────── */
-.map-marker-wrap{display:flex;flex-direction:column;align-items:center;gap:4px}
-.map-av-img{
-  width:52px;height:52px;border-radius:50%;
-  border:3px solid rgba(255,255,255,.3);
-  background:var(--surf2);overflow:hidden;
-  display:flex;align-items:center;justify-content:center;
-  font-size:16px;font-weight:900;color:#fff;
-  box-shadow:0 4px 16px rgba(0,0,0,.6);
-}
-.map-av-img.speaking-marker{
-  border-color:var(--green);
-  box-shadow:0 0 0 4px rgba(57,255,20,.3),0 4px 16px rgba(0,0,0,.6);
-  animation:markerPulse 1.3s ease-in-out infinite;
-}
-@keyframes markerPulse{0%,100%{box-shadow:0 0 0 4px rgba(57,255,20,.3)}50%{box-shadow:0 0 0 10px rgba(57,255,20,.06)}}
-.map-av-img.me-marker{border-color:var(--blue);box-shadow:0 0 0 3px rgba(59,130,246,.3)}
-.map-pin-label{
-  font-size:11px;font-weight:800;color:#fff;
-  background:rgba(0,0,0,.75);padding:3px 8px;border-radius:12px;
-  backdrop-filter:blur(8px);white-space:nowrap;text-align:center;
-  border:1px solid rgba(255,255,255,.15);
-}
-.map-pin-speaking{
-  background:var(--green);color:#000;
-  border-color:rgba(57,255,20,.5);
-  animation:labelPulse 1s ease-in-out infinite;
-}
-@keyframes labelPulse{0%,100%{opacity:1}50%{opacity:.8}}
-.map-wave-badge{
-  display:flex;align-items:center;gap:2px;margin-top:2px;
-}
-.map-wave-badge span{width:3px;border-radius:2px;background:var(--green);animation:waveBar 1s ease-in-out infinite}
-.map-wave-badge span:nth-child(1){height:8px;animation-delay:0s}
-.map-wave-badge span:nth-child(2){height:14px;animation-delay:.15s}
-.map-wave-badge span:nth-child(3){height:10px;animation-delay:.3s}
-.map-wave-badge span:nth-child(4){height:16px;animation-delay:.1s}
-@keyframes waveBar{0%,100%{transform:scaleY(.4)}50%{transform:scaleY(1)}}
-
-/* ── BANNERS ─────────────────────────────────────────────── */
-.banners{position:absolute;z-index:25;left:0;right:0;top:calc(70px + var(--st));display:flex;flex-direction:column}
+/* ── BANNERS ────────────────────────────────────────────── */
+.banners{position:absolute;z-index:25;left:0;right:0;top:calc(60px + var(--st));display:flex;flex-direction:column}
 .ban{font-size:12px;font-weight:700;padding:8px 14px;display:flex;align-items:center;gap:8px}
-.ban-recon{background:rgba(245,158,11,.2);color:#fbbf24;display:none}
+.ban-recon{background:rgba(245,158,11,.18);color:#fbbf24;display:none}
 .ban-recon.show{display:flex}
-.ban-ios{background:rgba(59,130,246,.2);color:var(--blue);display:none;position:relative}
+.ban-ios{background:rgba(59,130,246,.18);color:var(--blue);display:none;position:relative}
 .ban-ios.show{display:flex}
 .bx{position:absolute;right:12px;font-size:16px;cursor:pointer;color:rgba(255,255,255,.5)}
 .vmemo{background:rgba(30,30,30,.98);border-bottom:1px solid var(--border);display:none;padding:10px 14px;align-items:center;justify-content:space-between;gap:8px}
@@ -223,9 +164,13 @@ input{font-family:inherit;color:var(--text);background:none;border:none;outline:
 .vmemo-btn{padding:6px 12px;border-radius:8px;background:var(--surf2);border:1px solid var(--border2);font-size:12px;font-weight:700;color:var(--text)}
 .vmemo-info{font-size:11px;color:var(--text3);flex:1}
 .vmemo-x{font-size:18px;color:var(--text3)}
+
+/* Approval banner */
 #aprvBan{display:none;background:rgba(245,158,11,.13);border-bottom:1px solid rgba(245,158,11,.25);padding:8px 14px;font-size:12px;font-weight:700;color:#fbbf24}
 #aprvBan.show{display:block}
 #aprvBanList{margin-top:6px;display:flex;flex-direction:column;gap:4px}
+
+/* Request banners */
 .req-ban{display:none;background:rgba(14,14,14,.98);border-bottom:1px solid var(--border2);padding:10px 14px}
 .req-ban.show{display:flex}
 .req-inner{display:flex;align-items:center;gap:10px;width:100%}
@@ -234,60 +179,51 @@ input{font-family:inherit;color:var(--text);background:none;border:none;outline:
 .req-title{font-size:13px;font-weight:800}.req-sub{font-size:11px;color:var(--text3);margin-top:2px}
 .req-btns{display:flex;gap:6px}
 
-/* ── BOTTOM SHEET ─────────────────────────────────────────── */
+/* ── BOTTOM SHEET ───────────────────────────────────────── */
 #bottomSheet{
   position:absolute;bottom:0;left:0;right:0;z-index:40;
   display:flex;flex-direction:column;
-  border-radius:24px 24px 0 0;
-  background:rgba(12,10,4,.97);
+  border-radius:28px 28px 0 0;
+  background:rgba(8,8,8,.97);
   backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
   border-top:1px solid rgba(255,255,255,.1);
   transition:height .3s cubic-bezier(.4,0,.2,1);
   overflow:hidden;
 }
+/* Khi tab bản đồ active — sheet trong suốt, chỉ ptt+tabbar có nền */
 #bottomSheet.map-mode{
-  background:transparent;backdrop-filter:none;-webkit-backdrop-filter:none;border-top:none;
-  /* Height = PTT zone + tabbar only — no scroll area */
+  background:transparent;
+  backdrop-filter:none;-webkit-backdrop-filter:none;
+  border-top:none;
 }
-#bottomSheet.map-mode #sheetScrollArea{display:none !important}
-#bottomSheet.map-mode .bs-handle-wrap{display:none !important}
-/* In map mode, sheet height is auto (just PTT+tabbar) */
-#bottomSheet.map-mode{height:auto !important;transition:none}
-.bs-handle-wrap{display:flex;justify-content:center;padding:10px 0 2px;flex-shrink:0;cursor:grab}
+#bottomSheet.map-mode #sheetScrollArea{
+  display:none;
+}
+#bottomSheet.map-mode .bs-handle-wrap{
+  display:none;
+}
+.bs-handle-wrap{display:flex;justify-content:center;padding:10px 0 4px;flex-shrink:0;cursor:grab}
 .bs-handle{width:36px;height:4px;background:rgba(255,255,255,.18);border-radius:2px}
 
-/* ── MEMBER STRIP ─────────────────────────────────────────── */
-.bs-members-hdr{display:flex;align-items:center;justify-content:space-between;padding:8px 16px 4px;flex-shrink:0}
-.bs-members-title{font-size:10px;font-weight:900;color:var(--text3);text-transform:uppercase;letter-spacing:.1em}
-.bs-members-count{font-size:10px;font-weight:800;color:var(--green)}
-.av-strip{display:flex;overflow-x:auto;padding:4px 14px 10px;-webkit-overflow-scrolling:touch;flex-shrink:0;gap:8px}
-/* Member cards (TrailTalk style) */
-.av-item{
-  display:flex;align-items:center;gap:10px;
-  min-width:130px;flex-shrink:0;
-  background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);
-  border-radius:14px;padding:8px 12px;
-  cursor:pointer;transition:border-color .15s;
-}
-.av-item.speaking-card{border-color:rgba(57,255,20,.4);background:rgba(57,255,20,.06)}
-.av-item:active{transform:scale(.97)}
-.av-ring{width:38px;height:38px;border-radius:50%;padding:2.5px;flex-shrink:0;position:relative}
-.av-ring.idle{background:rgba(255,255,255,.12)}
-.av-ring.speaking{background:var(--green);animation:avRingPulse 1.2s ease-in-out infinite}
-.av-ring.owner-r{background:var(--gold)}
-.av-ring.me-r{background:var(--blue)}
-@keyframes avRingPulse{0%,100%{box-shadow:0 0 0 0 rgba(57,255,20,.5)}50%{box-shadow:0 0 0 6px rgba(57,255,20,0)}}
-.av-inner{width:100%;height:100%;border-radius:50%;overflow:hidden;background:var(--surf2);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:900;color:#fff;border:2px solid rgba(0,0,0,.5)}
-.av-info{flex:1;min-width:0}
-.av-name{font-size:12px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:-.01em}
-.av-stat{font-size:10px;color:var(--text3);margin-top:2px;display:flex;align-items:center;gap:4px}
-.av-stat.speaking{color:var(--green)}
-.av-stat-dot{width:5px;height:5px;border-radius:50%;background:var(--green)}
-.av-vol{display:flex;align-items:center;margin-left:auto;flex-shrink:0}
-.av-vol-ico{font-size:14px;color:var(--green)}
+/* ── SHEET SCROLL AREA ──────────────────────────────────── */
+#sheetScrollArea{flex:1;position:relative;overflow:hidden;min-height:0}
 
-/* ── CONTENT PANELS ──────────────────────────────────────── */
-.content-panel{display:none;flex-direction:column;position:absolute;inset:0;border-radius:24px 24px 0 0;background:rgba(12,10,4,.99);z-index:5;overflow:hidden}
+/* Member strip */
+.bs-members-hdr{display:flex;align-items:center;justify-content:space-between;padding:6px 16px;flex-shrink:0}
+.bs-members-title{font-size:10px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.07em}
+.bs-members-count{font-size:10px;font-weight:700;color:var(--green)}
+.av-strip{display:flex;gap:0;overflow-x:auto;padding:4px 14px 8px;-webkit-overflow-scrolling:touch;flex-shrink:0;scroll-snap-type:x mandatory}
+.av-item{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:64px;flex-shrink:0;scroll-snap-align:start;padding:0 4px;cursor:pointer}
+.av-ring{width:50px;height:50px;border-radius:50%;padding:2.5px;position:relative;flex-shrink:0}
+.av-ring.idle{background:rgba(255,255,255,.1)}.av-ring.speaking{background:var(--green);animation:aPulse 1.2s ease-in-out infinite}
+.av-ring.owner-r{background:var(--gold)}.av-ring.me-r{background:var(--blue)}
+@keyframes aPulse{0%,100%{box-shadow:0 0 0 0 rgba(57,255,20,.4)}50%{box-shadow:0 0 0 8px rgba(57,255,20,0)}}
+.av-inner{width:100%;height:100%;border-radius:50%;overflow:hidden;background:var(--surf2);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:900;color:#fff;border:2.5px solid rgba(0,0,0,.5)}
+.av-name{font-size:9px;font-weight:700;color:var(--text2);text-align:center;max-width:58px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.av-stat{font-size:8px;font-weight:800;color:var(--text3);text-transform:uppercase}
+
+/* Content panels */
+.content-panel{display:none;flex-direction:column;position:absolute;inset:0;border-radius:28px 28px 0 0;background:rgba(8,8,8,.99);z-index:5;overflow:hidden}
 .content-panel.active{display:flex}
 .cp-hdr{display:flex;align-items:center;gap:10px;padding:16px 16px 10px;border-bottom:1px solid var(--border);flex-shrink:0}
 .cp-title{font-size:15px;font-weight:900;flex:1;letter-spacing:-.02em}
@@ -295,7 +231,7 @@ input{font-family:inherit;color:var(--text);background:none;border:none;outline:
 
 /* Member list */
 .mlist{flex:1;overflow-y:auto;padding:4px 0;display:flex;flex-direction:column}
-.mrow{display:flex;align-items:center;gap:11px;padding:10px 16px;border-bottom:1px solid rgba(255,255,255,.04);transition:background .15s}
+.mrow{display:flex;align-items:center;gap:11px;padding:10px 16px;border-bottom:1px solid rgba(255,255,255,.04);transition:background .15s;cursor:default}
 .mrow:active{background:rgba(255,255,255,.04)}
 .mrow.speaking{background:rgba(57,255,20,.07);border-bottom-color:rgba(57,255,20,.15)}
 .mrow.is-owner{border-left:3px solid var(--gold)}
@@ -308,49 +244,36 @@ input{font-family:inherit;color:var(--text);background:none;border:none;outline:
 .minfo{flex:1;min-width:0}
 .mname{font-size:13px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:-.01em}
 .msub{font-size:10.5px;color:var(--text2);margin-top:2px;display:flex;align-items:center;gap:4px;flex-wrap:wrap}
-.mrow.speaking .mname,.mrow.speaking .msub{color:var(--green)}
-.qb{font-size:9px;padding:1px 5px;border-radius:5px;border:1px solid var(--border);background:var(--surf2);font-weight:700}
-.qb.g{border-color:rgba(57,255,20,.4);color:var(--green);background:var(--greens)}
-.qb.o{border-color:rgba(245,158,11,.4);color:var(--warn);background:rgba(245,158,11,.1)}
-.qb.r{border-color:rgba(239,68,68,.4);color:var(--red);background:var(--reds)}
-.mwave{display:none}
-.mrow.speaking .mwave{display:flex;align-items:center;gap:2px;margin-left:auto;flex-shrink:0}
-.mrow.speaking .mwave span{width:3px;border-radius:2px;background:var(--green);animation:waveBar 1s ease-in-out infinite}
-.mrow.speaking .mwave span:nth-child(1){height:8px}.mrow.speaking .mwave span:nth-child(2){height:14px;animation-delay:.15s}.mrow.speaking .mwave span:nth-child(3){height:10px;animation-delay:.3s}
-.owbtns{flex-shrink:0}
+.mbat{font-size:10px;color:var(--text3)}
+.owbtns{margin-left:auto;flex-shrink:0}
 .owb-btn{width:30px;height:30px;border-radius:8px;background:rgba(255,255,255,.06);border:1px solid var(--border);font-size:16px;display:flex;align-items:center;justify-content:center;color:var(--text2)}
 .owb-drop{display:none;position:fixed;background:rgba(10,10,10,.97);border:1px solid var(--border2);border-radius:16px;box-shadow:0 20px 50px rgba(0,0,0,.9);z-index:9999;min-width:210px;overflow:hidden;backdrop-filter:blur(24px)}
 .owb-drop.open{display:block}
-.owb-drop-title{padding:10px 14px 6px;font-size:10px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.07em}
 .owb-drop-item{width:100%;padding:12px 14px;text-align:left;font-size:13px;font-weight:700;display:flex;align-items:center;gap:10px;border:none;background:transparent;color:var(--text);border-bottom:1px solid rgba(255,255,255,.05);cursor:pointer}
 .owb-drop-item:last-child{border-bottom:none}
-.owb-drop-item:active{background:rgba(255,255,255,.05)}
-.owb-drop-item.danger{color:var(--red)}.owb-drop-item.warn{color:var(--warn)}.owb-drop-item.blue{color:var(--blue)}.owb-drop-item.green{color:var(--green)}.owb-drop-item.red{color:var(--red)}
+.owb-drop-item:active{background:rgba(255,255,255,.06)}
+.owb-drop-item.red{color:var(--red)}.owb-drop-item.warn{color:var(--warn)}.owb-drop-item.blue{color:var(--blue)}
 
 /* Chat */
-.chat-msgs{flex:1;overflow-y:auto;padding:8px 12px;display:flex;flex-direction:column;gap:6px}
-.csys{align-self:center;font-size:10.5px;color:var(--text3);padding:3px 10px;background:rgba(255,255,255,.05);border-radius:999px;margin:2px 0}
+.chat-msgs{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:8px 12px;display:flex;flex-direction:column;gap:6px}
 .cmsg{display:flex;flex-direction:column;max-width:82%}
 .cmsg.me{align-self:flex-end;align-items:flex-end}
 .cmsg.other{align-self:flex-start;align-items:flex-start}
 .cmsg.system{align-self:center;align-items:center;max-width:95%}
-.bubble-wrap{display:flex;align-items:flex-end;gap:4px}
-.cmsg.me .bubble-wrap{flex-direction:row-reverse}
-.bubble{padding:9px 13px;border-radius:18px;font-size:13px;line-height:1.45;word-break:break-word}
+.bubble{padding:8px 12px;border-radius:16px;font-size:13px;line-height:1.45;word-break:break-word;position:relative}
 .cmsg.me .bubble{background:var(--green);color:#000;border-bottom-right-radius:5px;font-weight:700}
 .cmsg.other .bubble{background:rgba(255,255,255,.09);border:1px solid var(--border);color:var(--text);border-bottom-left-radius:5px}
 .cmsg.system .bubble{background:rgba(255,255,255,.05);color:var(--text3);font-size:11px;font-weight:600;border-radius:20px;padding:5px 14px}
 .cmeta{font-size:10px;color:var(--text3);margin-top:3px;padding:0 4px;display:flex;align-items:center;gap:4px}
 .tts-msg-btn{background:none;border:none;color:var(--text3);font-size:12px;padding:0;cursor:pointer}
-.chat-input-row{display:flex;gap:8px;padding:9px 14px;border-top:1px solid var(--border);background:rgba(12,10,4,.99);flex-shrink:0;padding-bottom:calc(9px + var(--sb))}
-.chat-inp{flex:1;height:40px;padding:0 14px;background:var(--surf);border:1px solid var(--border2);border-radius:22px;font-size:14px;color:var(--text)}
-.chat-inp:focus{border-color:rgba(57,255,20,.4)}
-.cemoji{width:40px;height:40px;border-radius:50%;background:var(--surf);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
-.csend{width:40px;height:40px;border-radius:50%;background:var(--green);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#000}
+.chat-input-row{display:flex;gap:8px;padding:9px 14px;border-top:1px solid var(--border);background:rgba(8,8,8,.99);flex-shrink:0;padding-bottom:calc(9px + var(--sb))}
+.chat-inp{flex:1;height:38px;padding:0 12px;background:var(--surf);border:1px solid var(--border2);border-radius:20px;font-size:14px;color:var(--text)}
+.cemoji{width:38px;height:38px;border-radius:50%;background:var(--surf);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.csend{width:38px;height:38px;border-radius:50%;background:var(--green);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#000}
 
 /* Settings */
-.set-scroll{flex:1;overflow-y:auto;padding:10px 14px;display:flex;flex-direction:column;gap:4px}
-.set-section{background:var(--surf);border-radius:14px;overflow:hidden;border:1px solid var(--border);margin-bottom:8px}
+.set-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:10px 14px;display:flex;flex-direction:column;gap:4px}
+.set-section{background:var(--surf);border-radius:14px;overflow:hidden;border:1px solid var(--border)}
 .set-item{display:flex;align-items:center;gap:12px;padding:13px;border-bottom:1px solid rgba(255,255,255,.05)}
 .set-item:last-child{border-bottom:none}
 .set-icon{font-size:18px;width:24px;text-align:center;flex-shrink:0}
@@ -365,7 +288,7 @@ input{font-family:inherit;color:var(--text);background:none;border:none;outline:
 .tts-prov-row:last-child{border-bottom:none}
 .tts-prov-row input[type=radio]{accent-color:var(--green);width:16px;height:16px}
 
-/* ── VIDEO GRID ──────────────────────────────────────────── */
+/* ── VIDEO GRID ─────────────────────────────────────────── */
 #videoGrid{display:none;flex-wrap:wrap;gap:4px;padding:4px 10px 0;flex-shrink:0}
 #videoGrid.vis{display:flex}
 .vtile{position:relative;border-radius:10px;overflow:hidden;background:#000;flex:1;min-width:140px;max-width:200px}
@@ -373,241 +296,102 @@ input{font-family:inherit;color:var(--text);background:none;border:none;outline:
 .vname{position:absolute;bottom:0;left:0;right:0;padding:4px 7px;font-size:10px;font-weight:700;background:linear-gradient(0deg,rgba(0,0,0,.8),transparent);color:#fff}
 .voff{position:absolute;top:4px;right:4px;background:rgba(0,0,0,.6);border:none;border-radius:6px;padding:3px 6px;font-size:10px;color:#fff;cursor:pointer}
 
-/* ── PTT ZONE — TrailTalk convoy style ────────────────────── */
+/* ── PTT ZONE ───────────────────────────────────────────── */
 .ptt-zone{
   flex-shrink:0;
   display:flex;align-items:center;justify-content:space-between;
-  padding:12px 20px calc(10px + var(--sb));
-  background:rgba(12,10,4,.99);
+  padding:14px 20px calc(10px + var(--sb));
+  background:rgba(8,8,8,.99);
   border-top:1px solid rgba(255,255,255,.08);
   position:relative;z-index:10;
 }
 #reactLayer{position:absolute;bottom:100%;left:0;right:0;height:80px;pointer-events:none;overflow:visible;z-index:50}
-
-/* Side buttons */
-.ptt-side{display:flex;flex-direction:column;align-items:center;gap:5px;min-width:60px}
-.ptt-side-btn{
-  width:52px;height:52px;border-radius:16px;
-  background:rgba(255,255,255,.08);border:1px solid var(--border2);
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
-  font-size:20px;gap:2px;transition:background .15s;
-}
-.ptt-side-btn:active{transform:scale(.9)}
-.ptt-side-btn.on{background:rgba(57,255,20,.15);border-color:rgba(57,255,20,.4)}
-.ptt-side-btn.muted{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.1)}
+.ptt-side{display:flex;flex-direction:column;align-items:center;gap:5px;min-width:64px}
+.ptt-side-btn{width:54px;height:54px;border-radius:16px;background:rgba(255,255,255,.07);border:1px solid var(--border2);display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:20px;gap:3px;transition:background .15s}
+.ptt-side-btn:active{transform:scale(.9);background:rgba(255,255,255,.12)}
+.ptt-side-btn.on{background:rgba(57,255,20,.15);border-color:rgba(57,255,20,.3)}
 .ptt-side-lbl{font-size:9px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;text-align:center}
-
-/* Center: stat + big PTT */
 .ptt-center{display:flex;flex-direction:column;align-items:center;gap:6px}
 .stat-line{font-size:11px;font-weight:700;color:var(--text3);text-align:center;min-height:14px}
-.stat-line.talking{color:var(--green)}.stat-line.preparing{color:var(--warn)}.stat-line.remote{color:var(--orange)}
-.ptt-outer{position:relative;width:90px;height:90px;display:flex;align-items:center;justify-content:center}
-.ptt-wave-r{position:absolute;inset:-14px;border-radius:50%;border:2.5px solid var(--orange);opacity:0;pointer-events:none}
-.ptt-outer.talking .ptt-wave-r{opacity:1;animation:pWave 1.4s ease-out infinite}
+.ptt-outer{position:relative;width:96px;height:96px;display:flex;align-items:center;justify-content:center}
+.ptt-wave-r{position:absolute;inset:-16px;border-radius:50%;border:2.5px solid rgba(255,255,255,.08);pointer-events:none}
+.ptt-outer.talking .ptt-wave-r{border-color:var(--orange);animation:pWave 1.4s ease-out infinite}
 @keyframes pWave{0%{transform:scale(.78);opacity:.8}100%{transform:scale(1.8);opacity:0}}
 #pttBtn{
-  width:82px;height:82px;border-radius:50%;
-  background:radial-gradient(circle at 35% 30%, #fcd34d, #f59e0b 55%, #d97706);
-  border:none;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+  width:88px;height:88px;border-radius:50%;
+  background:linear-gradient(135deg,#FF5F1F 0%,#FF8C00 100%);
+  border:6px solid rgba(0,0,0,.8);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
   transition:all .1s;position:relative;z-index:1;
-  box-shadow:0 0 40px rgba(245,158,11,.55),0 8px 24px rgba(0,0,0,.5);
+  box-shadow:0 0 28px rgba(255,95,31,.35),0 6px 20px rgba(0,0,0,.5);
   color:#fff;
 }
-#pttBtn svg{width:28px;height:28px;color:#fff;filter:drop-shadow(0 2px 4px rgba(0,0,0,.4))}
-.ptt-txt{font-size:8px;font-weight:900;text-transform:uppercase;letter-spacing:.05em;color:rgba(255,255,255,.9);line-height:1.2;text-align:center}
-#pttBtn.locked{background:radial-gradient(circle at 35% 30%,#3a3a3a,#1a1a1a);box-shadow:none;opacity:.55;pointer-events:none}
-#pttBtn.locked svg{color:rgba(255,255,255,.3)}
-#pttBtn.preparing{background:radial-gradient(circle at 35% 30%,#fbbf24,#ca8a04 60%,#92400e);box-shadow:0 0 0 8px rgba(245,158,11,.15),0 0 32px rgba(245,158,11,.4)}
-#pttBtn.talking{background:radial-gradient(circle at 35% 30%,#86efac,#4ade80 60%,#16a34a);box-shadow:0 0 0 10px rgba(57,255,20,.18),0 0 40px rgba(57,255,20,.5)}
-#pttBtn:active:not(.locked){transform:scale(.9);box-shadow:0 0 20px rgba(255,95,31,.4)}
+#pttBtn svg{width:28px;height:28px;color:#fff;filter:drop-shadow(0 2px 4px rgba(0,0,0,.3))}
+#pttBtn .ptt-txt{font-size:8px;font-weight:900;text-transform:uppercase;letter-spacing:.05em;line-height:1.2;color:#fff;text-align:center}
+#pttBtn.locked{background:rgba(50,50,50,.9);box-shadow:none;border-color:rgba(0,0,0,.7);opacity:.5;pointer-events:none}
+#pttBtn.locked svg{color:var(--text3)}
+#pttBtn.preparing{background:linear-gradient(135deg,#ca8a04,#f59e0b)}
+#pttBtn.talking{background:linear-gradient(135deg,#16a34a,#39FF14);box-shadow:0 0 0 10px rgba(57,255,20,.12),0 0 36px rgba(57,255,20,.35);border-color:rgba(0,0,0,.4)}
+#pttBtn:active:not(.locked){transform:scale(.91)}
+.sos-btn{padding:0 12px;height:54px;border-radius:16px;min-width:54px;background:rgba(220,38,38,.12);border:1px solid rgba(239,68,68,.35);color:var(--red);font-size:11px;font-weight:900;letter-spacing:.04em;display:flex;align-items:center;justify-content:center}
+.sos-btn:active{transform:scale(.88);background:rgba(220,38,38,.25)}
 
-/* SOS button */
-.sos-btn{
-  width:52px;height:52px;border-radius:14px;
-  background:rgba(239,68,68,.12);border:1.5px solid rgba(239,68,68,.4);
-  color:var(--red);font-size:11px;font-weight:900;
-  display:flex;align-items:center;justify-content:center;
-  letter-spacing:.04em;
-}
-.sos-btn:active{background:rgba(239,68,68,.25);transform:scale(.9)}
-
-/* ── TABBAR ──────────────────────────────────────────────── */
-.tabbar{
-  flex-shrink:0;display:flex;background:rgba(12,10,4,.99);
-  border-top:1px solid rgba(255,255,255,.06);
-  padding-bottom:var(--sb);
+/* ── TABBAR ─────────────────────────────────────────────── */
+.tabbar{flex-shrink:0;display:flex;background:rgba(8,8,8,.99);border-top:1px solid rgba(255,255,255,.07);padding-bottom:var(--sb);position:relative;z-index:10
+  padding-bottom:calc(60px + env(safe-area-inset-bottom,0px)) !important;
 }
 .ti{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:8px 4px 6px;cursor:pointer;border:none;background:transparent;transition:opacity .14s;position:relative;min-width:0}
 .ti:active{opacity:.55}
-.tii{font-size:20px;line-height:1.15;transition:transform .15s}
-.til{font-size:9px;font-weight:800;color:var(--text3);white-space:nowrap;text-transform:uppercase;letter-spacing:.05em}
-.ti.active .til{color:var(--orange)}
-.ti.active .tii{transform:scale(1.12);filter:drop-shadow(0 2px 6px rgba(245,158,11,.5))}
-.tdot{position:absolute;top:6px;right:calc(50% - 18px);width:8px;height:8px;border-radius:50%;background:var(--red);border:1.5px solid #0a0a0a;display:none}
+.ti .tii{font-size:20px;line-height:1.15;transition:transform .15s}
+.ti .til{font-size:9px;font-weight:800;color:var(--text3);white-space:nowrap;text-transform:uppercase;letter-spacing:.04em}
+.ti.active .til{color:var(--green)}
+.ti.active .tii{transform:scale(1.1)}
+.ti .tdot{position:absolute;top:6px;right:calc(50% - 18px);width:8px;height:8px;border-radius:50%;background:var(--red);border:1.5px solid #0a0a0a;display:none}
 .ti.has-dot .tdot{display:block}
 
-/* ── MODALS ──────────────────────────────────────────────── */
-.mov{display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.8);align-items:flex-end;justify-content:center;backdrop-filter:blur(8px)}
+/* ── MODALS ─────────────────────────────────────────────── */
+.mov{display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.75);align-items:flex-end;justify-content:center;backdrop-filter:blur(6px)}
 .mov.show{display:flex}
 .mbd{position:absolute;inset:0}
-.msheet{position:relative;background:rgba(12,10,4,.98);border-top-left-radius:26px;border-top-right-radius:26px;border:1px solid var(--border2);border-bottom:none;padding:0 18px calc(18px + var(--sb));width:100%;max-width:480px;max-height:90dvh;overflow-y:auto;box-shadow:0 -12px 50px rgba(0,0,0,.8);backdrop-filter:blur(20px)}
-.mhandle{width:36px;height:4px;border-radius:2px;background:rgba(255,255,255,.15);margin:12px auto 16px}
+.msheet{position:relative;background:rgba(12,12,12,.99);border-top-left-radius:26px;border-top-right-radius:26px;border:1px solid var(--border2);border-bottom:none;padding:0 18px calc(18px + var(--sb));width:100%;max-width:480px;max-height:90dvh;overflow-y:auto;box-shadow:0 -12px 50px rgba(0,0,0,.7);backdrop-filter:blur(20px)}
+.mhandle{width:36px;height:4px;background:rgba(255,255,255,.18);border-radius:2px;margin:12px auto 16px}
 .mtitle{font-size:16px;font-weight:900;margin-bottom:16px;letter-spacing:-.02em}
 .qr-cw{display:flex;justify-content:center;margin-bottom:14px}
-#qrCanvas{border-radius:14px;background:#fff;padding:10px}
+.qr-lb{font-size:11px;color:var(--text2);flex:1;word-break:break-all;line-height:1.4}
 .qr-lr{display:flex;gap:8px;margin-bottom:10px;align-items:center}
-#qrLink{font-size:12px;color:var(--blue);word-break:break-all;flex:1}
-.egrid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
-.ebtn{aspect-ratio:1;border-radius:16px;background:rgba(255,255,255,.06);border:1px solid var(--border);font-size:26px;display:flex;align-items:center;justify-content:center}
-.ebtn:active{transform:scale(.85)}
-#sosOv{display:none;position:fixed;inset:0;z-index:10000;background:rgba(220,38,38,.9);align-items:center;justify-content:center;flex-direction:column;gap:16px;backdrop-filter:blur(10px)}
+.egrid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.ebtn{width:100%;aspect-ratio:1;border-radius:12px;background:var(--surf);border:1px solid var(--border);font-size:22px;display:flex;align-items:center;justify-content:center}
+.ebtn:active{background:var(--surf2);transform:scale(.9)}
+
+/* SOS overlay */
+#sosOv{display:none;position:fixed;inset:0;z-index:10000;background:rgba(200,20,20,.9);align-items:center;justify-content:center;flex-direction:column;gap:16px;backdrop-filter:blur(8px)}
 #sosOv.show{display:flex}
-.sos-card{background:rgba(255,255,255,.97);border-radius:26px;padding:28px 24px;width:calc(100% - 40px);max-width:320px;text-align:center;box-shadow:0 24px 60px rgba(0,0,0,.5)}
-.sos-e{font-size:52px;margin-bottom:10px;animation:sosBounce .5s ease-in-out infinite alternate}
-@keyframes sosBounce{from{transform:scale(1)}to{transform:scale(1.1)}}
-.sos-t{font-size:19px;font-weight:900;color:#c00;margin-bottom:8px}
-.sos-b{font-size:13px;color:#444;line-height:1.6;white-space:pre-wrap}
-.sos-dismiss{padding:12px 28px;border-radius:14px;background:rgba(220,38,38,.2);color:#c00;font-weight:800;font-size:14px;border:2px solid rgba(220,38,38,.3);cursor:pointer}
+.sos-card{text-align:center}
+.sos-e{font-size:56px;margin-bottom:10px;animation:sosBounce .5s ease-in-out infinite alternate}
+@keyframes sosBounce{from{transform:scale(1)}to{transform:scale(1.12)}}
+.sos-t{font-size:22px;font-weight:900;color:#fff;margin-bottom:8px}
+.sos-b{font-size:14px;color:rgba(255,255,255,.8);font-weight:600}
+.sos-dismiss{padding:14px 32px;background:rgba(0,0,0,.4);border:2px solid rgba(255,255,255,.3);border-radius:14px;font-size:14px;font-weight:800;color:#fff;cursor:pointer}
 
-/* Reaction */
+/* Reaction bubbles */
 .rb{position:absolute;bottom:0;display:flex;flex-direction:column;align-items:center;animation:fUp 2.4s ease-out forwards}
-.rb .re{font-size:26px}.rb .rw{font-size:9px;color:var(--text3);background:var(--surf2);padding:1px 5px;border-radius:6px;margin-top:1px}
-@keyframes fUp{0%{transform:translateY(0) scale(.5);opacity:0}12%{transform:translateY(-14px) scale(1.05);opacity:1}85%{opacity:1}100%{transform:translateY(-160px) scale(.9);opacity:0}}
+@keyframes fUp{0%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(-80px)}}
+.re{font-size:26px}.rw{font-size:9px;font-weight:800;color:var(--text3);margin-top:2px}
 
-/* Desktop */
-@media(min-width:600px){
-  body{display:flex;align-items:center;justify-content:center;background:#050508}
-  .screen{max-width:420px;width:100%;border-radius:22px;border:1px solid var(--border2);box-shadow:0 28px 70px rgba(0,0,0,.8);overflow:hidden;position:relative;top:auto;left:auto;right:auto;bottom:auto}
-  .screen.active{display:flex;max-height:92dvh;overflow-y:auto}
-  #roomScreen{position:relative;width:400px;height:91dvh;max-height:900px;border-radius:24px;border:1px solid var(--border2);box-shadow:0 28px 70px rgba(0,0,0,.8);overflow:hidden}
-  #roomScreen.active{display:flex}
-}
-@media(min-width:900px){#roomScreen{width:440px;height:93dvh}}
+/* Share chip */
+#shareChip{display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:20px;background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.15);backdrop-filter:blur(10px);font-size:11px;font-weight:700;color:var(--text);cursor:pointer}
+
+/* Status dropdown option */
+.status-opt-active { color: var(--green) !important; }
+
+/* Map pin marker */
+.map-pin-label{font-size:10px;font-weight:800;color:#fff;background:rgba(0,0,0,.65);padding:1px 5px;border-radius:5px;white-space:nowrap;margin-bottom:3px;text-align:center}
+.map-pin-speaking{color:var(--green);background:rgba(57,255,20,.2)}
 </style>
 
 </head>
 <body>
 <div id="toastLayer"></div>
-
-<!-- ── APP TAB NAV (Top level) ────────────────────────── -->
-<div id="appTabNav" style="
-  display:none;
-  position:fixed;bottom:0;left:0;right:0;z-index:9998;
-  background:#1a1710;border-top:1px solid rgba(245,158,11,.2);
-  display:flex;padding-bottom:env(safe-area-inset-bottom,0px);
-  box-shadow:0 -4px 20px rgba(0,0,0,0.4);
-">
-  <button class="app-tab-btn active" id="appTabWalkie" onclick="switchAppTab('walkie')"
-    style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:8px 4px;border:none;background:none;cursor:pointer;transition:all .2s">
-    <span style="font-size:22px">📻</span>
-    <span style="font-size:10px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:#3B82F6">Bộ Đàm</span>
-  </button>
-  <button class="app-tab-btn" id="appTabKids" onclick="switchAppTab('kids')"
-    style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:8px 4px;border:none;background:none;cursor:pointer;transition:all .2s">
-    <span style="font-size:22px">🔔</span>
-    <span style="font-size:10px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:#9CA3AF">Nhắc Lịch Bé</span>
-  </button>
-</div>
-
-<!-- ── KIDS SCHEDULER SCREEN ─────────────────────────── -->
-<div id="kidsScreen" style="display:none;position:fixed;inset:0;z-index:200;overflow-y:auto;background:#fffef7;padding-bottom:72px">
-  <!-- Header -->
-  <div style="text-align:center;padding:calc(20px + env(safe-area-inset-top,0px)) 20px 16px;background:#fffef7">
-    <div style="width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,#e0f2fe,#bfdbfe);margin:0 auto 12px;display:flex;align-items:center;justify-content:center;font-size:40px;box-shadow:0 4px 16px rgba(59,130,246,0.2)">🕐</div>
-    <h1 style="font-size:22px;font-weight:900;color:#1e293b;margin:0 0 4px;letter-spacing:-.03em">🔔 Loa Nhắc Lịch Cho Bé</h1>
-    <p style="font-size:13px;color:#94a3b8;margin:0;font-style:italic">Biến thói quen thành niềm vui mỗi ngày!</p>
-  </div>
-
-  <div style="max-width:480px;margin:0 auto;padding:0 16px">
-
-    <!-- Add Task Card -->
-    <div style="background:#fff;border-radius:24px;padding:20px;margin-bottom:20px;box-shadow:0 4px 20px rgba(0,0,0,0.06);border:1.5px solid #e2e8f0">
-      <h2 style="font-size:16px;font-weight:800;color:#0ea5e9;margin:0 0 16px;display:flex;align-items:center;gap:8px">
-        ✨ Thêm Lịch Nhắc Mới
-      </h2>
-
-      <!-- Task name -->
-      <div style="margin-bottom:12px">
-        <label style="font-size:12px;font-weight:700;color:#64748b;display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em">Tên việc cần làm?</label>
-        <input id="kTaskName" type="text" placeholder="e.g., Giờ uống sữa 🍼"
-          style="width:100%;padding:12px 14px;border:1.5px solid #e2e8f0;border-radius:14px;font-size:14px;font-family:inherit;outline:none;background:#f8fafc;color:#1e293b;box-sizing:border-box"
-          onfocus="this.style.borderColor='#0ea5e9'" onblur="this.style.borderColor='#e2e8f0'"/>
-      </div>
-
-      <!-- Time picker -->
-      <div style="margin-bottom:12px">
-        <label style="font-size:12px;font-weight:700;color:#64748b;display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em">Giờ nhắc?</label>
-        <div style="background:linear-gradient(135deg,#e0f9f9,#ccf2f4);border-radius:14px;padding:14px;display:flex;align-items:center;gap:12px;border:1.5px solid #99e6e6">
-          <span style="font-size:28px;font-weight:900;color:#0891b2;flex:1;font-family:monospace" id="kTimeDisplay">08:30</span>
-          <input id="kTaskTime" type="time" value="08:30"
-            style="padding:8px 12px;border:1.5px solid #0891b2;border-radius:10px;font-size:15px;font-weight:700;font-family:monospace;color:#0891b2;background:#fff;outline:none;cursor:pointer"
-            oninput="document.getElementById('kTimeDisplay').textContent=this.value"/>
-        </div>
-      </div>
-
-      <!-- Voice style -->
-      <div style="margin-bottom:16px">
-        <label style="font-size:12px;font-weight:700;color:#64748b;display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em">Câu nói thú vị cho bé!</label>
-        <select id="kVoiceStyle"
-          style="width:100%;padding:12px 14px;border:1.5px solid #e2e8f0;border-radius:14px;font-size:13px;font-family:inherit;outline:none;background:#f8fafc;color:#1e293b;cursor:pointer;appearance:none;-webkit-appearance:none">
-          <option value="Bé yêu ơi, mau nhanh chân lên nào!">🐰 Bé yêu ơi, mau nhanh chân lên nào!</option>
-          <option value="Biến hình thôi các siêu anh hùng ơi, tới giờ rồi!">🦸 Biến hình thôi siêu anh hùng, tới giờ rồi!</option>
-          <option value="Ting ting ting! Đến giờ rồi bé ơi, nhanh lên nào!">🔔 Ting ting! Đến giờ rồi bé ơi, nhanh lên!</option>
-          <option value="Mau lên nào bé yêu, thỏ con đang đợi đấy!">🐇 Mau lên nào, thỏ con đang đợi đấy!</option>
-          <option value="Bắt đầu nhiệm vụ không gian thôi các phi hành gia!">🚀 Bắt đầu nhiệm vụ không gian thôi phi hành gia!</option>
-          <option value="Chú robot nhắc bé rồi đây, mau lên nào!">🤖 Chú robot nhắc bé rồi, mau lên nào!</option>
-          <option value="Ôi chà! Đến giờ của bé yêu rồi, vui lên nào!">⭐ Ôi chà! Đến giờ bé yêu rồi, vui lên!</option>
-        </select>
-      </div>
-
-      <!-- Save button -->
-      <button onclick="kAddTask()"
-        style="width:100%;padding:15px;background:linear-gradient(135deg,#f59e0b,#fbbf24);border:none;border-radius:16px;font-size:16px;font-weight:800;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 6px 20px rgba(245,158,11,0.4);transition:all .2s;letter-spacing:-.01em">
-        ✅ Lưu Lịch Nhắc
-      </button>
-    </div>
-
-    <!-- Today's Schedule -->
-    <div style="margin-bottom:20px">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-        <h2 style="font-size:17px;font-weight:900;color:#1e293b;margin:0">Lịch Hôm Nay</h2>
-        <span id="kTaskLeftBadge" style="background:#fff7ed;color:#f59e0b;border:1.5px solid #fed7aa;border-radius:20px;padding:4px 12px;font-size:12px;font-weight:800">0 việc còn lại</span>
-      </div>
-      <div id="kTaskList" style="display:flex;flex-direction:column;gap:10px">
-        <div style="text-align:center;padding:32px;color:#cbd5e1;font-size:13px;font-weight:600">
-          <div style="font-size:36px;margin-bottom:8px">📅</div>
-          Chưa có lịch nào. Thêm lịch đầu tiên nào!
-        </div>
-      </div>
-    </div>
-
-    <!-- Stats row -->
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:24px">
-      <div style="background:#fff;border-radius:16px;padding:14px;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,0.05);border:1px solid #f0f0f0">
-        <div style="font-size:22px;font-weight:900;color:#0ea5e9" id="kStatConsistency">0%</div>
-        <div style="font-size:9px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.06em">Hoàn thành</div>
-      </div>
-      <div style="background:#fff;border-radius:16px;padding:14px;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,0.05);border:1px solid #f0f0f0">
-        <div style="font-size:22px;font-weight:900;color:#f59e0b" id="kStatTotal">0</div>
-        <div style="font-size:9px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.06em">Tổng lịch</div>
-      </div>
-      <div style="background:#fff;border-radius:16px;padding:14px;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,0.05);border:1px solid #f0f0f0">
-        <div style="font-size:22px;font-weight:900;color:#10b981" id="kStatDone">0</div>
-        <div style="font-size:9px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.06em">Đã nhắc</div>
-      </div>
-    </div>
-
-    <!-- Pro tip -->
-    <div style="background:linear-gradient(135deg,#f0fdf4,#dcfce7);border:1.5px dashed #86efac;border-radius:16px;padding:14px 16px;display:flex;align-items:flex-start;gap:10px;margin-bottom:16px">
-      <span style="font-size:20px;flex-shrink:0">💡</span>
-      <p style="font-size:12px;color:#166534;font-weight:600;margin:0;line-height:1.6">
-        <strong>Mẹo:</strong> Sử dụng giọng "Siêu anh hùng" giúp bé thực hiện lịch nhanh hơn 40%! Bật loa to để bé nghe rõ nhé.
-      </p>
-    </div>
-
-  </div>
-</div>
 
 <!-- ── JOIN ─────────────────────────────────────────── -->
 <div id="joinScreen" class="screen">
@@ -665,65 +449,61 @@ input{font-family:inherit;color:var(--text);background:none;border:none;outline:
     <span style="font-size:12px;color:rgba(255,255,255,.35);font-weight:700">Chưa có vị trí thành viên</span>
   </div>
 
-  <!-- Dark overlays -->
-  <div class="map-dark-ov"></div>
+  <!-- Gradient overlays -->
   <div class="map-top-fade"></div>
   <div class="map-bottom-fade"></div>
 
-  <!-- TOPBAR — Convoy style -->
+  <!-- TOPBAR -->
   <div id="roomTopbar">
     <div class="rtb-left">
-      <div class="rtb-room">
-        <span id="roomLabel">CASAROOM</span>
-        <span class="rtb-live" style="font-size:8px;padding:1px 5px">LIVE</span>
-      </div>
+      <div class="rtb-room" id="roomLabel">CASAROOM</div>
       <div class="rtb-status">
         <div class="rtb-dot" id="connDot"></div>
         <span class="rtb-sub" id="memberCountLbl">0 thành viên</span>
+      </div>
+    </div>
 
-      </div>
-    </div>
-    <div class="rtb-right">
-      <!-- Status -->
-      <div class="status-wrap">
-        <button class="status-btn" id="statusBtn" style="padding:4px 8px;font-size:10px">
-          <span class="status-dot-btn" id="statusDotBtn"></span>
-          <span id="statusLbl" style="font-size:10px">Online</span>
-          <span class="status-arr">▾</span>
+    <!-- Status dropdown -->
+    <div class="status-wrap">
+      <button class="status-btn" id="statusBtn">
+        <span class="status-dot-btn" id="statusDotBtn"></span>
+        <span id="statusLbl">Online</span>
+        <span class="status-arr">▾</span>
+      </button>
+      <div id="statusDrop">
+        <div class="sdrop-title">Trạng thái</div>
+        <button class="sopt" data-s="online">
+          <span class="sopt-ico">🟢</span>
+          <div><div class="sopt-lbl">Online</div><div class="sopt-sub">Sẵn sàng nhận tín hiệu</div></div>
         </button>
-        <div id="statusDrop">
-          <div class="sdrop-title">Trạng thái</div>
-          <button class="sopt" data-s="online">
-            <span class="sopt-ico">🟢</span>
-            <div><div class="sopt-lbl">Online</div><div class="sopt-sub">Sẵn sàng nhận tín hiệu</div></div>
-          </button>
-          <button class="sopt" data-s="busy">
-            <span class="sopt-ico">🔴</span>
-            <div><div class="sopt-lbl">Bận</div><div class="sopt-sub">Không làm phiền</div></div>
-          </button>
-          <button class="sopt" data-s="away">
-            <span class="sopt-ico">🌙</span>
-            <div><div class="sopt-lbl">Vắng mặt</div><div class="sopt-sub">Tạm thời rời đi</div></div>
-          </button>
-        </div>
+        <button class="sopt" data-s="busy">
+          <span class="sopt-ico">🔴</span>
+          <div><div class="sopt-lbl">Bận</div><div class="sopt-sub">Không làm phiền</div></div>
+        </button>
+        <button class="sopt" data-s="away">
+          <span class="sopt-ico">🌙</span>
+          <div><div class="sopt-lbl">Vắng mặt</div><div class="sopt-sub">Tạm thời rời đi</div></div>
+        </button>
       </div>
-      <button class="rha" id="shareChip" title="Chia sẻ phòng">📤</button>
-      <button class="rha" id="waTTS" title="Đọc chat">🔊</button>
-      <button class="rha" id="waNoti" title="Thông báo">🔔</button>
-      <button class="rha" id="waLeave" style="color:var(--red)" title="Rời phòng">🚪</button>
     </div>
+
+    <!-- Header action buttons -->
+    <button class="rha" id="shareChip" title="Chia sẻ phòng">📤</button>
+    <button class="rha" id="waTTS" title="Đọc chat">🔊</button>
+    <button class="rha" id="waNoti" title="Thông báo">🔔</button>
+    <button class="rha" id="waLeave" style="color:var(--red)" title="Rời phòng">🚪</button>
   </div>
 
-  <!-- Map controls -->
+  <!-- Map controls (right side) -->
   <div class="map-ctrl">
-    <button class="mc-btn blue-mc" id="mcLoc" title="Vị trí của tôi">📍</button>
+    <button class="mc-btn" id="mcLoc" title="Vị trí của tôi">📍</button>
     <button class="mc-btn" id="mcZoomIn" title="Phóng to">＋</button>
     <button class="mc-btn" id="mcZoomOut" title="Thu nhỏ">－</button>
-    <button class="mc-btn" id="mcWake" title="Màn hình sáng">☀️</button>
+    <button class="mc-btn" id="mcWake" title="Giữ màn hình sáng">☀️</button>
   </div>
 
   <!-- Banners -->
-  <div class="banners">
+  <div class="banners" style="top:calc(60px + var(--st))">
     <div id="aprvBan">
       <span>⏳ Có người chờ duyệt vào phòng</span>
       <div id="aprvBanList"></div>
@@ -774,27 +554,30 @@ input{font-family:inherit;color:var(--text);background:none;border:none;outline:
   <div id="bottomSheet">
     <div class="bs-handle-wrap" id="bsHandle"><div class="bs-handle"></div></div>
 
-    <!-- Video grid -->
+    <!-- Video grid (camera) -->
     <div id="videoGrid"></div>
 
-    <!-- Scroll area -->
-    <div id="sheetScrollArea" style="flex:1;position:relative;overflow:hidden;min-height:0">
+    <!-- Scroll area: member strip + content panels -->
+    <div id="sheetScrollArea" style="flex:1;position:relative;overflow:hidden;min-height:0;">
 
       <!-- Member strip header -->
       <div class="bs-members-hdr">
-        <span class="bs-members-title" style="color:rgba(245,158,11,.7)">ĐỘI VIÊN ONLINE</span>
+        <span class="bs-members-title">Thành viên</span>
         <span class="bs-members-count" id="avOnlineCount">0 online</span>
       </div>
 
-      <!-- Avatar strip — TrailTalk card style -->
+      <!-- Avatar strip -->
       <div class="av-strip" id="avStrip"></div>
+
+      <!-- panelMap stub (needed by JS) -->
+      <div id="panelMap" style="display:none"></div>
 
       <!-- PANEL: Đội nhóm -->
       <div class="content-panel" id="panelMembers">
         <div class="cp-hdr">
           <span style="font-size:18px">👥</span>
           <span class="cp-title">Đội nhóm</span>
-          <button class="rha" id="waTTS2" style="width:32px;height:32px;font-size:15px">🔊</button>
+          <button class="rha" id="waTTS2" title="Đọc chat" style="width:32px;height:32px;font-size:15px">🔊</button>
         </div>
         <div class="mlist" id="memberListEl"></div>
       </div>
@@ -804,6 +587,7 @@ input{font-family:inherit;color:var(--text);background:none;border:none;outline:
         <div class="cp-hdr">
           <span style="font-size:18px">💬</span>
           <span class="cp-title">Trò chuyện</span>
+          <button class="cp-close" id="chatTTSBtn" title="Đọc chat">🔊</button>
         </div>
         <div class="chat-msgs" id="chatMsgs"></div>
         <div class="chat-input-row">
@@ -822,6 +606,7 @@ input{font-family:inherit;color:var(--text);background:none;border:none;outline:
           <span class="cp-title">Cài đặt</span>
         </div>
         <div class="set-scroll">
+          <!-- Phòng info -->
           <div class="sec">Thông tin phòng</div>
           <div class="set-section">
             <div class="set-item">
@@ -837,10 +622,14 @@ input{font-family:inherit;color:var(--text);background:none;border:none;outline:
               <div class="set-body"><div class="set-label">Phòng có mật khẩu</div><div class="set-sub">Bảo mật bật</div></div>
             </div>
           </div>
+
+          <!-- Phê duyệt -->
           <div class="sec" id="setAprvSec" style="display:none">Phê duyệt thành viên</div>
           <div class="set-section" id="setAprvSection" style="display:none">
-            <div style="padding:8px"><div id="setAprvItems"></div></div>
+            <div class="set-scroll" style="padding:8px"><div id="setAprvItems"></div></div>
           </div>
+
+          <!-- TTS -->
           <div class="sec">Đọc tin nhắn (TTS)</div>
           <div class="set-section">
             <div class="set-item">
@@ -855,7 +644,9 @@ input{font-family:inherit;color:var(--text);background:none;border:none;outline:
             </div>
           </div>
           <div class="sec">🔊 TTS Provider</div>
-          <div class="set-section"><div id="ttsProviderList"><div style="color:var(--text3);font-size:12px;padding:12px;text-align:center">Đang tải...</div></div></div>
+          <div class="set-section" style="margin-bottom:8px"><div id="ttsProviderList"><div style="color:var(--text3);font-size:12px;padding:12px;text-align:center">Đang tải...</div></div></div>
+
+          <!-- Hành động -->
           <div class="sec">Hành động</div>
           <div class="set-section">
             <div class="set-item" style="cursor:pointer" id="setShareBtn">
@@ -867,6 +658,8 @@ input{font-family:inherit;color:var(--text);background:none;border:none;outline:
               <div class="set-body"><div class="set-label" style="color:var(--red)">Rời phòng</div><div class="set-sub">Ngắt kết nối</div></div>
             </div>
           </div>
+
+          <!-- Owner settings block (hidden initially) -->
           <div id="ownerBlock" style="display:none">
             <div class="sec">Cài đặt phòng (Chủ phòng)</div>
             <div class="set-section">
@@ -913,6 +706,8 @@ input{font-family:inherit;color:var(--text);background:none;border:none;outline:
               </div>
             </div>
           </div>
+
+          <!-- rdOpenRow: mở danh sách phòng -->
           <div class="set-section" style="cursor:pointer" id="rdOpenRow">
             <div class="set-item">
               <span class="set-icon">🔍</span>
@@ -920,6 +715,8 @@ input{font-family:inherit;color:var(--text);background:none;border:none;outline:
               <span style="color:var(--text3);font-size:14px">›</span>
             </div>
           </div>
+
+          <!-- ttsVoiceSel: select giọng (ẩn, dùng bởi JS) -->
           <select id="ttsVoiceSel" style="display:none"></select>
           <div style="height:16px"></div>
         </div>
@@ -927,27 +724,25 @@ input{font-family:inherit;color:var(--text);background:none;border:none;outline:
 
     </div><!-- /sheetScrollArea -->
 
-    <!-- PTT ZONE — TrailTalk Convoy style -->
+    <!-- PTT ZONE — luôn hiển thị -->
     <div class="ptt-zone">
       <div id="reactLayer"></div>
 
-      <!-- Trái: Mute mic -->
+      <!-- Trái: Camera -->
       <div class="ptt-side">
-        <button class="ptt-side-btn" id="muteMicBtn" title="Tắt/Bật mic"
-          style="background:rgba(255,255,255,.1);border:1.5px solid rgba(255,255,255,.2)"
-          onclick="toggleMuteMic(this)">
-          <span style="font-size:22px">🎙️</span>
+        <button class="ptt-side-btn" id="waCam" title="Camera">
+          <span style="font-size:22px">📷</span>
         </button>
-        <span class="ptt-side-lbl" style="color:rgba(255,255,255,.5)">Mute</span>
+        <span class="ptt-side-lbl">Camera</span>
       </div>
 
-      <!-- Giữa: PTT button -->
+      <!-- Giữa: PTT -->
       <div class="ptt-center">
         <div class="stat-line" id="statLine">Phòng đang trống</div>
         <div class="ptt-outer" id="pttOuter">
           <div class="ptt-wave-r" id="pttWaveR"></div>
           <button id="pttBtn" class="locked">
-            <svg viewBox="0 0 24 24" fill="currentColor">
+            <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
               <path d="M12 1a4 4 0 0 1 4 4v6a4 4 0 0 1-8 0V5a4 4 0 0 1 4-4z"/>
               <path d="M19 10a7 7 0 0 1-14 0H3a9 9 0 0 0 7.999 8.94V21H9v2h6v-2h-2v-2.06A9 9 0 0 0 21 10h-2z"/>
             </svg>
@@ -956,22 +751,10 @@ input{font-family:inherit;color:var(--text);background:none;border:none;outline:
         </div>
       </div>
 
-      <!-- Phải: LOA + SOS -->
-      <div style="display:flex;gap:8px;align-items:flex-end">
-        <div class="ptt-side">
-          <button class="ptt-side-btn on" id="mcWake"
-            style="width:46px;height:46px;border-radius:12px;font-size:18px;background:rgba(57,255,20,.15);border:1.5px solid rgba(57,255,20,.4)">
-            🔊
-          </button>
-          <span class="ptt-side-lbl" style="color:var(--green)">Loa</span>
-        </div>
-        <div class="ptt-side">
-          <button class="sos-btn" id="sosBtn"
-            style="width:46px;height:46px;border-radius:12px;background:rgba(239,68,68,.15);border:1.5px solid rgba(239,68,68,.5);font-size:11px;font-weight:900;color:var(--red)">
-            SOS
-          </button>
-          <span class="ptt-side-lbl" style="color:var(--red)">Khẩn</span>
-        </div>
+      <!-- Phải: SOS -->
+      <div class="ptt-side">
+        <button class="sos-btn" id="sosBtn">SOS</button>
+        <span class="ptt-side-lbl">Khẩn cấp</span>
       </div>
     </div>
 
@@ -980,25 +763,25 @@ input{font-family:inherit;color:var(--text);background:none;border:none;outline:
       <button class="ti" id="tabMembers" data-panel="panelMembers">
         <div class="tdot"></div>
         <span class="tii">👥</span>
-        <span class="til" style="font-size:8px">ĐỘI NHÓM</span>
+        <span class="til">Đội nhóm</span>
       </button>
       <button class="ti" id="tabChat" data-panel="panelChat">
         <div class="tdot"></div>
         <span class="tii">💬</span>
-        <span class="til" style="font-size:8px">CHAT</span>
+        <span class="til">Chat</span>
       </button>
       <button class="ti" id="tabMap" data-panel="">
         <span class="tii">🗺️</span>
-        <span class="til" style="font-size:8px">BẢN ĐỒ</span>
+        <span class="til">Bản đồ</span>
       </button>
       <button class="ti" id="tabSettings" data-panel="panelSettings">
         <span class="tii">⚙️</span>
-        <span class="til" style="font-size:8px">CÀI ĐẶT</span>
+        <span class="til">Cài đặt</span>
       </button>
     </div>
   </div><!-- /bottomSheet -->
 
-<!-- MODALS -->
+  <!-- MODALS -->
   <!-- QR Share modal -->
   <div class="mov" id="qrMov">
     <div class="mbd" id="qrBd"></div>
@@ -1063,13 +846,13 @@ input{font-family:inherit;color:var(--text);background:none;border:none;outline:
 <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
 <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script>
 
-// === GLOBAL SCOPE ===
+<script>
+(function(){
 // ── V11 TRAILTAK UI OVERRIDES ─────────────────────────
 
 const SRV='https://pushtotalk-anqr.onrender.com';
-const CHUNK=350,VFPS=5,VW=160,VH=120,SK='bdv1230';
+const CHUNK=350,VFPS=5,VW=160,VH=120,SK='bdv1104';
 const EMOJIS=['😂','🤣','😭','😢','😡','😠','😱','😍','🥳','😴','🤔','👍','👎','❤️','🔥','💯','🎉','😅','🙄','🤯'];
 const $=id=>document.getElementById(id);
 
@@ -1128,13 +911,13 @@ const ls=()=>{try{const d=localStorage.getItem(SK);return d?JSON.parse(d):null}c
 const cs=()=>{try{localStorage.removeItem(SK)}catch(e){}};
 
 // INIT
-
+(function(){
   const p=new URLSearchParams(window.location.search),ur=p.get('room');
   if(ur)roomCodeInput.value=ur;
   else{const s=ls();if(s){roomCodeInput.value=s.roomCode;usernameInput.value=s.username;joinBtn.textContent=`↩ Vào lại "${s.roomCode}"`}}
   roomCodeInput.addEventListener('input',()=>{const s=ls();joinBtn.textContent=(s&&roomCodeInput.value.trim()===s.roomCode)?`↩ Vào lại "${s.roomCode}"`:'Vào phòng'});
   showScreen('join');
-// === END INIT ===
+})();
 
 function showScreen(name){
   [joinScreen,discoverScreen,waitScreen].forEach(el=>el.classList.remove('active'));
@@ -2199,7 +1982,7 @@ async function enableNotify(){if(!('Notification' in window)||!('PushManager' in
 waNoti.addEventListener('click',()=>{if(!notifSub)enableNotify()});
 
 // iOS
-const isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent),isStandalone=window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone===true;if(isIOS&&!isStandalone)iosB.classList.add('show')
+(function(){const isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent),isStandalone=window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone===true;if(isIOS&&!isStandalone)iosB.classList.add('show')})();
 iosBX.addEventListener('click',()=>iosB.classList.remove('show'));
 
 // SW
@@ -2401,221 +2184,253 @@ allTabsV11.forEach(t=>t.classList.remove('active'));
 bottomSheet.classList.add('map-mode');
 openPanel(null,tabMap);
 setTimeout(()=>{try{leafletFull?.invalidateSize();}catch(e){}},500);
+})();
 
 
+// ══ KIDS SCHEDULER JS ══════════════════════════════════
+// Tab switcher - fully global, no IIFE
+function kSwitchTab(tab){
+  var ks=document.getElementById('kidsScreen');
+  var rs=document.getElementById('roomScreen');
+  var js=document.getElementById('joinScreen');
+  var ds=document.getElementById('discoverScreen');
+  var ws=document.getElementById('waitScreen');
+  var wl=document.getElementById('kTabWalkieLbl');
+  var kl=document.getElementById('kTabKidsLbl');
+  if(tab==='kids'){
+    if(ks)ks.style.display='block';
+    [rs,js,ds,ws].forEach(function(s){if(s)s.style.zIndex='100';});
+    if(wl)wl.style.color='rgba(255,255,255,.35)';
+    if(kl)kl.style.color='#f59e0b';
+    kRender();kUpdateStats();
+  }else{
+    if(ks)ks.style.display='none';
+    [rs,js,ds,ws].forEach(function(s){if(s)s.style.zIndex='';});
+    if(wl)wl.style.color='#f59e0b';
+    if(kl)kl.style.color='rgba(255,255,255,.35)';
+    setTimeout(function(){
+      try{if(typeof leafletFull!=='undefined'&&leafletFull)leafletFull.invalidateSize();}catch(e){}
+    },300);
+  }
+}
 
-// ═══════════════════════════════════════════════════════
-// KIDS SCHEDULER
-// ═══════════════════════════════════════════════════════
-window.kTasks=JSON.parse(localStorage.getItem('kTasks_v3')||'[]');
+// Kids data
+var kTasks=JSON.parse(localStorage.getItem('kt_v4')||'[]');
+var kFired={};
 
-function kSave(){localStorage.setItem('kTasks_v3',JSON.stringify(window.kTasks));kRender();kUpdateStats();}
-
-window.kAddTask=function(){
-  const name=(document.getElementById('kTaskName')?.value||'').trim();
-  const time=document.getElementById('kTaskTime')?.value;
-  const voice=document.getElementById('kVoiceStyle')?.value||'Đến giờ rồi bé ơi!';
-  if(!name){kToast('⚠️ Nhập tên việc cần làm!');return;}
-  if(!time){kToast('⚠️ Chọn giờ nhắc!');return;}
-  window.kTasks.push({id:Date.now(),name,time,voice,done:false,day:new Date().toDateString()});
-  window.kTasks.sort((a,b)=>a.time.localeCompare(b.time));
-  kSave();
-  const inp=document.getElementById('kTaskName');
-  if(inp)inp.value='';
+function kAddTask(){
+  var name=(document.getElementById('kTaskName').value||'').trim();
+  var time=document.getElementById('kTaskTime').value;
+  var voice=document.getElementById('kVoiceStyle').value;
+  if(!name){alert('Nhập tên việc cần làm!');return;}
+  if(!time){alert('Chọn giờ nhắc!');return;}
+  kTasks.push({id:Date.now(),name:name,time:time,voice:voice,done:false,day:new Date().toDateString()});
+  kTasks.sort(function(a,b){return a.time.localeCompare(b.time);});
+  kSaveData();
+  document.getElementById('kTaskName').value='';
   kToast('✅ Đã lưu lịch nhắc!');
-};
+}
 
-window.kDeleteTask=function(id){
-  window.kTasks=window.kTasks.filter(t=>t.id!==id);
-  kSave();
-};
+function kDeleteTask(id){
+  kTasks=kTasks.filter(function(t){return t.id!==id;});
+  kSaveData();
+}
 
-window.kSpeakNow=function(id){
-  const t=window.kTasks.find(x=>x.id===id);
+function kSpeakNow(id){
+  var t=kTasks.find(function(x){return x.id===id;});
   if(!t)return;
-  kSpeak(t);t.done=true;kSave();
-};
+  kSpeak(t);t.done=true;kSaveData();
+}
 
 function kSpeak(task){
-  if(!window.speechSynthesis){kToast('⚠️ Trình duyệt chưa hỗ trợ TTS');return;}
+  if(!window.speechSynthesis)return;
   window.speechSynthesis.cancel();
-  const[h,m]=task.time.split(':').map(Number);
-  const ampm=h>=12?'chiều':'sáng';
-  const h12=h%12||12;
-  const text=`${h12} giờ ${m>0?m+' phút ':''}${ampm}. ${task.name}. ${task.voice}`;
-  const utt=new SpeechSynthesisUtterance(text);
+  var p=task.time.split(':');
+  var h=parseInt(p[0]),m=parseInt(p[1]);
+  var ampm=h>=12?'chiều':'sáng';
+  var h12=h%12||12;
+  var text=h12+' giờ '+(m>0?m+' phút ':'')+ampm+'. '+task.name+'. '+task.voice;
+  var utt=new SpeechSynthesisUtterance(text);
   utt.lang='vi-VN';utt.rate=0.9;utt.pitch=1.1;utt.volume=1;
-  const vv=window.speechSynthesis.getVoices();
-  const vi=vv.find(v=>v.lang.startsWith('vi'));
+  var vv=window.speechSynthesis.getVoices();
+  var vi=vv.find(function(v){return v.lang&&v.lang.startsWith('vi');});
   if(vi)utt.voice=vi;
   window.speechSynthesis.speak(utt);
 }
 
-window.kRender=function kRender(){
-  const list=document.getElementById('kTaskList');
+function kRender(){
+  var list=document.getElementById('kTaskList');
   if(!list)return;
-  const today=new Date().toDateString();
-  window.kTasks.forEach(t=>{if(t.day!==today){t.done=false;t.day=today;}});
-  const pending=window.kTasks.filter(t=>!t.done);
-  const badge=document.getElementById('kTaskLeftBadge');
-  if(badge)badge.textContent=`${pending.length} việc còn lại`;
-  if(!window.kTasks.length){
-    list.innerHTML='<div style="text-align:center;padding:32px;color:#cbd5e1;font-size:13px;font-weight:600"><div style="font-size:36px;margin-bottom:8px">📅</div>Chưa có lịch nào!</div>';
+  var today=new Date().toDateString();
+  kTasks.forEach(function(t){if(t.day!==today){t.done=false;t.day=today;}});
+  var pending=kTasks.filter(function(t){return !t.done;}).length;
+  var badge=document.getElementById('kLeftBadge');
+  if(badge)badge.textContent=pending+' việc còn lại';
+  if(!kTasks.length){
+    list.innerHTML='<div style="text-align:center;padding:32px;color:#cbd5e1;font-size:13px"><div style="font-size:36px;margin-bottom:8px">📅</div>Chưa có lịch nào!</div>';
     return;
   }
   list.innerHTML='';
-  const now=new Date();
-  const nowMin=now.getHours()*60+now.getMinutes();
-  window.kTasks.forEach(task=>{
-    const[h,m]=task.time.split(':').map(Number);
-    const taskMin=h*60+m;
-    const isDone=task.done;
-    const isNext=!isDone&&taskMin>=nowMin;
-    const ampm=h>=12?'PM':'AM';
-    const h12=h%12||12;
-    const timeStr=`${String(h12).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
-    let tbBg=isDone?'#f1f5f9':isNext?'#e0f2fe':'#fef3c7';
-    let tbColor=isDone?'#94a3b8':isNext?'#0369a1':'#92400e';
-    let border=isNext?'#f59e0b':'transparent';
-    let statusHtml=isDone
-      ?'<span class="k-status-badge" style="background:#dcfce7;color:#16a34a">✓ Xong</span>'
+  var now=new Date();
+  var nowMin=now.getHours()*60+now.getMinutes();
+  kTasks.forEach(function(task){
+    var p=task.time.split(':');
+    var h=parseInt(p[0]),m=parseInt(p[1]);
+    var taskMin=h*60+m;
+    var isDone=task.done;
+    var isNext=!isDone&&taskMin>=nowMin;
+    var ampm=h>=12?'PM':'AM';
+    var h12=h%12||12;
+    var ts=('0'+h12).slice(-2)+':'+('0'+m).slice(-2);
+    var tbBg=isDone?'#f1f5f9':isNext?'#e0f2fe':'#fef3c7';
+    var tbC=isDone?'#94a3b8':isNext?'#0369a1':'#92400e';
+    var border=isNext?'1.5px solid #f59e0b':'1.5px solid transparent';
+    var statusHtml=isDone
+      ?'<span style="display:inline-block;font-size:9px;font-weight:800;padding:2px 7px;border-radius:6px;text-transform:uppercase;background:#dcfce7;color:#16a34a;margin-bottom:3px">✓ Xong</span>'
       :isNext
-        ?'<span class="k-status-badge" style="background:#fff7ed;color:#f59e0b">Sắp đến</span>'
-        :'<span class="k-status-badge" style="background:#f0f9ff;color:#0369a1">Chờ nhắc</span>';
-    const card=document.createElement('div');
-    card.className='k-task-card'+(isDone?' k-task-done':'');
-    card.style.borderColor=border;
-    card.innerHTML=`
-      <div class="k-time-badge" style="background:${tbBg}">
-        <span class="t-time" style="color:${tbColor}">${timeStr}</span>
-        <span class="t-ampm" style="color:${tbColor}">${ampm}</span>
-      </div>
-      <div class="k-task-info">
-        ${statusHtml}
-        <div class="k-task-name">${task.name}</div>
-        <div class="k-task-phrase">"${task.voice}"</div>
-      </div>
-      <div class="k-task-actions">
-        ${isDone
-          ?'<div class="k-action-btn k-btn-done">✓</div>'
-          :`<button class="k-action-btn k-btn-play" onclick="kSpeakNow(${task.id})"><i class="fa-solid fa-play fa-xs"></i></button>`}
-        <button class="k-action-btn k-btn-del" onclick="kDeleteTask(${task.id})"><i class="fa-solid fa-trash-can fa-xs"></i></button>
-      </div>`;
+        ?'<span style="display:inline-block;font-size:9px;font-weight:800;padding:2px 7px;border-radius:6px;text-transform:uppercase;background:#fff7ed;color:#f59e0b;margin-bottom:3px">Sắp đến</span>'
+        :'<span style="display:inline-block;font-size:9px;font-weight:800;padding:2px 7px;border-radius:6px;text-transform:uppercase;background:#f0f9ff;color:#0369a1;margin-bottom:3px">Chờ nhắc</span>';
+    var card=document.createElement('div');
+    card.style.cssText='background:'+(isDone?'#f8fafc':'#fff')+';border-radius:18px;padding:13px;display:flex;align-items:center;gap:12px;box-shadow:0 2px 10px rgba(0,0,0,.05);border:'+border+';opacity:'+(isDone?'.65':'1');';
+    card.innerHTML=
+      '<div style="background:'+tbBg+';border-radius:12px;padding:8px 10px;text-align:center;flex-shrink:0;min-width:56px">'+
+        '<span style="font-size:17px;font-weight:900;color:'+tbC+';font-family:monospace;line-height:1;display:block">'+ts+'</span>'+
+        '<span style="font-size:9px;font-weight:800;color:'+tbC+';text-transform:uppercase;display:block">'+ampm+'</span>'+
+      '</div>'+
+      '<div style="flex:1;min-width:0">'+statusHtml+
+        '<div style="font-size:14px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#1e293b;'+(isDone?'text-decoration:line-through;color:#94a3b8':'')+'">'+(task.name)+'</div>'+
+        '<div style="font-size:11px;color:#94a3b8;font-style:italic;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px">"'+(task.voice)+'"</div>'+
+      '</div>'+
+      '<div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0">'+
+        (isDone?'<div style="width:32px;height:32px;border-radius:50%;background:#f0fdf4;color:#10b981;display:flex;align-items:center;justify-content:center;font-size:16px">✓</div>':
+          '<button onclick="kSpeakNow('+task.id+')" style="width:32px;height:32px;border-radius:50%;background:#eff6ff;color:#3b82f6;border:none;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center">▶</button>')+
+        '<button onclick="kDeleteTask('+task.id+')" style="width:32px;height:32px;border-radius:50%;background:#fef2f2;color:#f87171;border:none;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center">🗑</button>'+
+      '</div>';
     list.appendChild(card);
   });
-};
-
-window.kUpdateStats=function kUpdateStats(){
-  const total=window.kTasks.length;
-  const done=window.kTasks.filter(t=>t.done).length;
-  const pct=total?Math.round(done/total*100):0;
-  const c1=document.getElementById('kStatConsistency');
-  const c2=document.getElementById('kStatTotal');
-  const c3=document.getElementById('kStatDone');
-  if(c1)c1.textContent=pct+'%';
-  if(c2)c2.textContent=total;
-  if(c3)c3.textContent=done;
-};
-
-function kToast(msg){
-  const layer=document.getElementById('toastLayer');if(!layer)return;
-  const el=document.createElement('div');
-  el.style.cssText='padding:10px 18px;border-radius:30px;font-size:13px;font-weight:700;color:#fff;background:rgba(14,165,233,.95);border:1px solid rgba(14,165,233,.5);backdrop-filter:blur(16px);box-shadow:0 8px 32px rgba(0,0,0,.3);text-align:center;margin-bottom:4px';
-  el.textContent=msg;layer.appendChild(el);
-  setTimeout(()=>el.remove(),3000);
 }
 
-// Background alarm — always running
-var kFiredAlarms={};
+function kUpdateStats(){
+  var total=kTasks.length;
+  var done=kTasks.filter(function(t){return t.done;}).length;
+  var pct=total?Math.round(done/total*100):0;
+  var e1=document.getElementById('kStatPct');
+  var e2=document.getElementById('kStatTotal');
+  var e3=document.getElementById('kStatFired');
+  if(e1)e1.textContent=pct+'%';
+  if(e2)e2.textContent=total;
+  if(e3)e3.textContent=done;
+}
+
+function kSaveData(){
+  localStorage.setItem('kt_v4',JSON.stringify(kTasks));
+  kRender();kUpdateStats();
+}
+
+function kToast(msg){
+  var el=document.createElement('div');
+  el.style.cssText='position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:99999;padding:10px 20px;border-radius:30px;font-size:13px;font-weight:700;color:#fff;background:rgba(14,165,233,.95);box-shadow:0 8px 24px rgba(0,0,0,.3);white-space:nowrap;pointer-events:none';
+  el.textContent=msg;document.body.appendChild(el);
+  setTimeout(function(){el.remove();},3000);
+}
+
+// Background alarm
 setInterval(function(){
   var now=new Date();
-  var nowH=now.getHours(),nowM=now.getMinutes(),nowS=now.getSeconds();
-  if(nowS!==0)return;
+  var h=now.getHours(),m=now.getMinutes(),s=now.getSeconds();
+  if(s!==0)return;
   var today=now.toDateString();
-  window.kTasks.forEach(function(task){
+  kTasks.forEach(function(task){
     if(task.done)return;
-    var parts=task.time.split(':');
-    var h=parseInt(parts[0]),m=parseInt(parts[1]);
-    if(h===nowH&&m===nowM){
-      var key=task.id+'-'+today+'-'+h+':'+m;
-      if(kFiredAlarms[key])return;
-      kFiredAlarms[key]=true;
-      kSpeak(task);task.done=true;kSave();
+    var p=task.time.split(':');
+    if(parseInt(p[0])===h&&parseInt(p[1])===m){
+      var key=task.id+'-'+today;
+      if(kFired[key])return;
+      kFired[key]=true;
+      kSpeak(task);task.done=true;kSaveData();
       kToast('🔔 Đến giờ: '+task.name+'!');
-      if(navigator.vibrate)navigator.vibrate([300,100,300,100,300]);
+      if(navigator.vibrate)navigator.vibrate([300,100,300]);
     }
   });
 },1000);
 
-// App tab switcher — must be global
-window.switchAppTab=function(tab){
-  var kScreen=document.getElementById('kidsScreen');
-  var rScreen=document.getElementById('roomScreen');
-  var jScreen=document.getElementById('joinScreen');
-  var dScreen=document.getElementById('discoverScreen');
-  var wScreen=document.getElementById('waitScreen');
-  var btnW=document.getElementById('appTabWalkie');
-  var btnK=document.getElementById('appTabKids');
-  window.kCurrentAppTab=tab;
-  if(tab==='kids'){
-    if(kScreen)kScreen.style.display='block';
-    [rScreen,jScreen,dScreen,wScreen].forEach(function(s){if(s)s.style.zIndex='10';});
-    if(btnW){btnW.classList.remove('active');}
-    if(btnK){btnK.classList.add('kids-active');btnK.classList.remove('app-tab-btn');}
-    window.kRender();window.kUpdateStats();
-  }else{
-    if(kScreen)kScreen.style.display='none';
-    [rScreen,jScreen,dScreen,wScreen].forEach(function(s){if(s)s.style.zIndex='';});
-    if(btnW)btnW.classList.add('active');
-    if(btnK){btnK.classList.remove('kids-active');}
-    setTimeout(function(){try{leafletFull&&leafletFull.invalidateSize();}catch(e){}},300);
-  }
-};
-window.kCurrentAppTab='walkie';
+// Load voices
+if(window.speechSynthesis){
+  window.speechSynthesis.getVoices();
+  window.speechSynthesis.onvoiceschanged=function(){window.speechSynthesis.getVoices();};
+}
 
-// Init kids on load
-document.addEventListener('DOMContentLoaded',function(){
-  window.kRender();window.kUpdateStats();
-  if(window.speechSynthesis){
-    window.speechSynthesis.getVoices();
-    window.speechSynthesis.onvoiceschanged=function(){window.speechSynthesis.getVoices();};
-  }
-  // Wire extra buttons
-  var mcW2=document.getElementById('mcWake2');
-  if(mcW2)mcW2.addEventListener('click',function(){
-    var mcW=document.getElementById('mcWake');
-    if(mcW)mcW.click();
-    mcW2.classList.toggle('active');
-  });
-  var sosBtn=document.getElementById('sosBtn');
-  if(sosBtn)sosBtn.addEventListener('click',function(){
-    if(typeof sendSOS==='function')sendSOS();
-    else{var o=document.getElementById('sosOv');if(o)o.classList.add('show');}
-  });
-  var waLeave=document.getElementById('waLeave');
-  if(waLeave)waLeave.addEventListener('click',function(){
-    var sl=document.getElementById('setLeaveBtn');if(sl)sl.click();
-  });
-  var shareChip=document.getElementById('shareChip');
-  if(shareChip)shareChip.addEventListener('click',function(){
-    var m=document.getElementById('qrMov');if(m)m.classList.add('show');
-  });
-  var waTTS2=document.getElementById('waTTS2');
-  if(waTTS2)waTTS2.addEventListener('click',function(){
-    var w=document.getElementById('waTTS');if(w)w.click();
-  });
-  var mcLoc=document.getElementById('mcLoc');
-  if(mcLoc)mcLoc.addEventListener('click',function(){
-    if(navigator.geolocation)navigator.geolocation.getCurrentPosition(function(p){
-      try{if(leafletFull)leafletFull.setView([p.coords.latitude,p.coords.longitude],16);}catch(e){}
-    });
-  });
-  var mcZI=document.getElementById('mcZoomIn');
-  if(mcZI)mcZI.addEventListener('click',function(){try{if(leafletFull)leafletFull.zoomIn();}catch(e){}});
-  var mcZO=document.getElementById('mcZoomOut');
-  if(mcZO)mcZO.addEventListener('click',function(){try{if(leafletFull)leafletFull.zoomOut();}catch(e){}});
-});
+// Init
+kRender();kUpdateStats();
 
 </script>
+
+<!-- ══ KIDS SCHEDULER ══════════════════════════════════ -->
+<div id="kidsScreen" style="display:none;position:fixed;inset:0;z-index:8500;background:#fffef7;overflow-y:auto;font-family:system-ui,sans-serif;color:#1e293b;padding-bottom:80px">
+  <div style="padding:calc(20px + env(safe-area-inset-top,0px)) 20px 8px">
+    <div style="font-size:22px;font-weight:800;color:#0ea5e9;display:flex;align-items:center;gap:8px">⏰ Loa Nhắc Lịch Cho Bé</div>
+    <p style="font-size:13px;color:#94a3b8;font-style:italic;margin-top:4px">Biến thói quen thành niềm vui mỗi ngày!</p>
+  </div>
+  <!-- Add task -->
+  <div style="background:#fff;border-radius:22px;padding:20px;margin:8px 16px;box-shadow:0 4px 20px rgba(0,0,0,.07);border:1px solid #f1f5f9">
+    <div style="font-size:16px;font-weight:800;color:#0d9488;margin-bottom:14px">✨ Thêm Lịch Nhắc Mới</div>
+    <input id="kTaskName" type="text" placeholder="Bé cần làm gì? (VD: Đánh răng 🦷)"
+      style="width:100%;padding:13px 14px;font-size:15px;font-weight:600;background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:14px;font-family:inherit;color:#1e293b;box-sizing:border-box;outline:none"/>
+    <div style="display:flex;gap:10px;margin-top:10px">
+      <div style="flex:1;background:#f0f9ff;border-radius:14px;padding:12px;border:1.5px solid #bae6fd;display:flex;align-items:center;justify-content:space-between">
+        <span id="kTimeDisplay" style="font-size:26px;font-weight:900;color:#0369a1;font-family:monospace">08:30</span>
+        <input id="kTaskTime" type="time" value="08:30"
+          style="border:1.5px solid #0369a1;border-radius:10px;padding:7px 10px;font-size:14px;font-weight:700;font-family:monospace;color:#0369a1;background:#fff;cursor:pointer;outline:none"
+          oninput="document.getElementById('kTimeDisplay').textContent=this.value"/>
+      </div>
+      <div style="flex:1.3;background:#f8fafc;border-radius:14px;padding:10px;border:1.5px solid #e2e8f0">
+        <div style="font-size:10px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px">Câu nói vui</div>
+        <select id="kVoiceStyle" style="width:100%;padding:6px;font-size:12px;border:1px solid #e2e8f0;border-radius:8px;background:#fff;font-family:inherit;color:#334155;cursor:pointer;outline:none">
+          <option value="Bé yêu ơi, mau nhanh chân lên nào!">🐰 Mau nhanh lên!</option>
+          <option value="Biến hình thôi siêu anh hùng, tới giờ rồi!">🦸 Siêu anh hùng!</option>
+          <option value="Ting ting! Đến giờ rồi bé ơi!">🔔 Ting ting!</option>
+          <option value="Mau lên nào, thỏ con đang đợi!">🐇 Thỏ đang đợi!</option>
+          <option value="Bắt đầu nhiệm vụ không gian thôi!">🚀 Nhiệm vụ không gian!</option>
+          <option value="Chú robot nhắc bé rồi, mau lên!">🤖 Robot nhắc bé!</option>
+        </select>
+      </div>
+    </div>
+    <button onclick="kAddTask()"
+      style="width:100%;padding:14px;background:linear-gradient(to right,#f59e0b,#fbbf24);border:none;border-radius:999px;font-size:16px;font-weight:800;color:#fff;cursor:pointer;font-family:inherit;box-shadow:0 4px 16px rgba(245,158,11,.35);margin-top:14px;display:flex;align-items:center;justify-content:center;gap:8px">
+      ✅ Lưu Lịch Nhắc
+    </button>
+  </div>
+  <!-- Stats -->
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;padding:0 16px;margin-bottom:12px">
+    <div style="background:#fff;border-radius:16px;padding:14px;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,.05)"><span style="font-size:9px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:4px">Hoàn thành</span><span id="kStatPct" style="font-size:22px;font-weight:900;color:#0ea5e9">0%</span></div>
+    <div style="background:#fff;border-radius:16px;padding:14px;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,.05)"><span style="font-size:9px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:4px">Tổng lịch</span><span id="kStatTotal" style="font-size:22px;font-weight:900;color:#f59e0b">0</span></div>
+    <div style="background:#fff;border-radius:16px;padding:14px;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,.05)"><span style="font-size:9px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:4px">Đã nhắc</span><span id="kStatFired" style="font-size:22px;font-weight:900;color:#10b981">0</span></div>
+  </div>
+  <!-- Schedule -->
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:0 16px 10px">
+    <span style="font-size:18px;font-weight:800;color:#1e293b">Lịch Hôm Nay</span>
+    <span id="kLeftBadge" style="background:#fff7ed;color:#f59e0b;border:1.5px solid #fed7aa;border-radius:20px;padding:3px 10px;font-size:11px;font-weight:800">0 việc còn lại</span>
+  </div>
+  <div id="kTaskList" style="display:flex;flex-direction:column;gap:10px;padding:0 16px">
+    <div style="text-align:center;padding:32px;color:#cbd5e1;font-size:13px;font-weight:600"><div style="font-size:36px;margin-bottom:8px">📅</div>Chưa có lịch nào!</div>
+  </div>
+  <div style="border:2px dashed #10b981;background:#ecfdf5;border-radius:18px;padding:14px 16px;display:flex;align-items:flex-start;gap:10px;margin:14px 16px">
+    <span style="font-size:24px;flex-shrink:0">💡</span>
+    <div><strong style="color:#10b981;font-size:13px">Mẹo:</strong><p style="font-size:12px;color:#475569;margin-top:4px;line-height:1.6">Khen ngợi bé mỗi khi hoàn thành đúng giờ! 🌟</p></div>
+  </div>
+</div>
+
+<!-- APP TAB SWITCHER -->
+<div id="kAppTab" style="position:fixed;bottom:0;left:0;right:0;z-index:9000;display:flex;background:#1a1710;border-top:1px solid rgba(245,158,11,.2);box-shadow:0 -4px 20px rgba(0,0,0,.5);padding-bottom:env(safe-area-inset-bottom,0px)">
+  <button id="kTabWalkie" onclick="kSwitchTab('walkie')" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:9px 4px 7px;border:none;background:none;cursor:pointer">
+    <span style="font-size:22px">📻</span>
+    <span id="kTabWalkieLbl" style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:#f59e0b">Bộ Đàm</span>
+  </button>
+  <button id="kTabKids" onclick="kSwitchTab('kids')" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:9px 4px 7px;border:none;background:none;cursor:pointer">
+    <span style="font-size:22px">🔔</span>
+    <span id="kTabKidsLbl" style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:rgba(255,255,255,.35)">Nhắc Lịch Bé</span>
+  </button>
+</div>
+
 </body>
 </html>
