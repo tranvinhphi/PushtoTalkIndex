@@ -21,11 +21,20 @@ self.addEventListener('activate', event => {
 
 self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
+  const url = event.request.url;
+  // Bỏ qua external API calls - không cache
+  if (url.includes('overpass') || url.includes('socket.io') || 
+      url.includes('tile.openstreetmap') || url.includes('leaflet') ||
+      url.includes('googleapis') || url.includes('cdnjs') ||
+      url.includes('jsdelivr') || url.includes('unpkg') ||
+      url.includes('socket.io')) return;
   event.respondWith(
     fetch(event.request)
       .then(res => {
-        const clone = res.clone();
-        caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone)).catch(() => {});
+        if (res.ok) {
+          const clone = res.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone)).catch(() => {});
+        }
         return res;
       })
       .catch(() => caches.match(event.request))
