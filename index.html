@@ -656,6 +656,33 @@ input,select,textarea{font-family:inherit;outline:none;color:inherit}
 }
 .about-close:active{transform:scale(.97);opacity:.9}
 
+
+/* ════ ABOUT MODAL ═════════════════════════════════════ */
+#aboutModal{display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.85);backdrop-filter:blur(12px);align-items:center;justify-content:center}
+#aboutModal.show{display:flex}
+.about-card{background:linear-gradient(145deg,#0f172a,#1e293b);border:1px solid rgba(59,130,246,.25);border-radius:28px;padding:32px 28px;width:calc(100% - 48px);max-width:400px;box-shadow:0 32px 80px rgba(0,0,0,.8);position:relative;overflow:hidden}
+.about-card::before{content:'';position:absolute;top:-60px;right:-60px;width:200px;height:200px;border-radius:50%;background:radial-gradient(circle,rgba(59,130,246,.15),transparent 70%);pointer-events:none}
+.about-logo-wrap{display:flex;align-items:center;gap:14px;margin-bottom:20px}
+.about-logo{width:52px;height:52px;background:#3b82f6;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:900;color:#fff;letter-spacing:-.04em;box-shadow:0 8px 24px rgba(59,130,246,.4);flex-shrink:0}
+.about-brand{display:flex;flex-direction:column}
+.about-name{font-size:19px;font-weight:900;letter-spacing:-.03em;color:#f8fafc}
+.about-tagline{font-size:11px;color:#64748b;font-weight:600;margin-top:2px}
+.about-version{display:inline-flex;align-items:center;gap:6px;background:rgba(59,130,246,.12);border:1px solid rgba(59,130,246,.25);border-radius:8px;padding:4px 10px;margin-bottom:16px;font-size:11px;font-weight:700;color:#60a5fa;letter-spacing:.04em}
+.about-desc{font-size:13px;color:#94a3b8;line-height:1.7;margin-bottom:18px}
+.about-features{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:18px}
+.about-feat{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:8px 10px;font-size:11px;font-weight:600;color:#94a3b8}
+.about-feat i{color:#3b82f6;width:14px;text-align:center;flex-shrink:0}
+.about-divider{height:1px;background:linear-gradient(to right,transparent,rgba(255,255,255,.08),transparent);margin-bottom:16px}
+.about-maker{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+.about-maker-ico{width:38px;height:38px;border-radius:12px;background:linear-gradient(135deg,#1d4ed8,#7c3aed);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;box-shadow:0 4px 12px rgba(59,130,246,.3)}
+.about-maker-info{flex:1;min-width:0}
+.about-maker-name{font-size:13px;font-weight:800;color:#f8fafc;margin-bottom:2px}
+.about-maker-sub{font-size:11px;color:#64748b;font-weight:500}
+.about-stack{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:18px}
+.about-tag{font-size:10px;font-weight:700;padding:3px 8px;border-radius:999px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:#64748b;letter-spacing:.03em}
+.about-close-btn{width:100%;padding:12px;border-radius:12px;background:linear-gradient(135deg,#3b82f6,#6366f1);border:none;color:#fff;font-size:14px;font-weight:800;cursor:pointer;transition:all .2s;box-shadow:0 4px 16px rgba(59,130,246,.35)}
+.about-close-btn:active{transform:scale(.97)}
+
 </style>
 </head>
 <body>
@@ -756,12 +783,10 @@ window.kPOI = function(type) {
     <div style="margin-top:auto;display:flex;flex-direction:column;align-items:center;gap:10px">
       <button onclick="document.getElementById('aboutModal').classList.add('show')"
         style="width:40px;height:40px;border-radius:12px;background:rgba(59,130,246,.15);border:1px solid rgba(59,130,246,.25);display:flex;align-items:center;justify-content:center;font-size:14px;color:#60a5fa;cursor:pointer;transition:all .2s"
-        title="Về ứng dụng">
+        title="Về ứng dụng"
+        onclick="document.getElementById('aboutModal').classList.add('show')">
         <i class="fa-solid fa-circle-info"></i>
       </button>
-      <div class="dsk-avatar" id="dskAvatar" style="cursor:pointer" title="Tài khoản">
-        <span id="dskAvatarTxt">?</span>
-      </div>
     </div>
   </aside>
 
@@ -926,6 +951,14 @@ window.kPOI = function(type) {
                 <div class="set-label">Casaroom v12.0.3</div>
                 <div class="set-sub">by pushtotalk.ptv · Xem thông tin ứng dụng</div>
               </div>
+              <i class="fa-solid fa-chevron-right" style="color:var(--text3);font-size:11px"></i>
+            </div>
+          </div>
+          <div class="sec">Về ứng dụng</div>
+          <div class="set-section" style="cursor:pointer" onclick="document.getElementById('aboutModal').classList.add('show')">
+            <div class="set-item">
+              <span class="set-icon" style="color:#3b82f6"><i class="fa-solid fa-circle-info"></i></span>
+              <div class="set-body"><div class="set-label">Casaroom v12.0.8</div><div class="set-sub">by pushtotalk.ptv</div></div>
               <i class="fa-solid fa-chevron-right" style="color:var(--text3);font-size:11px"></i>
             </div>
           </div>
@@ -2796,5 +2829,48 @@ setTimeout(function(){
 },300);
 
 </script>
+<!-- ABOUT MODAL -->
+<div id="aboutModal" onclick="if(event.target===this)this.classList.remove('show')">
+  <div class="about-card">
+    <div class="about-logo-wrap">
+      <div class="about-logo">C</div>
+      <div class="about-brand">
+        <div class="about-name">Casaroom</div>
+        <div class="about-tagline">Walkie-Talkie Web App · PWA</div>
+      </div>
+    </div>
+    <div class="about-version"><i class="fa-solid fa-code-branch fa-xs"></i> v12.0.8 · Build 2026</div>
+    <p class="about-desc">Bộ đàm nhóm thời gian thực qua trình duyệt. Kết nối convoy, chia sẻ vị trí GPS, nhắn tin và phát sóng giọng nói — không cần cài đặt, mọi thiết bị.</p>
+    <div class="about-features">
+      <div class="about-feat"><i class="fa-solid fa-microphone"></i>Push-to-Talk</div>
+      <div class="about-feat"><i class="fa-solid fa-map-location-dot"></i>GPS Realtime</div>
+      <div class="about-feat"><i class="fa-solid fa-comments"></i>Chat & Emoji</div>
+      <div class="about-feat"><i class="fa-solid fa-volume-high"></i>TTS Tiếng Việt</div>
+      <div class="about-feat"><i class="fa-solid fa-triangle-exclamation"></i>SOS Khẩn cấp</div>
+      <div class="about-feat"><i class="fa-solid fa-wifi"></i>Offline Ready</div>
+    </div>
+    <div class="about-divider"></div>
+    <div class="about-maker">
+      <div class="about-maker-ico"><i class="fa-solid fa-code"></i></div>
+      <div class="about-maker-info">
+        <div class="about-maker-name">pushtotalk.ptv</div>
+        <div class="about-maker-sub">Developer & Designer · Đà Nẵng, Việt Nam</div>
+      </div>
+    </div>
+    <div class="about-stack">
+      <span class="about-tag">Node.js</span>
+      <span class="about-tag">Socket.io</span>
+      <span class="about-tag">Leaflet.js</span>
+      <span class="about-tag">WebRTC</span>
+      <span class="about-tag">Web Speech API</span>
+      <span class="about-tag">PWA</span>
+      <span class="about-tag">OpenStreetMap</span>
+    </div>
+    <button class="about-close-btn" onclick="document.getElementById('aboutModal').classList.remove('show')">
+      <i class="fa-solid fa-check fa-sm"></i> Đóng
+    </button>
+  </div>
+</div>
+
 </body>
 </html>
