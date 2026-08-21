@@ -514,31 +514,31 @@ input,select,textarea{font-family:inherit;outline:none;color:inherit}
   .mlist,.chat-msgs,.set-scroll{overflow-y:auto !important}
   .chat-input-row{padding-bottom:8px !important}
 
-  /* PTT on desktop — UXpilot large PTT */
+  /* PTT on desktop — compact */
   .ptt-zone{
     flex-shrink:0 !important;
     flex-direction:column !important;
     align-items:center !important;
     justify-content:center !important;
-    padding:24px 16px !important;
-    gap:16px !important;
+    padding:12px 16px !important;
+    gap:10px !important;
     border-top:1px solid var(--border) !important;
-    background:linear-gradient(to top,rgba(15,23,42,1),rgba(30,41,59,.3)) !important;
+    background:rgba(15,23,42,.98) !important;
   }
   .ptt-zone > *{order:1}
   #reactLayer{order:0;position:relative !important;bottom:auto !important}
 
   /* Hide side buttons on desktop PTT, show below */
   .ptt-center{width:100%;display:flex;flex-direction:column;align-items:center;gap:8px}
-  .stat-line{font-size:12px !important}
-  .ptt-outer{width:120px !important;height:120px !important}
-  #pttBtn{width:108px !important;height:108px !important;box-shadow:0 0 50px rgba(59,130,246,.25),0 0 30px rgba(249,115,22,.2) !important}
-  #pttBtn i{font-size:40px !important}
-  .ptt-txt{font-size:9px !important;letter-spacing:.3em !important}
+  .stat-line{font-size:11px !important;margin-bottom:2px !important}
+  .ptt-outer{width:90px !important;height:90px !important}
+  #pttBtn{width:80px !important;height:80px !important;box-shadow:0 0 30px rgba(249,115,22,.3) !important}
+  #pttBtn i{font-size:28px !important}
+  .ptt-txt{font-size:8px !important;letter-spacing:.2em !important}
   #waCam,.ptt-right{display:none !important} /* Hidden: shown as grid below */
 
   /* Desktop action grid below PTT */
-  .ptt-desktop-actions{display:grid !important;grid-template-columns:1fr 1fr;gap:12px;width:100%;padding:0 8px}
+  .ptt-desktop-actions{display:flex !important;gap:8px;width:100%;padding:0 4px;justify-content:center}
 
   .tabbar{
     flex-shrink:0 !important;
@@ -940,13 +940,13 @@ window.kPOI = function(type) {
 
       <!-- Desktop action grid (hidden on mobile via CSS) -->
       <div class="ptt-desktop-actions" style="display:none">
-        <button id="waCamDesk" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:14px;border-radius:16px;background:rgba(30,41,59,.6);border:1px solid var(--border);cursor:pointer;transition:all .2s">
-          <i class="fa-solid fa-camera" style="font-size:20px;color:var(--text2)"></i>
-          <span style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase">Camera</span>
+        <button id="waCamDesk" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:10px 16px;border-radius:12px;background:rgba(30,41,59,.6);border:1px solid var(--border);cursor:pointer;transition:all .2s">
+          <i class="fa-solid fa-camera" style="font-size:16px;color:var(--text2)"></i>
+          <span style="font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase">Camera</span>
         </button>
-        <button id="sosBtnDesk" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:14px;border-radius:16px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);cursor:pointer;transition:all .2s">
-          <i class="fa-solid fa-triangle-exclamation" style="font-size:20px;color:var(--red)"></i>
-          <span style="font-size:10px;font-weight:700;color:rgba(239,68,68,.6);text-transform:uppercase">Khẩn cấp SOS</span>
+        <button id="sosBtnDesk" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:10px 16px;border-radius:12px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);cursor:pointer;transition:all .2s">
+          <i class="fa-solid fa-triangle-exclamation" style="font-size:16px;color:var(--red)"></i>
+          <span style="font-size:9px;font-weight:700;color:rgba(239,68,68,.6);text-transform:uppercase">SOS</span>
         </button>
       </div>
 
@@ -2050,7 +2050,13 @@ if(setVoiceForRoom){
   });
 }
 function syncTTSUI(){
-  if(raTTS)raTTS.classList.toggle('on',ttsEnabled);
+  if(raTTS){
+    raTTS.classList.toggle('on',ttsEnabled);
+    // Visual feedback cho header button
+    raTTS.style.color=ttsEnabled?'var(--green)':'var(--text2)';
+    raTTS.style.background=ttsEnabled?'rgba(34,197,94,.15)':'rgba(255,255,255,.07)';
+    raTTS.style.borderColor=ttsEnabled?'rgba(34,197,94,.4)':'rgba(255,255,255,.1)';
+  }
   if(setTTS)setTTS.className='tog'+(ttsEnabled?' on':'');
   if(raTTSlbl)raTTSlbl.textContent='Đọc chat';
 }
@@ -2143,7 +2149,16 @@ if(refreshTtsBtn)refreshTtsBtn.addEventListener('click',loadTTSProviders);
 // NOTIFICATIONS
 function urlB64(b){const p='='.repeat((4-b.length%4)%4),b64=(b+p).replace(/-/g,'+').replace(/_/g,'/'),r=atob(b64),o=new Uint8Array(r.length);for(let i=0;i<r.length;i++)o[i]=r.charCodeAt(i);return o}
 async function enableNotify(){if(!('Notification' in window)||!('PushManager' in window)){toast('Chưa hỗ trợ thông báo đẩy','warn');return}try{if(await Notification.requestPermission()!=='granted'){toast('Chưa cho phép thông báo','warn');return}if(!swReg)swReg=await navigator.serviceWorker.ready;const{key}=await(await fetch(SRV+'/vapid-public-key')).json();let sub=await swReg.pushManager.getSubscription();if(!sub)sub=await swReg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:urlB64(key)});if(socket?.connected)socket.emit('save-subscription',sub);notifSub=true;waNoti.classList.add('on');toast('🔔 Đã bật thông báo','ok')}catch(e){toast('Không bật được thông báo','err')}}
-waNoti.addEventListener('click',()=>{if(!notifSub)enableNotify()});
+waNoti.addEventListener('click',()=>{
+  if(!notifSub){
+    enableNotify();
+    waNoti.style.color='var(--blue)';
+    waNoti.style.background='rgba(59,130,246,.15)';
+    waNoti.style.borderColor='rgba(59,130,246,.4)';
+  } else {
+    toast('🔔 Thông báo đang bật','ok');
+  }
+});
 
 // iOS
 (function(){const isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent),isStandalone=window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone===true;if(isIOS&&!isStandalone)iosB.classList.add('show')})();
@@ -2318,10 +2333,7 @@ if(waTTSBtn){
 }
 
 // ── Noti button ────────────────────────────────────────
-document.getElementById('waNoti')?.addEventListener('click',()=>{
-  document.getElementById('waNoti_old')?.click()||
-  (typeof registerPush==='function'&&registerPush());
-});
+// waNoti handled by IIFE
 
 // ── Update member count in header & badge ─────────────
 function updateMemberUI(){
