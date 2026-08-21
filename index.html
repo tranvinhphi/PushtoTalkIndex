@@ -2662,6 +2662,2734 @@ function poiRenderLayer(type){
 }
 
 function poiFetch(lat,lng){
+  if(poiFetching)return;
+  poiFetching=true;
+  var r=POI_RADIUS;
+  var q='[out:json][timeout:25];('
+    +'node["amenity"="fuel"](around:'+r+','+lat+','+lng+');'
+    +'node["amenity"="charging_station"](around:'+r+','+lat+','+lng+');'
+    +'node["highway"="rest_area"](around:'+r+','+lat+','+lng+');'
+    +'node["amenity"="restaurant"](around:'+r+','+lat+','+lng+');'
+    +'node["amenity"="fast_food"](around:'+r+','+lat+','+lng+');'
+    +'node["highway"="speed_camera"](around:'+r+','+lat+','+lng+');'
+    +'node["enforcement"="maxspeed"](around:'+r+','+lat+','+lng+');'
+    +'node["traffic_sign"](around:'+r+','+lat+','+lng+');'
+    +'node["highway"="stop"](around:'+r+','+lat+','+lng+');'
+    +'node["highway"="give_way"](around:'+r+','+lat+','+lng+');'
+    +');out body;';
+
+  // Dùng server proxy - tránh CORS hoàn toàn
+  fetch('/api/overpass',{
+    method:'POST',
+    headers:{'Content-Type':'application/x-www-form-urlencoded'},
+    body:'data='+encodeURIComponent(q)
+  })
+  .then(function(res){
+    if(!res.ok)throw new Error('Server proxy '+res.status);
+    return res.json();
+  })
+  .then(function(data){
+    poiFetching=false;
+    Object.keys(poiState).forEach(function(k){poiState[k].data=[];});
+    data.elements.forEach(function(el){
+      if(!el.lat&&el.center){el.lat=el.center.lat;el.lon=el.center.lon;}
+      if(!el.lat)return;
+      var t=el.tags||{};
+      var b={lat:el.lat,lng:el.lon,name:t.name||t['name:vi']||'',brand:t.brand||'',hours:t.opening_hours||''};
+      if(t.amenity==='fuel')
+        poiState.gas.data.push(Object.assign({},b,{detail:(t['fuel:octane_95']==='yes'?'RON 95 ':'')+(t['fuel:diesel']==='yes'?'Diesel':'').trim()||'Trạm xăng'}));
+      else if(t.amenity==='charging_station')
+        poiState.ev.data.push(Object.assign({},b,{detail:(t.capacity?t.capacity+' cổng ':'')+(t.socket||'')||'Sạc điện'}));
+      else if(t.highway==='rest_area'||t.amenity==='restaurant'||t.amenity==='fast_food')
+        poiState.rest.data.push(Object.assign({},b,{detail:t.highway==='rest_area'?'Trạm dừng nghỉ':(t.cuisine||t.amenity||'Ăn uống')}));
+      else if(t.highway==='speed_camera'||t.enforcement==='maxspeed')
+        poiState.cam.data.push(Object.assign({},b,{name:b.name||'Camera tốc độ',speed:t.maxspeed||'',detail:t.direction?'Hướng '+t.direction:''}));
+      else if(t.traffic_sign||t.highway==='stop'||t.highway==='give_way'){
+        var sn=t.highway==='stop'?'Biển DỪNG':t.highway==='give_way'?'Nhường đường':'Biển báo';
+        poiState.sign.data.push(Object.assign({},b,{name:b.name||sn,detail:t.traffic_sign||''}));
+      }
+    });
+    ['gas','ev','rest','cam','sign'].forEach(function(type){
+      var cid='poiCnt'+type.charAt(0).toUpperCase()+type.slice(1);
+      var bid='poiBtn'+type.charAt(0).toUpperCase()+type.slice(1);
+      var n=poiState[type].data.length;
+      var cnt=document.getElementById(cid);if(cnt)cnt.textContent=n>0?n:'';
+      var btn=document.getElementById(bid);if(btn)btn.classList.toggle('has-data',n>0);
+      if(poiState[type].on)poiRenderLayer(type);
+    });
+    showToast('✅ Tải dữ liệu bản đồ xong!','ok');
+  })
+  .catch(function(err){
+    poiFetching=false;
+    console.warn('[POI] Error:',err.message);
+    showToast('⚠️ POI cần server. Deploy lại Render để dùng tính năng này.','warn');
+  });
+}
+
+!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover"/>
+<title>Casaroom — Bộ Đàm</title>
+<link rel="manifest" href="manifest.json"/>
+<meta name="theme-color" content="#0f172a"/>
+<link rel="apple-touch-icon" href="icon-192.png"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+<style>
+/* ═══ RESET ════════════════════════════════════════════ */
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;overflow:hidden;font-family:'Inter',system-ui,sans-serif;background:#0f172a;color:#f8fafc;-webkit-font-smoothing:antialiased}
+button{cursor:pointer;font-family:inherit;border:none;background:none;color:inherit;outline:none}
+input,select,textarea{font-family:inherit;outline:none;color:inherit}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:10px}
+::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,.2)}
+
+/* ═══ CSS VARIABLES ════════════════════════════════════ */
+:root{
+  --bg:#0f172a;--bg2:#020617;--surf:rgba(30,41,59,.4);--surf2:rgba(30,41,59,.7);
+  --border:rgba(255,255,255,.05);--border2:rgba(255,255,255,.1);
+  --blue:#3b82f6;--blue-glow:rgba(59,130,246,.3);
+  --green:#22c55e;--red:#ef4444;--orange:#f97316;--amber:#f59e0b;
+  --text:#f8fafc;--text2:#94a3b8;--text3:#475569;
+  --glass:rgba(30,41,59,.7);--glass2:rgba(15,23,42,.75);
+  --sb:env(safe-area-inset-bottom,0px);--st:env(safe-area-inset-top,0px);
+}
+
+/* ═══ GLASS MORPHISM ════════════════════════════════════ */
+.glass{background:var(--glass);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid var(--border2)}
+.glass2{background:var(--glass2);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid var(--border)}
+
+/* ═══ TOAST ════════════════════════════════════════════ */
+#toastLayer{position:fixed;top:calc(14px + var(--st));left:50%;transform:translateX(-50%);z-index:99999;display:flex;flex-direction:column;gap:8px;width:calc(100% - 32px);max-width:340px;align-items:center;pointer-events:none}
+.toast{padding:10px 18px;border-radius:30px;font-size:12.5px;font-weight:700;color:#fff;background:rgba(15,23,42,.96);border:1px solid var(--border2);backdrop-filter:blur(16px);box-shadow:0 8px 32px rgba(0,0,0,.5);animation:tIn .2s ease;text-align:center}
+.toast.ok{background:rgba(34,197,94,.15);border-color:rgba(34,197,94,.4);color:#4ade80}
+.toast.err{background:rgba(239,68,68,.15);border-color:rgba(239,68,68,.4);color:#f87171}
+.toast.warn{background:rgba(245,158,11,.15);border-color:rgba(245,158,11,.4);color:#fbbf24}
+@keyframes tIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+
+/* ═══ COMMON BUTTONS ═══════════════════════════════════ */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:0 18px;height:44px;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;transition:all .12s}
+.btn:active{opacity:.75;transform:scale(.97)}
+.btn:disabled{opacity:.35;pointer-events:none}
+.btn-blue{background:var(--blue);color:#fff}
+.btn-s{background:rgba(255,255,255,.06);color:var(--text2);border:1px solid var(--border2)}
+.btn-r{background:rgba(239,68,68,.12);color:var(--red);border:1px solid rgba(239,68,68,.3)}
+.btn-full{width:100%}
+.btn-lg{height:50px;font-size:15px;border-radius:14px}
+.btn-sm{height:32px;padding:0 12px;font-size:12px;border-radius:8px}
+.inp{width:100%;height:46px;padding:0 14px;background:rgba(255,255,255,.05);border:1px solid var(--border2);border-radius:12px;font-size:14px;color:var(--text);transition:border-color .15s}
+.inp:focus{border-color:var(--blue)}
+.inp::placeholder{color:var(--text3)}
+.lbl{font-size:11px;font-weight:700;color:var(--text3);margin-bottom:5px;display:block;text-transform:uppercase;letter-spacing:.05em}
+.fg{margin-bottom:12px}
+.tog{width:44px;height:26px;border-radius:13px;background:rgba(255,255,255,.12);border:1px solid var(--border2);position:relative;transition:background .2s;flex-shrink:0}
+.tog::after{content:'';position:absolute;top:4px;left:4px;width:18px;height:18px;border-radius:50%;background:var(--text3);transition:transform .2s,background .2s}
+.tog.on{background:rgba(59,130,246,.2);border-color:rgba(59,130,246,.4)}
+.tog.on::after{transform:translateX(18px);background:var(--blue)}
+.badge{display:inline-flex;align-items:center;font-size:10px;font-weight:700;border-radius:999px;padding:2px 7px;border:1px solid}
+.bdg-g{background:rgba(34,197,94,.1);color:var(--green);border-color:rgba(34,197,94,.3)}
+.bdg-b{background:rgba(59,130,246,.1);color:var(--blue);border-color:rgba(59,130,246,.3)}
+
+/* ═══ JOIN / DISCOVER / WAIT SCREENS ══════════════════ */
+.screen{display:none;position:fixed;inset:0;z-index:500;flex-direction:column;overflow-y:auto;background:var(--bg)}
+.screen.active{display:flex}
+#joinScreen{align-items:center;justify-content:center;background:radial-gradient(ellipse 70% 50% at 50% 0%,#1e3a5f,#0f172a 70%)}
+.join-wrap{width:100%;max-width:420px;padding:calc(24px + var(--st)) 24px calc(24px + var(--sb));display:flex;flex-direction:column;align-items:center;gap:16px}
+.j-logo{width:64px;height:64px;background:#3b82f6;border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:28px;box-shadow:0 12px 40px rgba(59,130,246,.4)}
+.j-title{font-size:24px;font-weight:900;letter-spacing:-.03em}
+.j-sub{font-size:13px;color:var(--text3);text-align:center}
+.j-card{background:rgba(30,41,59,.5);border:1px solid var(--border2);border-radius:20px;padding:22px;width:100%;backdrop-filter:blur(12px)}
+.j-card h3{font-size:10px;font-weight:800;color:var(--text3);margin-bottom:14px;text-transform:uppercase;letter-spacing:.06em}
+.j-err{color:var(--red);font-size:12px;font-weight:700;margin-top:8px;text-align:center;min-height:16px}
+.jdiv{text-align:center;font-size:11px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.06em;position:relative;width:100%}
+.jdiv::before,.jdiv::after{content:'';position:absolute;top:50%;width:35%;height:1px;background:var(--border2)}
+.jdiv::before{left:0}.jdiv::after{right:0}
+.cr-card{background:rgba(30,41,59,.4);border:1px solid var(--border2);border-radius:16px;overflow:hidden;width:100%}
+.cr-hdr{width:100%;padding:14px 16px;display:flex;align-items:center;gap:10px;font-size:14px;font-weight:700;background:none;border:none;color:var(--text2)}
+.arr{transition:transform .2s;color:var(--text3)}
+.cr-body{display:none;padding:16px;border-top:1px solid var(--border)}
+.cr-body.open{display:block}
+.trow{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)}
+.trow:last-of-type{border-bottom:none;margin-bottom:8px}
+.tl{font-size:13px;font-weight:600}.ts{font-size:11px;color:var(--text3);margin-top:2px}
+.topbar{display:flex;align-items:center;gap:10px;padding:calc(10px + var(--st)) 16px 10px;background:rgba(15,23,42,.88);border-bottom:1px solid var(--border);flex-shrink:0;backdrop-filter:blur(16px)}
+.topbar h2{font-size:15px;font-weight:800;flex:1;color:var(--text)}
+.ib{width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,.06);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--text2)}
+.page{flex:1;overflow-y:auto;padding:12px 16px}
+.rc{display:flex;align-items:center;gap:12px;padding:13px;border-radius:14px;background:rgba(30,41,59,.4);border:1px solid var(--border);margin-bottom:9px;cursor:pointer;transition:border-color .15s}
+.rc:active{border-color:var(--blue)}
+.rc-name{font-size:14px;font-weight:700}.rc-sub{font-size:11.5px;color:var(--text2);margin-top:2px}
+.empt{text-align:center;padding:44px 16px;color:var(--text3);font-size:13px}
+#waitScreen{align-items:center;justify-content:center;padding:40px 24px;gap:16px}
+.wt{font-size:20px;font-weight:800;letter-spacing:-.02em}.ws{font-size:13px;color:var(--text2);line-height:1.7;text-align:center}
+
+/* ═══════════════════════════════════════════════════════
+   ROOM SCREEN — Full application layout
+═══════════════════════════════════════════════════════ */
+#roomScreen{position:fixed;inset:0;background:var(--bg);display:none;overflow:hidden}
+#roomScreen.active{display:flex;flex-direction:column}
+
+/* ── MAP ─────────────────────────────────────────────── */
+#mapFull{position:absolute;inset:0;z-index:1}
+#mapFull .leaflet-tile-pane{filter:brightness(.75) saturate(.6) contrast(1.1)}
+#mapFullEmpty{display:none;position:absolute;inset:0;z-index:2;align-items:center;justify-content:center;flex-direction:column;gap:8px;pointer-events:none;color:var(--text3);font-size:13px}
+
+/* Gradients */
+.map-top-fade{position:absolute;top:0;left:0;right:0;height:180px;z-index:3;pointer-events:none;
+  background:linear-gradient(to bottom,rgba(15,23,42,.92) 0%,rgba(15,23,42,.2) 65%,transparent 100%)}
+.map-bottom-fade{position:absolute;bottom:0;left:0;right:0;height:60%;z-index:2;pointer-events:none;
+  background:linear-gradient(to top,rgba(15,23,42,.97) 0%,rgba(15,23,42,.3) 45%,transparent 100%)}
+
+/* ── BANNERS ─────────────────────────────────────────── */
+.banners{position:absolute;z-index:25;left:0;right:0;top:0;display:flex;flex-direction:column}
+.ban{display:none;padding:8px 16px;font-size:12px;font-weight:700;text-align:center;align-items:center;gap:8px}
+.ban.show{display:flex;justify-content:center}
+.ban-recon{background:rgba(245,158,11,.2);color:#fbbf24}
+.ban-ios{background:rgba(59,130,246,.2);color:var(--blue);position:relative}
+.bx{position:absolute;right:14px;cursor:pointer;opacity:.5;font-size:15px}
+.vmemo{display:none;padding:8px 14px;background:rgba(15,23,42,.98);border-bottom:1px solid var(--border2)}
+.vmemo.show{display:flex;align-items:center;gap:8px}
+.vmemo-row{display:flex;align-items:center;gap:8px;width:100%}
+.vmemo-btn{padding:5px 12px;border-radius:8px;background:rgba(255,255,255,.1);color:var(--text);font-size:12px;font-weight:700}
+.vmemo-info{flex:1;font-size:11px;color:var(--text3)}
+.vmemo-x{font-size:17px;color:var(--text3)}
+#aprvBan{display:none;background:rgba(245,158,11,.12);border-bottom:1px solid rgba(245,158,11,.2);padding:8px 16px;font-size:12px;font-weight:700;color:#fbbf24}
+#aprvBan.show{display:block}
+#aprvBanList{margin-top:5px;display:flex;flex-direction:column;gap:4px}
+.req-ban{display:none;background:rgba(15,23,42,.98);border-bottom:1px solid var(--border2);padding:10px 16px}
+.req-ban.show{display:flex}
+.req-inner{display:flex;align-items:center;gap:10px;width:100%}
+.req-icon{font-size:22px;flex-shrink:0}
+.req-body{flex:1;min-width:0}
+.req-title{font-size:13px;font-weight:800}.req-sub{font-size:11px;color:var(--text3);margin-top:2px}
+.req-btns{display:flex;gap:6px}
+
+/* ── MAP CONTROLS ────────────────────────────────────── */
+.map-ctrl{position:absolute;right:16px;z-index:20;display:flex;flex-direction:column;gap:8px}
+
+/* ── SPEEDOMETER ─────────────────────────────────────── */
+#speedoWrap{position:absolute;z-index:20;left:10px;transition:bottom .3s ease;bottom:300px}
+#speedo{background:var(--glass2);backdrop-filter:blur(16px);border:1px solid var(--border2);border-left:3px solid var(--blue);border-radius:12px;padding:8px 12px;min-width:72px;text-align:center;box-shadow:0 4px 20px rgba(0,0,0,.4)}
+.spd-val{font-size:24px;font-weight:900;color:#fff;line-height:1;font-family:monospace;letter-spacing:-.02em}
+.spd-unit{font-size:9px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.2em;margin-top:2px}
+.spd-limit-row{display:flex;align-items:center;justify-content:center;gap:4px;margin-top:6px}
+.spd-limit-circle{width:28px;height:28px;border-radius:50%;border:3px solid var(--red);background:#fff;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:900;color:#000}
+.spd-limit-circle.warn{border-color:var(--red);background:var(--red);color:#fff;animation:sWarn .5s ease-in-out infinite alternate}
+@keyframes sWarn{from{transform:scale(1)}to{transform:scale(1.1)}}
+
+/* ── POI PANEL ───────────────────────────────────────── */
+#poiPanel{position:absolute;z-index:20;display:flex;flex-direction:column;gap:6px;left:10px;top:calc(60px + var(--st) + 6px)}
+.poi-btn{width:34px;height:34px;border-radius:9px;background:var(--glass2);backdrop-filter:blur(10px);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;transition:all .18s;position:relative}
+.poi-btn.active{background:rgba(59,130,246,.2);border-color:rgba(59,130,246,.4)}
+.poi-btn:active{transform:scale(.9)}
+.poi-count{position:absolute;top:-4px;right:-4px;width:15px;height:15px;border-radius:50%;background:var(--red);color:#fff;font-size:7px;font-weight:900;display:none;align-items:center;justify-content:center;border:1.5px solid #0f172a}
+.poi-btn.has-data .poi-count{display:flex}
+
+/* ── POI ALERT ───────────────────────────────────────── */
+#poiAlert{display:none;position:absolute;z-index:28;background:var(--glass2);backdrop-filter:blur(14px);border:1px solid rgba(245,158,11,.3);border-radius:14px;padding:10px 12px;gap:10px;align-items:center;animation:slideLeft .25s ease}
+#poiAlert.show{display:flex}
+@keyframes slideLeft{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:none}}
+.pai-ico{font-size:20px;flex-shrink:0}
+.pai-body{flex:1;min-width:0}
+.pai-title{font-size:12px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pai-sub{font-size:10px;color:var(--text2);margin-top:2px}
+.pai-close{font-size:14px;color:var(--text3);flex-shrink:0}
+
+/* ── MOBILE BOTTOM SHEET ─────────────────────────────── */
+#bottomSheet{
+  position:absolute;bottom:0;left:0;right:0;z-index:40;
+  background:rgba(15,23,42,.96);backdrop-filter:blur(20px);
+  border-top-left-radius:24px;border-top-right-radius:24px;
+  border-top:1px solid var(--border2);
+  display:flex;flex-direction:column;overflow:hidden;
+  transition:height .3s cubic-bezier(.4,0,.2,1);
+}
+#bottomSheet.map-mode{
+  background:transparent !important;backdrop-filter:none !important;
+  border-top:none !important;height:auto !important;transition:none;
+}
+#bottomSheet.map-mode #sheetScrollArea{display:none !important}
+#bottomSheet.map-mode .bs-handle-wrap{display:none !important}
+#bottomSheet.map-mode .ptt-zone{
+  background:rgba(15,23,42,.9) !important;
+  backdrop-filter:blur(12px) !important;
+  border-top:1px solid var(--border2) !important;
+}
+#bottomSheet.map-mode .tabbar{
+  background:rgba(15,23,42,.95) !important;
+}
+.bs-handle-wrap{display:flex;justify-content:center;padding:10px 0 2px;flex-shrink:0;cursor:grab}
+.bs-handle{width:36px;height:4px;background:rgba(255,255,255,.15);border-radius:2px}
+
+/* ── MEMBER STRIP (Mobile) ───────────────────────────── */
+.bs-members-hdr{display:flex;align-items:center;justify-content:space-between;padding:6px 16px 2px;flex-shrink:0}
+.bs-members-title{font-size:9px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.07em}
+.bs-members-count{font-size:9px;font-weight:700;color:var(--blue)}
+.av-strip{display:flex;overflow-x:auto;padding:4px 14px 8px;-webkit-overflow-scrolling:touch;flex-shrink:0;gap:8px}
+.av-strip::-webkit-scrollbar{display:none}
+/* Member pill style — from UXpilot mobile */
+.av-item{
+  display:flex;align-items:center;gap:8px;
+  background:rgba(255,255,255,.04);border:1px solid var(--border);
+  border-radius:999px;padding:4px 12px 4px 4px;
+  min-width:110px;flex-shrink:0;cursor:pointer;transition:border-color .15s;
+}
+.av-item.speaking-card{border-color:rgba(34,197,94,.4);background:rgba(34,197,94,.08)}
+.av-ring{width:28px;height:28px;border-radius:50%;padding:2px;flex-shrink:0}
+.av-ring.idle{background:rgba(255,255,255,.1)}
+.av-ring.speaking{background:var(--green);animation:aPulse 1.2s ease-in-out infinite}
+.av-ring.owner-r{background:#fbbf24}.av-ring.me-r{background:var(--blue)}
+@keyframes aPulse{0%,100%{box-shadow:0 0 0 0 rgba(34,197,94,.5)}50%{box-shadow:0 0 0 5px rgba(34,197,94,0)}}
+.av-inner{width:100%;height:100%;border-radius:50%;overflow:hidden;background:rgba(30,41,59,1);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;color:#fff}
+.av-info{flex:1;min-width:0}
+.av-name{font-size:11px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.av-stat{font-size:9px;color:var(--text3);margin-top:1px}
+.av-stat.speaking{color:var(--green)}
+
+/* ── CONTENT PANELS ──────────────────────────────────── */
+#sheetScrollArea{flex:1;position:relative;overflow:hidden;min-height:0;display:flex;flex-direction:column}
+.content-panel{display:none;flex-direction:column;flex:1;overflow:hidden;min-height:0}
+.content-panel.active{display:flex}
+
+/* Member list */
+.mlist{flex:1;overflow-y:auto;padding:4px 0;display:flex;flex-direction:column}
+/* UXpilot style member row */
+.mrow{
+  display:flex;align-items:center;gap:12px;padding:10px 16px;
+  border-bottom:1px solid var(--border);
+  background:rgba(30,41,59,.25);transition:background .15s;
+}
+.mrow:active{background:rgba(30,41,59,.5)}
+.mrow.speaking{background:rgba(59,130,246,.1);border-bottom-color:rgba(59,130,246,.2);border-left:3px solid var(--blue)}
+.mrow.is-owner{border-left:3px solid #fbbf24}
+.mav-wrap{position:relative;flex-shrink:0}
+.mav{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:14px;color:#fff;overflow:hidden;border:1px solid var(--border2)}
+.mav.owner-av{box-shadow:0 0 0 2px #fbbf24}
+.mav.speaking-av{box-shadow:0 0 0 2px var(--blue);animation:avP 1.3s ease-in-out infinite}
+@keyframes avP{0%,100%{box-shadow:0 0 0 2px rgba(59,130,246,.6)}50%{box-shadow:0 0 0 5px rgba(59,130,246,.1)}}
+.mcrown{position:absolute;left:-5px;top:-5px;font-size:11px}
+.mol{position:absolute;right:-2px;bottom:-2px;width:9px;height:9px;border-radius:50%;background:var(--green);border:2px solid #0f172a}
+.minfo{flex:1;min-width:0}
+.mname{font-size:13px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.msub{font-size:10.5px;color:var(--text2);margin-top:2px;display:flex;align-items:center;gap:4px;flex-wrap:wrap}
+.mrow.speaking .mname{color:var(--text)}.mrow.speaking .msub{color:var(--blue)}
+.qb{font-size:9px;padding:1px 5px;border-radius:5px;border:1px solid var(--border);background:rgba(30,41,59,.8);font-weight:600;color:var(--text2)}
+.qb.g{border-color:rgba(34,197,94,.4);color:var(--green);background:rgba(34,197,94,.08)}
+.qb.o{border-color:rgba(245,158,11,.4);color:#fbbf24;background:rgba(245,158,11,.08)}
+.mwave{display:none;align-items:center;gap:2px;margin-left:auto}
+.mrow.speaking .mwave{display:flex}
+.mwave span{width:3px;border-radius:2px;background:var(--blue);animation:wB 1s ease-in-out infinite}
+.mwave span:nth-child(1){height:8px}.mwave span:nth-child(2){height:14px;animation-delay:.15s}.mwave span:nth-child(3){height:10px;animation-delay:.3s}
+@keyframes wB{0%,100%{transform:scaleY(.4)}50%{transform:scaleY(1)}}
+.owbtns{flex-shrink:0}
+.owb-btn{width:30px;height:30px;border-radius:8px;background:rgba(255,255,255,.05);border:1px solid var(--border);font-size:14px;display:flex;align-items:center;justify-content:center;color:var(--text2)}
+.owb-drop{display:none;position:fixed;background:rgba(15,23,42,.97);border:1px solid var(--border2);border-radius:16px;box-shadow:0 20px 50px rgba(0,0,0,.9);z-index:9999;min-width:210px;overflow:hidden;backdrop-filter:blur(24px)}
+.owb-drop.open{display:block}
+.owb-drop-title{padding:10px 14px 6px;font-size:9px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.07em}
+.owb-drop-item{width:100%;padding:12px 14px;text-align:left;font-size:13px;font-weight:700;display:flex;align-items:center;gap:10px;border:none;background:transparent;color:var(--text);border-bottom:1px solid var(--border);cursor:pointer}
+.owb-drop-item:last-child{border-bottom:none}
+.owb-drop-item:active{background:rgba(255,255,255,.05)}
+.owb-drop-item.danger{color:var(--red)}.owb-drop-item.warn{color:#fbbf24}.owb-drop-item.blue{color:var(--blue)}.owb-drop-item.green{color:var(--green)}
+
+/* Chat */
+.chat-msgs{flex:1;overflow-y:auto;padding:8px 16px;display:flex;flex-direction:column;gap:6px}
+.csys{align-self:center;font-size:10.5px;color:var(--text3);padding:3px 10px;background:rgba(255,255,255,.05);border-radius:999px;margin:2px 0}
+.cmsg{display:flex;flex-direction:column;max-width:80%}
+.cmsg.me{align-self:flex-end;align-items:flex-end}
+.cmsg.other{align-self:flex-start}
+.bubble{padding:10px 14px;border-radius:18px;font-size:14px;line-height:1.45;word-break:break-word}
+.cmsg.me .bubble{background:var(--blue);color:#fff;border-bottom-right-radius:5px;font-weight:600}
+.cmsg.other .bubble{background:rgba(30,41,59,.7);border:1px solid var(--border);border-bottom-left-radius:5px}
+.cmeta{font-size:10px;color:var(--text3);margin-top:3px;padding:0 4px}
+.chat-input-row{display:flex;gap:8px;padding:9px 16px;border-top:1px solid var(--border);background:rgba(15,23,42,.98);flex-shrink:0;padding-bottom:calc(9px + var(--sb))}
+.chat-inp{flex:1;height:40px;padding:0 14px;background:rgba(30,41,59,.6);border:1px solid var(--border2);border-radius:22px;font-size:14px}
+.chat-inp:focus{border-color:var(--blue)}
+.cemoji{width:40px;height:40px;border-radius:50%;background:rgba(30,41,59,.6);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.csend{width:40px;height:40px;border-radius:50%;background:var(--blue);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#fff}
+.csend:active{transform:scale(.88)}
+
+/* Settings */
+.set-scroll{flex:1;overflow-y:auto;padding:10px 16px;display:flex;flex-direction:column;gap:4px}
+.set-section{background:rgba(30,41,59,.4);border-radius:14px;overflow:hidden;border:1px solid var(--border);margin-bottom:8px}
+.set-item{display:flex;align-items:center;gap:12px;padding:13px;border-bottom:1px solid var(--border)}
+.set-item:last-child{border-bottom:none}
+.set-icon{font-size:16px;width:24px;text-align:center;flex-shrink:0}
+.set-body{flex:1;min-width:0}
+.set-label{font-size:13px;font-weight:700}
+.set-sub{font-size:11px;color:var(--text3);margin-top:2px}
+.set-ctrl{margin-left:auto;flex-shrink:0}
+.set-inp-wrap{padding:12px 13px}
+.sec{font-size:10px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;padding:0 2px;margin-top:4px}
+.aprv-item{display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:10px;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);margin-bottom:6px}
+
+/* Video */
+#videoGrid{display:none;flex-wrap:wrap;gap:4px;padding:4px 10px 0;flex-shrink:0}
+#videoGrid.vis{display:flex}
+.vtile{position:relative;border-radius:10px;overflow:hidden;background:#000;flex:1;min-width:140px;max-width:200px}
+.vtile canvas{width:100%;height:auto;display:block}
+.vname{position:absolute;bottom:0;left:0;right:0;padding:4px 7px;font-size:10px;font-weight:700;background:linear-gradient(0deg,rgba(0,0,0,.8),transparent);color:#fff}
+.voff{position:absolute;top:4px;right:4px;background:rgba(0,0,0,.6);border:none;border-radius:6px;padding:3px 6px;font-size:10px;color:#fff;cursor:pointer}
+
+/* ── PTT ZONE — UXpilot mobile style ─────────────────── */
+.ptt-zone{
+  flex-shrink:0;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 24px calc(10px + var(--sb));
+  background:rgba(15,23,42,.96);
+  border-top:1px solid var(--border);
+  position:relative;
+}
+#reactLayer{position:absolute;bottom:100%;left:0;right:0;height:80px;pointer-events:none;overflow:visible;z-index:50}
+
+/* PTT camera left */
+#waCam{
+  width:50px;height:50px;border-radius:16px;
+  background:rgba(30,41,59,.8);border:1px solid var(--border2);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  font-size:18px;color:rgba(255,255,255,.5);transition:all .2s;
+}
+#waCam.on{background:rgba(59,130,246,.15);border-color:rgba(59,130,246,.4);color:var(--blue)}
+
+/* PTT Center */
+.ptt-center{display:flex;flex-direction:column;align-items:center;gap:4px}
+.stat-line{font-size:11px;color:var(--text2);font-weight:500;text-align:center;min-height:15px}
+.stat-line.talking{color:var(--green)}.stat-line.preparing{color:#fbbf24}.stat-line.remote{color:#fbbf24}
+.ptt-outer{position:relative;width:88px;height:88px;display:flex;align-items:center;justify-content:center}
+#pttWaveR{position:absolute;inset:-14px;border-radius:50%;border:2.5px solid var(--orange);opacity:0;pointer-events:none}
+.ptt-outer.talking #pttWaveR{opacity:1;animation:pWave 1.4s ease-out infinite}
+@keyframes pWave{0%{transform:scale(.78);opacity:.8}100%{transform:scale(1.8);opacity:0}}
+/* PTT button — UXpilot orange gradient */
+#pttBtn{
+  width:80px;height:80px;border-radius:50%;
+  background:linear-gradient(135deg,#f97316 0%,#dc2626 100%);
+  border:4px solid rgba(255,255,255,.08);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  transition:all .1s;z-index:1;position:relative;color:#fff;
+  box-shadow:0 0 30px rgba(249,115,22,.35),0 8px 24px rgba(0,0,0,.4);
+}
+#pttBtn i{font-size:26px}
+#pttBtn .ptt-txt{font-size:7.5px;font-weight:900;text-transform:uppercase;letter-spacing:.07em;color:rgba(255,255,255,.85)}
+#pttBtn.locked{background:rgba(30,41,59,.8);box-shadow:none;border-color:var(--border);opacity:.5;pointer-events:none}
+#pttBtn.locked i{color:rgba(255,255,255,.3)}
+#pttBtn.preparing{background:linear-gradient(135deg,#f59e0b,#d97706);box-shadow:0 0 0 8px rgba(245,158,11,.12),0 0 28px rgba(245,158,11,.35)}
+#pttBtn.talking{background:linear-gradient(135deg,#22c55e,#16a34a);box-shadow:0 0 0 10px rgba(34,197,94,.12),0 0 36px rgba(34,197,94,.4)}
+#pttBtn:active:not(.locked){transform:scale(.93)}
+#pttLabel{display:none} /* handled by ptt-txt inside button */
+
+/* PTT Right side: Speaker + SOS */
+.ptt-right{display:flex;gap:8px}
+.ptt-r-btn{
+  width:48px;height:48px;border-radius:16px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  font-size:15px;transition:all .15s;
+}
+.ptt-r-btn:active{transform:scale(.9)}
+.ptt-r-lbl{font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:.04em}
+.btn-loa{background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.2);color:var(--green)}
+.btn-sos{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);color:var(--red)}
+
+/* ── TABBAR — UXpilot style ──────────────────────────── */
+.tabbar{
+  flex-shrink:0;display:flex;
+  background:rgba(15,23,42,.97);
+  border-top:1px solid var(--border);
+  padding-bottom:var(--sb);
+}
+.ti{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:9px 4px 7px;cursor:pointer;border:none;background:transparent;transition:opacity .14s;position:relative;min-width:0}
+.ti:active{opacity:.55}
+.tii{font-size:19px;line-height:1.15;transition:transform .15s}
+.til{font-size:9px;font-weight:600;color:var(--text3);white-space:nowrap;text-transform:uppercase;letter-spacing:.03em}
+.ti.active .til{color:var(--blue)}
+.ti.active .tii{transform:scale(1.1)}
+.tdot{position:absolute;top:7px;right:calc(50% - 17px);width:7px;height:7px;border-radius:50%;background:var(--red);border:1.5px solid #0f172a;display:none}
+.ti.has-dot .tdot{display:block}
+
+/* ── MODALS ──────────────────────────────────────────── */
+.mov{display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.8);align-items:flex-end;justify-content:center;backdrop-filter:blur(8px)}
+.mov.show{display:flex}
+.mbd{position:absolute;inset:0}
+.msheet{position:relative;background:rgba(15,23,42,.98);border-top-left-radius:24px;border-top-right-radius:24px;border:1px solid var(--border2);border-bottom:none;padding:0 18px calc(18px + var(--sb));width:100%;max-width:480px;max-height:90dvh;overflow-y:auto;box-shadow:0 -12px 50px rgba(0,0,0,.7);backdrop-filter:blur(20px)}
+.mhandle{width:36px;height:4px;border-radius:2px;background:rgba(255,255,255,.15);margin:12px auto 16px}
+.mtitle{font-size:16px;font-weight:900;margin-bottom:16px;letter-spacing:-.02em}
+.qr-cw{display:flex;justify-content:center;margin-bottom:14px}
+#qrCanvas{border-radius:14px;background:#fff;padding:10px}
+.qr-lr{display:flex;gap:8px;margin-bottom:10px;align-items:center}
+#qrLink{font-size:12px;color:var(--blue);word-break:break-all;flex:1}
+.egrid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+.ebtn{aspect-ratio:1;border-radius:14px;background:rgba(30,41,59,.6);border:1px solid var(--border);font-size:24px;display:flex;align-items:center;justify-content:center}
+.ebtn:active{transform:scale(.85)}
+#sosOv{display:none;position:fixed;inset:0;z-index:10000;background:rgba(220,38,38,.9);align-items:center;justify-content:center;flex-direction:column;gap:16px;backdrop-filter:blur(10px)}
+#sosOv.show{display:flex}
+.sos-card{background:rgba(255,255,255,.97);border-radius:26px;padding:28px 24px;width:calc(100% - 40px);max-width:320px;text-align:center;box-shadow:0 24px 60px rgba(0,0,0,.5)}
+.sos-e{font-size:52px;margin-bottom:10px;animation:sosBounce .5s ease-in-out infinite alternate}
+@keyframes sosBounce{from{transform:scale(1)}to{transform:scale(1.1)}}
+.sos-t{font-size:19px;font-weight:900;color:#c00;margin-bottom:8px}
+.sos-b{font-size:13px;color:#444;line-height:1.6;white-space:pre-wrap}
+.sos-dismiss{padding:12px 28px;border-radius:14px;background:rgba(220,38,38,.2);color:#c00;font-weight:800;font-size:14px;border:2px solid rgba(220,38,38,.3);cursor:pointer}
+.rb{position:absolute;bottom:0;display:flex;flex-direction:column;align-items:center;animation:fUp 2.4s ease-out forwards}
+.rb .re{font-size:26px}.rb .rw{font-size:9px;color:var(--text3);background:rgba(30,41,59,1);padding:1px 5px;border-radius:6px;margin-top:1px}
+@keyframes fUp{0%{transform:translateY(0) scale(.5);opacity:0}12%{transform:translateY(-14px) scale(1.05);opacity:1}85%{opacity:1}100%{transform:translateY(-160px) scale(.9);opacity:0}}
+
+/* ═══════════════════════════════════════════════════════
+   DESKTOP LAYOUT ≥900px — UXpilot Dashboard style
+   Left icon sidebar | Map full | Right comms panel
+═══════════════════════════════════════════════════════ */
+@media(min-width:900px){
+  /* Non-room centered */
+  #joinScreen,#discoverScreen,#waitScreen{position:fixed !important;inset:0 !important;display:none;align-items:center;justify-content:center;z-index:500}
+  #joinScreen.active,#discoverScreen.active,#waitScreen.active{display:flex !important}
+  .join-wrap{background:rgba(30,41,59,.5);border:1px solid var(--border2);border-radius:24px;padding:32px !important;backdrop-filter:blur(16px);max-height:90vh;overflow-y:auto;max-width:440px !important}
+  #roomScreen{display:none;flex-direction:row !important}
+  #roomScreen.active{display:flex !important}
+
+  /* ── LEFT ICON SIDEBAR (UXpilot: 80px) ── */
+  #deskSidebar{
+    width:80px;background:#020617;border-right:1px solid var(--border);
+    display:flex;flex-direction:column;align-items:center;padding:24px 0;
+    flex-shrink:0;z-index:50;
+  }
+  .dsk-logo{
+    width:48px;height:48px;background:#fff;border-radius:16px;
+    display:flex;align-items:center;justify-content:center;margin-bottom:36px;
+    box-shadow:0 8px 24px rgba(255,255,255,.08);
+  }
+  .dsk-logo span{color:#0f172a;font-weight:900;font-size:22px;letter-spacing:-.04em}
+  .dsk-nav{flex:1;display:flex;flex-direction:column;gap:8px;align-items:center}
+  .dsk-nav-btn{
+    width:48px;height:48px;border-radius:14px;
+    display:flex;align-items:center;justify-content:center;
+    font-size:18px;color:var(--text3);transition:all .18s;cursor:pointer;border:none;background:none;
+  }
+  .dsk-nav-btn:hover{background:rgba(255,255,255,.05);color:var(--text)}
+  .dsk-nav-btn.active{background:rgba(59,130,246,.2);color:var(--blue)}
+  .dsk-nav-btn:active{transform:scale(.9)}
+  .dsk-avatar{width:40px;height:40px;border-radius:50%;border:2px solid var(--border2);overflow:hidden;background:rgba(59,130,246,.3);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;cursor:pointer;transition:border-color .2s}
+  .dsk-avatar:hover{border-color:var(--blue)}
+
+  /* ── MAP AREA: full remaining ── */
+  #mapArea{flex:1;position:relative;overflow:hidden}
+  #mapFull{position:absolute !important;inset:0 !important;z-index:1}
+  .map-top-fade,.map-bottom-fade,.map-ctrl,.banners,#poiPanel,#speedoWrap,#poiAlert{position:absolute;z-index:20}
+  .banners{top:0;left:0;right:0}
+  .map-ctrl{right:16px !important;top:80px !important}
+  #poiPanel{left:16px !important;top:80px !important}
+  #speedoWrap{left:16px;bottom:180px}
+  #poiAlert{left:16px;right:60px;top:70px}
+
+  /* Desktop header: floating glass panel in map */
+  #roomTopbar{
+    position:absolute !important;
+    top:20px !important;left:20px !important;right:auto !important;
+    background:var(--glass2) !important;
+    backdrop-filter:blur(16px) !important;
+    border:1px solid var(--border2) !important;
+    border-radius:16px !important;
+    padding:10px 16px !important;
+    height:auto !important;
+    max-width:380px;
+    z-index:30;
+  }
+  /* Status dropdown on desktop */
+  #statusDrop{top:calc(100% + 8px) !important;left:0 !important;right:auto !important;min-width:220px}
+
+  /* Hide mobile-only elements */
+  .bs-handle-wrap{display:none !important}
+  .map-top-fade,.map-bottom-fade{display:none}
+
+  /* ── RIGHT COMMS PANEL (UXpilot: w-96 = 384px) ── */
+  #bottomSheet{
+    position:relative !important;
+    top:auto !important;bottom:auto !important;left:auto !important;right:auto !important;
+    width:384px !important;
+    height:100% !important;
+    border-radius:0 !important;
+    border-top:none !important;border-left:1px solid var(--border) !important;
+    background:#0f172a !important;
+    backdrop-filter:none !important;
+    flex-shrink:0 !important;
+    transition:none !important;
+    z-index:50 !important;
+  }
+  #bottomSheet.map-mode{
+    background:#0f172a !important;border-left:1px solid var(--border) !important;
+    height:100% !important;
+  }
+  #bottomSheet.map-mode #sheetScrollArea{display:flex !important}
+  #bottomSheet.map-mode .ptt-zone{background:transparent !important;backdrop-filter:none !important;border-top:1px solid var(--border) !important}
+  #bottomSheet.map-mode .tabbar{background:#0f172a !important}
+
+  /* Members in panel: UXpilot card style */
+  .av-strip{
+    padding:16px 16px 10px !important;gap:8px !important;
+    overflow-x:auto !important;overflow-y:hidden !important;
+    flex-direction:row !important;
+    flex-shrink:0 !important;
+    border-bottom:1px solid var(--border) !important;
+  }
+  /* Desktop av-item: pill style */
+  .av-item{min-width:100px !important;border-radius:999px !important}
+
+  #sheetScrollArea{flex:1 !important;min-height:0 !important;overflow:hidden !important;display:flex !important;flex-direction:column !important}
+
+  .content-panel{position:relative !important;border-radius:0 !important;flex:1 !important;display:none !important;min-height:0 !important}
+  .content-panel.active{display:flex !important}
+  .mlist,.chat-msgs,.set-scroll{overflow-y:auto !important}
+  .chat-input-row{padding-bottom:8px !important}
+
+  /* PTT on desktop — UXpilot large PTT */
+  .ptt-zone{
+    flex-shrink:0 !important;
+    flex-direction:column !important;
+    align-items:center !important;
+    justify-content:center !important;
+    padding:24px 16px !important;
+    gap:16px !important;
+    border-top:1px solid var(--border) !important;
+    background:linear-gradient(to top,rgba(15,23,42,1),rgba(30,41,59,.3)) !important;
+  }
+  .ptt-zone > *{order:1}
+  #reactLayer{order:0;position:relative !important;bottom:auto !important}
+
+  /* Hide side buttons on desktop PTT, show below */
+  .ptt-center{width:100%;display:flex;flex-direction:column;align-items:center;gap:8px}
+  .stat-line{font-size:12px !important}
+  .ptt-outer{width:120px !important;height:120px !important}
+  #pttBtn{width:108px !important;height:108px !important;box-shadow:0 0 50px rgba(59,130,246,.25),0 0 30px rgba(249,115,22,.2) !important}
+  #pttBtn i{font-size:40px !important}
+  .ptt-txt{font-size:9px !important;letter-spacing:.3em !important}
+  #waCam,.ptt-right{display:none !important} /* Hidden: shown as grid below */
+
+  /* Desktop action grid below PTT */
+  .ptt-desktop-actions{display:grid !important;grid-template-columns:1fr 1fr;gap:12px;width:100%;padding:0 8px}
+
+  .tabbar{
+    flex-shrink:0 !important;
+    border-top:1px solid var(--border) !important;
+    padding-bottom:6px !important;
+    background:#0f172a !important;
+  }
+  .til{font-size:8px !important}.tii{font-size:16px !important}
+
+  /* Modals centered on desktop */
+  .mov{justify-content:center !important;align-items:center !important}
+  .msheet{border-radius:20px !important;border:1px solid var(--border2) !important;max-width:480px !important;max-height:80vh !important}
+  .mhandle{display:none}
+
+  /* setBSH skip on desktop */
+  #bottomSheet{height:100% !important}
+}
+@media(min-width:1280px){
+  #bottomSheet{width:420px !important}
+}
+
+/* STATUS DROPDOWN */
+#statusWrap{position:relative;z-index:200;flex-shrink:0}
+#statusBtn{display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:20px;background:rgba(255,255,255,.07);border:1px solid var(--border2);font-size:11px;font-weight:700}
+#statusDrop{display:none;position:fixed;left:10px;right:10px;background:rgba(15,23,42,.98);border:1px solid var(--border2);border-radius:20px;box-shadow:0 24px 60px rgba(0,0,0,.9);z-index:9999;overflow:hidden;backdrop-filter:blur(24px)}
+#statusDrop.open{display:block}
+.sdrop-title{padding:12px 16px 6px;font-size:9px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.08em}
+.sopt{width:100%;padding:12px 16px;text-align:left;font-size:13px;font-weight:700;display:flex;align-items:center;gap:14px;border:none;background:transparent;color:var(--text);border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer}
+.sopt:last-child{border-bottom:none}
+.sopt:active,.sopt.active-s{background:rgba(255,255,255,.05)}
+.sopt-ico{font-size:16px;width:22px;text-align:center}
+.sopt-lbl{font-size:13px;font-weight:800}
+.sopt-sub{font-size:10px;color:var(--text2);margin-top:1px}
+
+/* ════ ABOUT MODAL ═════════════════════════════════════ */
+#aboutModal{
+  display:none;position:fixed;inset:0;z-index:9999;
+  background:rgba(0,0,0,.85);backdrop-filter:blur(12px);
+  align-items:center;justify-content:center;
+}
+#aboutModal.show{display:flex}
+.about-card{
+  background:linear-gradient(145deg,#0f172a,#1e293b);
+  border:1px solid rgba(59,130,246,.25);
+  border-radius:28px;padding:36px 32px;
+  width:calc(100% - 48px);max-width:400px;
+  box-shadow:0 32px 80px rgba(0,0,0,.8),0 0 0 1px rgba(59,130,246,.1),inset 0 1px 0 rgba(255,255,255,.06);
+  position:relative;overflow:hidden;
+}
+.about-card::before{
+  content:'';position:absolute;top:-60px;right:-60px;
+  width:200px;height:200px;border-radius:50%;
+  background:radial-gradient(circle,rgba(59,130,246,.15),transparent 70%);
+  pointer-events:none;
+}
+.about-logo-wrap{
+  display:flex;align-items:center;gap:14px;margin-bottom:24px;
+}
+.about-logo{
+  width:56px;height:56px;background:#3b82f6;border-radius:18px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:26px;font-weight:900;color:#fff;letter-spacing:-.04em;
+  box-shadow:0 8px 24px rgba(59,130,246,.4);flex-shrink:0;
+}
+.about-brand{display:flex;flex-direction:column}
+.about-name{font-size:20px;font-weight:900;letter-spacing:-.03em;color:#f8fafc}
+.about-tagline{font-size:11px;color:#64748b;font-weight:600;margin-top:2px;letter-spacing:.02em}
+.about-version{
+  display:inline-flex;align-items:center;gap:6px;
+  background:rgba(59,130,246,.12);border:1px solid rgba(59,130,246,.25);
+  border-radius:8px;padding:5px 10px;margin-bottom:20px;
+  font-size:11px;font-weight:700;color:#60a5fa;letter-spacing:.04em;
+}
+.about-desc{
+  font-size:13px;color:#94a3b8;line-height:1.7;margin-bottom:22px;
+}
+.about-features{
+  display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:22px;
+}
+.about-feat{
+  display:flex;align-items:center;gap:8px;
+  background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);
+  border-radius:12px;padding:9px 11px;
+  font-size:11px;font-weight:600;color:#94a3b8;
+}
+.about-feat i{color:#3b82f6;width:14px;text-align:center;flex-shrink:0}
+.about-divider{height:1px;background:linear-gradient(to right,transparent,rgba(255,255,255,.08),transparent);margin-bottom:18px}
+.about-maker{
+  display:flex;align-items:center;gap:12px;margin-bottom:18px;
+}
+.about-maker-ico{
+  width:40px;height:40px;border-radius:12px;
+  background:linear-gradient(135deg,#1d4ed8,#7c3aed);
+  display:flex;align-items:center;justify-content:center;
+  font-size:16px;flex-shrink:0;
+  box-shadow:0 4px 12px rgba(59,130,246,.3);
+}
+.about-maker-info{flex:1;min-width:0}
+.about-maker-name{font-size:13px;font-weight:800;color:#f8fafc;margin-bottom:2px}
+.about-maker-sub{font-size:11px;color:#64748b;font-weight:500}
+.about-stack{
+  display:flex;flex-wrap:wrap;gap:6px;margin-bottom:20px;
+}
+.about-tag{
+  font-size:10px;font-weight:700;padding:3px 9px;border-radius:999px;
+  background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);
+  color:#64748b;letter-spacing:.03em;
+}
+.about-close{
+  width:100%;padding:13px;border-radius:14px;
+  background:linear-gradient(135deg,#3b82f6,#6366f1);
+  border:none;color:#fff;font-size:14px;font-weight:800;
+  cursor:pointer;transition:all .2s;letter-spacing:.02em;
+  box-shadow:0 4px 16px rgba(59,130,246,.35);
+}
+.about-close:active{transform:scale(.97);opacity:.9}
+
+</style>
+</head>
+<body>
+<script>
+// Xóa SW cache cũ (có thể đang cache 404 từ /api/overpass)
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.getRegistrations().then(function(regs){
+    regs.forEach(function(reg){
+      // Chỉ xóa nếu là SW cũ (cache name cũ)
+      reg.active && caches.keys().then(function(keys){
+        keys.forEach(function(k){
+          if(k!=='botdam-shell-v10')caches.delete(k);
+        });
+      });
+    });
+  });
+  // Clear specific cached failures
+  caches.open('botdam-shell-v10').then(function(cache){
+    cache.delete('/api/overpass');
+  });
+}
+</script>
+<script>
+// Early stub - kPOI available before onclick fires
+window.kPOI = function(type) {
+  // Will be overridden by bridge JS
+  if(window._kPOI_real) window._kPOI_real(type);
+};
+</script>
+
+<div id="toastLayer"></div>
+
+<!-- ══ JOIN SCREEN ══════════════════════════════════════ -->
+<div id="joinScreen" class="screen">
+  <div class="join-wrap">
+    <div class="j-logo"><i class="fa-solid fa-house-chimney" style="color:#fff;font-size:26px"></i></div>
+    <div class="j-title">Casaroom</div>
+    <div class="j-sub">Bộ đàm nhóm · Mọi thiết bị</div>
+    <div class="j-card">
+      <h3>🚪 Vào phòng</h3>
+      <div class="fg"><label class="lbl">Mã phòng</label>
+        <input type="text" id="roomCodeInput" class="inp" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Nhập mã phòng..."/>
+        <div style="font-size:11px;color:var(--text3);margin-top:4px">Phân biệt hoa/thường · 3-20 ký tự</div>
+      </div>
+      <div class="fg"><label class="lbl">Tên của bạn</label>
+        <input type="text" id="usernameInput" class="inp" autocomplete="off" autocapitalize="words" placeholder="Tên thật..."/>
+      </div>
+      <div class="fg" id="passGroup" style="display:none"><label class="lbl">🔒 Mật khẩu</label>
+        <input type="password" id="roomPass" class="inp" placeholder="Nhập mật khẩu..."/>
+      </div>
+      <button id="joinBtn" class="btn btn-blue btn-full btn-lg" style="margin-top:4px;border-radius:14px">Vào phòng</button>
+      <div id="joinErr" class="j-err"></div>
+    </div>
+    <div class="jdiv" style="width:100%">hoặc tạo mới</div>
+    <div class="cr-card">
+      <button class="cr-hdr" id="crToggle"><i class="fa-solid fa-plus" style="color:var(--blue)"></i><span style="flex:1;text-align:left">Tạo phòng mới</span><span class="arr">▼</span></button>
+      <div class="cr-body" id="crBody">
+        <div class="fg"><label class="lbl">Mã phòng</label><input type="text" id="newCode" class="inp" autocomplete="off" autocapitalize="off" placeholder="Vd: TeamAlpha2026"/></div>
+        <div class="fg"><label class="lbl">Tên bạn</label><input type="text" id="newName" class="inp" autocomplete="off" autocapitalize="words" placeholder="Tên thật..."/></div>
+        <div class="fg"><label class="lbl">Mật khẩu (tuỳ chọn)</label><input type="password" id="newPass" class="inp" placeholder="Để trống nếu không cần"/></div>
+        <div class="fg"><label class="lbl">Mô tả</label><input type="text" id="newDesc" class="inp" placeholder="Nhóm phượt Hà Giang..." maxlength="80"/></div>
+        <div class="trow"><div><div class="tl">Phòng công khai</div><div class="ts">Hiện trong danh sách</div></div><button class="tog on" id="newPublic"></button></div>
+        <div class="trow"><div><div class="tl">Duyệt thành viên</div><div class="ts">Phê duyệt tay</div></div><button class="tog" id="newApproval"></button></div>
+        <button id="crBtn" class="btn btn-blue btn-full" style="border-radius:12px;margin-top:8px"><i class="fa-solid fa-house-chimney"></i> Tạo và vào phòng</button>
+      </div>
+    </div>
+    <button id="discoverBtn" class="btn btn-s btn-full" style="border-radius:12px"><i class="fa-solid fa-magnifying-glass"></i> Khám phá phòng đang hoạt động</button>
+  </div>
+</div>
+
+<!-- ══ DISCOVER SCREEN ══════════════════════════════════ -->
+<div id="discoverScreen" class="screen">
+  <div class="topbar"><button class="ib" id="dBack"><i class="fa-solid fa-arrow-left fa-sm"></i></button><h2>Khám phá phòng</h2><button class="ib" id="dRefresh"><i class="fa-solid fa-rotate-right fa-sm"></i></button></div>
+  <div class="page"><div style="position:relative;margin-bottom:12px"><span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:13px;pointer-events:none"><i class="fa-solid fa-magnifying-glass"></i></span><input type="text" class="inp" id="dSearch" placeholder="Tìm tên phòng..." style="padding-left:36px"/></div><div id="roomListEl"></div></div>
+</div>
+
+<!-- ══ WAIT SCREEN ══════════════════════════════════════ -->
+<div id="waitScreen" class="screen">
+  <div style="font-size:52px;text-align:center;animation:wP 2s ease-in-out infinite">⏳</div>
+  <div class="wt">Đang chờ duyệt...</div>
+  <div class="ws" id="waitSub">Chủ phòng cần phê duyệt yêu cầu của bạn.</div>
+  <button class="btn btn-s" id="waitCancel" style="margin-top:8px">Huỷ yêu cầu</button>
+</div>
+@keyframes wP{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+
+<!-- ══ ROOM SCREEN ══════════════════════════════════════ -->
+<div id="roomScreen">
+
+  <!-- DESKTOP: Left icon sidebar -->
+  <aside id="deskSidebar" style="display:none">
+    <div class="dsk-logo"><span>C</span></div>
+    <nav class="dsk-nav">
+      <button class="dsk-nav-btn active" id="dskTabMap" data-tab="map" title="Bản đồ"><i class="fa-solid fa-map-location-dot"></i></button>
+      <button class="dsk-nav-btn" id="dskTabChat" data-tab="chat" title="Trò chuyện"><i class="fa-solid fa-comments"></i></button>
+      <button class="dsk-nav-btn" id="dskTabTeam" data-tab="team" title="Đội nhóm"><i class="fa-solid fa-users"></i></button>
+      <button class="dsk-nav-btn" id="dskTabSettings" data-tab="settings" title="Cài đặt"><i class="fa-solid fa-sliders"></i></button>
+    </nav>
+    <div style="margin-top:auto;display:flex;flex-direction:column;align-items:center;gap:10px">
+      <button onclick="document.getElementById('aboutModal').classList.add('show')"
+        style="width:40px;height:40px;border-radius:12px;background:rgba(59,130,246,.15);border:1px solid rgba(59,130,246,.25);display:flex;align-items:center;justify-content:center;font-size:14px;color:#60a5fa;cursor:pointer;transition:all .2s"
+        title="Về ứng dụng">
+        <i class="fa-solid fa-circle-info"></i>
+      </button>
+      <div class="dsk-avatar" id="dskAvatar" style="cursor:pointer" title="Tài khoản">
+        <span id="dskAvatarTxt">?</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAP AREA -->
+  <div id="mapArea" style="flex:1;position:relative;overflow:hidden">
+    <div id="mapFull"></div>
+    <div id="mapFullEmpty"><i class="fa-solid fa-map-location-dot" style="font-size:32px;margin-bottom:8px"></i><span>Chưa có vị trí thành viên</span></div>
+    <div class="map-top-fade"></div>
+    <div class="map-bottom-fade"></div>
+
+    <!-- HEADER (floating, mobile + desktop) -->
+    <div id="roomTopbar" style="position:absolute;top:0;left:0;right:0;z-index:30;padding:calc(10px + var(--st)) 14px 10px;display:flex;align-items:center;gap:8px">
+      <!-- Room info chip -->
+      <div class="glass2" style="display:flex;align-items:center;gap:8px;padding:7px 12px;border-radius:12px;flex:1;min-width:0;max-width:220px">
+        <div id="connDot" style="width:8px;height:8px;border-radius:50%;background:var(--green);flex-shrink:0"></div>
+        <span id="roomLabel" style="font-size:14px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:-.01em">--</span>
+        <span style="font-size:10px;color:var(--text3);flex-shrink:0" id="memberCountLbl">0</span>
+      </div>
+
+      <!-- Status -->
+      <div id="statusWrap">
+        <button id="statusBtn" class="glass2" style="border-radius:10px;padding:7px 10px;font-size:11px;font-weight:700;display:flex;align-items:center;gap:5px">
+          <i class="fa-solid fa-circle" style="font-size:8px;color:var(--green)" id="statusIco"></i>
+          <span id="statusLbl">Online</span>
+          <i class="fa-solid fa-chevron-down" style="font-size:8px;color:var(--text3)"></i>
+        </button>
+        <div id="statusDrop">
+          <div class="sdrop-title">Trạng thái</div>
+          <button class="sopt active-s" data-s="online"><span class="sopt-ico">🟢</span><div><div class="sopt-lbl">Online</div><div class="sopt-sub">Sẵn sàng</div></div></button>
+          <button class="sopt" data-s="busy"><span class="sopt-ico">🔴</span><div><div class="sopt-lbl">Bận</div><div class="sopt-sub">Không làm phiền</div></div></button>
+          <button class="sopt" data-s="away"><span class="sopt-ico">🌙</span><div><div class="sopt-lbl">Vắng mặt</div><div class="sopt-sub">Tạm thời rời đi</div></div></button>
+          <button class="sopt" data-s="offline"><span class="sopt-ico">⚫</span><div><div class="sopt-lbl">Offline</div><div class="sopt-sub">Không thông báo</div></div></button>
+        </div>
+      </div>
+
+      <!-- Action buttons -->
+      <div style="display:flex;gap:5px;margin-left:auto">
+        <button class="glass2" id="shareChip" title="Chia sẻ" style="width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--text2)"><i class="fa-solid fa-share-nodes"></i></button>
+        <button class="glass2" id="waTTS" title="Đọc chat" style="width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--text2)"><i class="fa-solid fa-volume-high"></i></button>
+        <button class="glass2" id="waNoti" title="Thông báo" style="width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--text2)"><i class="fa-solid fa-bell"></i></button>
+        <button class="glass2" id="waLeave" title="Rời phòng" style="width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--red);background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.2)"><i class="fa-solid fa-right-from-bracket"></i></button>
+      </div>
+    </div>
+
+    <!-- Map controls -->
+    <div class="map-ctrl" style="top:calc(56px + var(--st) + 8px)">
+      <button class="glass2" id="mcLocate" style="width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--blue)" title="Vị trí"><i class="fa-solid fa-location-crosshairs"></i></button>
+      <div class="glass2" style="border-radius:12px;overflow:hidden;display:flex;flex-direction:column">
+        <button id="mcZoomIn" style="width:42px;height:42px;display:flex;align-items:center;justify-content:center;font-size:14px;border-bottom:1px solid var(--border)"><i class="fa-solid fa-plus"></i></button>
+        <button id="mcZoomOut" style="width:42px;height:42px;display:flex;align-items:center;justify-content:center;font-size:14px"><i class="fa-solid fa-minus"></i></button>
+      </div>
+      <button class="glass2" id="mcWake" style="width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--text2)" title="Màn hình"><i class="fa-solid fa-sun"></i></button>
+    </div>
+
+    <!-- Banners -->
+    <div class="banners" style="top:calc(56px + var(--st))">
+      <div id="aprvBan"><span>⏳ Có người chờ duyệt</span><div id="aprvBanList"></div></div>
+      <div class="req-ban" id="camReqBan"><div class="req-inner"><div class="req-icon"><i class="fa-solid fa-camera"></i></div><div class="req-body"><div class="req-title">Yêu cầu bật camera</div><div class="req-sub" id="camReqSub">Chủ phòng yêu cầu</div></div><div class="req-btns"><button class="btn btn-sm" style="background:rgba(255,255,255,.1);color:#fff" id="camAccept">Bật</button><button class="btn btn-sm" style="background:rgba(0,0,0,.2);color:rgba(255,255,255,.6)" id="camDecline">Bỏ</button></div></div></div>
+      <div class="req-ban" id="micReqBan"><div class="req-inner"><div class="req-icon"><i class="fa-solid fa-microphone"></i></div><div class="req-body"><div class="req-title">Yêu cầu mở mic</div><div class="req-sub" id="micReqSub">Chủ phòng yêu cầu</div></div><div class="req-btns"><button class="btn btn-sm" style="background:rgba(255,255,255,.1);color:#fff" id="micAccept">Mở</button><button class="btn btn-sm" style="background:rgba(0,0,0,.2);color:rgba(255,255,255,.6)" id="micDecline">Bỏ</button></div></div></div>
+      <div class="ban ban-recon" id="reconBan"><i class="fa-solid fa-bolt"></i> Đang kết nối lại...</div>
+      <div class="ban ban-ios" id="iosBan"><i class="fa-brands fa-apple"></i> iOS: Chạm để bật âm thanh<span class="bx" id="iosBanX">✕</span></div>
+      <div class="vmemo" id="vMemoBan"><div class="vmemo-row"><i class="fa-solid fa-microphone" style="font-size:18px"></i><span class="vmemo-info" id="vMemoInfo">Đang ghi âm...</span><button class="vmemo-btn" id="vMemoSend">Gửi</button><button class="vmemo-x" id="vMemoX">✕</button></div></div>
+    </div>
+
+    <!-- Speedometer -->
+    <div id="speedoWrap" style="bottom:360px">
+      <div id="speedo">
+        <div class="spd-val" id="spdVal">--</div>
+        <div class="spd-unit">km/h</div>
+        <div class="spd-limit-row" id="spdLimitRow" style="display:none"><div class="spd-limit-circle" id="spdLimitCircle">--</div></div>
+      </div>
+    </div>
+
+    <!-- POI Panel -->
+    <div id="poiPanel" style="top:calc(56px + var(--st) + 8px)">
+      <button class="poi-btn" id="poiBtnGas"  onclick="kPOI('gas')"  title="Trạm xăng"><i class="fa-solid fa-gas-pump"></i><span class="poi-count" id="poiCntGas"></span></button>
+      <button class="poi-btn" id="poiBtnEv"   onclick="kPOI('ev')"   title="Sạc EV"><i class="fa-solid fa-charging-station"></i><span class="poi-count" id="poiCntEv"></span></button>
+      <button class="poi-btn" id="poiBtnRest" onclick="kPOI('rest')" title="Trạm dừng"><i class="fa-solid fa-utensils"></i><span class="poi-count" id="poiCntRest"></span></button>
+      <button class="poi-btn" id="poiBtnCam"  onclick="kPOI('cam')"  title="Camera tốc độ"><i class="fa-solid fa-camera"></i><span class="poi-count" id="poiCntCam"></span></button>
+      <button class="poi-btn" id="poiBtnSign" onclick="kPOI('sign')" title="Biển báo"><i class="fa-solid fa-road-barrier"></i><span class="poi-count" id="poiCntSign"></span></button>
+    </div>
+
+    <!-- POI Alert -->
+    <div id="poiAlert" style="top:calc(56px + var(--st) + 8px);left:60px;right:60px">
+      <span class="pai-ico" id="paiIco">⚠️</span>
+      <div class="pai-body"><div class="pai-title" id="paiTitle">Phía trước</div><div class="pai-sub" id="paiSub">--</div></div>
+      <button class="pai-close" onclick="document.getElementById('poiAlert').classList.remove('show')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+  </div><!-- /mapArea -->
+
+  <!-- ══ BOTTOM SHEET / RIGHT COMMS PANEL ══════════════ -->
+  <div id="bottomSheet">
+    <div class="bs-handle-wrap" id="bsHandle"><div class="bs-handle"></div></div>
+    <div id="videoGrid"></div>
+
+    <div id="sheetScrollArea">
+      <!-- Member strip header -->
+      <div class="bs-members-hdr">
+        <span class="bs-members-title">Đội ngũ</span>
+        <span class="bs-members-count" id="memberCountBadge">0 online</span>
+      </div>
+      <!-- Avatar/member strip -->
+      <div class="av-strip" id="avStrip"></div>
+
+      <!-- PANEL: Members -->
+      <div class="content-panel" id="panelMembers">
+        <div style="display:flex;align-items:center;gap:10px;padding:12px 16px 8px;border-bottom:1px solid var(--border);flex-shrink:0">
+          <i class="fa-solid fa-users" style="color:var(--blue);font-size:16px"></i>
+          <span style="font-size:14px;font-weight:800;flex:1">Đội nhóm</span>
+          <button class="glass2" id="waTTS2" style="width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--text2)"><i class="fa-solid fa-volume-high"></i></button>
+        </div>
+        <div class="mlist" id="memberListEl"></div>
+      </div>
+
+      <!-- PANEL: Chat -->
+      <div class="content-panel" id="panelChat">
+        <div style="display:flex;align-items:center;gap:10px;padding:12px 16px 8px;border-bottom:1px solid var(--border);flex-shrink:0">
+          <i class="fa-solid fa-comments" style="color:var(--blue);font-size:16px"></i>
+          <span style="font-size:14px;font-weight:800;flex:1">Trò chuyện</span>
+        </div>
+        <div class="chat-msgs" id="chatMsgs"></div>
+        <div class="chat-input-row">
+          <button class="cemoji" id="emojiFabBtn"><i class="fa-regular fa-face-smile"></i></button>
+          <input class="chat-inp" id="chatInput" type="text" placeholder="Nhắn tin nhóm..." autocomplete="off"/>
+          <button class="csend" id="chatSend"><i class="fa-solid fa-paper-plane fa-sm"></i></button>
+        </div>
+      </div>
+
+      <!-- PANEL: Map (stub) -->
+      <div class="content-panel" id="panelMap" style="display:none"></div>
+
+      <!-- PANEL: Settings -->
+      <div class="content-panel" id="panelSettings">
+        <div style="display:flex;align-items:center;gap:10px;padding:12px 16px 8px;border-bottom:1px solid var(--border);flex-shrink:0">
+          <i class="fa-solid fa-sliders" style="color:var(--blue);font-size:16px"></i>
+          <span style="font-size:14px;font-weight:800;flex:1">Cài đặt</span>
+        </div>
+        <div class="set-scroll">
+          <div class="sec" id="setAprvSec" style="display:none">⏳ Chờ duyệt vào</div>
+          <div id="setAprvItems"></div>
+          <div id="ownerBlock" style="display:none">
+            <div class="sec">Phòng & Quyền</div>
+            <div class="set-section">
+              <div class="set-item"><span class="set-icon"><i class="fa-solid fa-globe"></i></span><div class="set-body"><div class="set-label">Phòng công khai</div><div class="set-sub">Hiện trong danh sách</div></div><div class="set-ctrl"><button class="tog on" id="setPublic"></button></div></div>
+              <div class="set-item"><span class="set-icon"><i class="fa-solid fa-hand"></i></span><div class="set-body"><div class="set-label">Duyệt thành viên</div><div class="set-sub">Phê duyệt tay</div></div><div class="set-ctrl"><button class="tog" id="setApproval"></button></div></div>
+              <div class="set-inp-wrap"><label class="lbl">Mật khẩu phòng</label><input class="inp" id="setPass" type="password" placeholder="Để trống = không cần..."/></div>
+              <div class="set-inp-wrap"><label class="lbl">Mô tả</label><input class="inp" id="setDesc" type="text" placeholder="Mô tả phòng..." maxlength="80"/></div>
+              <div style="padding:0 13px 13px"><button class="btn btn-blue btn-full" id="setSave" style="border-radius:12px"><i class="fa-solid fa-floppy-disk"></i> Lưu cài đặt</button></div>
+            </div>
+            <div class="sec"><i class="fa-solid fa-volume-high"></i> TTS Provider</div>
+            <div class="set-section"><div id="ttsProviderList"><div style="color:var(--text3);font-size:12px;padding:12px;text-align:center">Đang tải...</div></div></div>
+            <div class="set-section">
+              <div class="set-inp-wrap"><label class="lbl">FPT API Key</label><input class="inp" id="fptApiKey" type="password" placeholder="API key từ console.fpt.ai..."/></div>
+              <div class="set-inp-wrap" style="padding-top:0"><label class="lbl">Giọng FPT</label><input class="inp" id="fptVoice" placeholder="banmai..."/></div>
+              <div style="padding:0 13px 13px;display:flex;gap:8px"><button class="btn btn-blue btn-sm" id="saveFptKey"><i class="fa-solid fa-floppy-disk"></i> Lưu</button><button class="btn btn-s btn-sm" id="refreshTtsBtn"><i class="fa-solid fa-rotate-right"></i> Refresh</button></div>
+            </div>
+            <div id="ttsAdminPanel" style="display:none"></div>
+          </div>
+          <div class="sec">TTS</div>
+          <div class="set-section">
+            <div class="set-item"><span class="set-icon"><i class="fa-solid fa-volume-high"></i></span><div class="set-body"><div class="set-label">Đọc chat tự động</div></div><div class="set-ctrl"><button class="tog" id="setTTS"></button></div></div>
+            <div class="set-item"><span class="set-icon"><i class="fa-solid fa-microphone"></i></span><div class="set-body"><div class="set-label">Giọng đọc</div></div><div class="set-ctrl"><button class="btn btn-sm btn-s" id="setVoiceForRoom">Chọn</button></div></div>
+          </div>
+          <div class="sec">Hành động</div>
+          <div class="set-section">
+            <div class="set-item" style="cursor:pointer" id="rdOpenRow"><span class="set-icon"><i class="fa-solid fa-magnifying-glass"></i></span><div class="set-body"><div class="set-label">Khám phá phòng khác</div></div><i class="fa-solid fa-chevron-right" style="color:var(--text3);font-size:11px"></i></div>
+            <div class="set-item" style="cursor:pointer" id="setLeaveBtn"><span class="set-icon" style="color:var(--red)"><i class="fa-solid fa-right-from-bracket"></i></span><div class="set-body"><div class="set-label" style="color:var(--red)">Rời phòng</div></div></div>
+          </div>
+          <select id="ttsVoiceSel" style="display:none"></select>
+          <div class="sec">Về ứng dụng</div>
+          <div class="set-section" style="cursor:pointer" onclick="document.getElementById('aboutModal').classList.add('show')">
+            <div class="set-item">
+              <span class="set-icon" style="color:#3b82f6"><i class="fa-solid fa-circle-info"></i></span>
+              <div class="set-body">
+                <div class="set-label">Casaroom v12.0.3</div>
+                <div class="set-sub">by pushtotalk.ptv · Xem thông tin ứng dụng</div>
+              </div>
+              <i class="fa-solid fa-chevron-right" style="color:var(--text3);font-size:11px"></i>
+            </div>
+          </div>
+          <div style="height:16px"></div>
+        </div>
+      </div>
+    </div><!-- /sheetScrollArea -->
+
+    <!-- PTT ZONE -->
+    <div class="ptt-zone">
+      <div id="reactLayer"></div>
+
+      <!-- Desktop action grid (hidden on mobile via CSS) -->
+      <div class="ptt-desktop-actions" style="display:none">
+        <button id="waCamDesk" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:14px;border-radius:16px;background:rgba(30,41,59,.6);border:1px solid var(--border);cursor:pointer;transition:all .2s">
+          <i class="fa-solid fa-camera" style="font-size:20px;color:var(--text2)"></i>
+          <span style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase">Camera</span>
+        </button>
+        <button id="sosBtnDesk" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:14px;border-radius:16px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);cursor:pointer;transition:all .2s">
+          <i class="fa-solid fa-triangle-exclamation" style="font-size:20px;color:var(--red)"></i>
+          <span style="font-size:10px;font-weight:700;color:rgba(239,68,68,.6);text-transform:uppercase">Khẩn cấp SOS</span>
+        </button>
+      </div>
+
+      <!-- Mobile: left mute -->
+      <button id="waCam"><i class="fa-solid fa-microphone-slash" style="font-size:18px"></i></button>
+
+      <!-- Center PTT -->
+      <div class="ptt-center">
+        <div class="stat-line" id="statLine">Phòng đang trống</div>
+        <div class="ptt-outer" id="pttOuter">
+          <div id="pttWaveR"></div>
+          <button id="pttBtn" class="locked">
+            <i class="fa-solid fa-microphone"></i>
+            <span class="ptt-txt">Nhấn để nói</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Mobile: right LOA + SOS -->
+      <div class="ptt-right">
+        <button class="ptt-r-btn btn-loa" id="speakerBtn">
+          <i class="fa-solid fa-volume-high"></i>
+          <span class="ptt-r-lbl">Loa</span>
+        </button>
+        <button class="ptt-r-btn btn-sos" id="sosBtn">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+          <span class="ptt-r-lbl">SOS</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- TABBAR -->
+    <div class="tabbar">
+      <button class="ti" id="tabMembers" data-panel="panelMembers">
+        <div class="tdot"></div><span class="tii"><i class="fa-solid fa-users"></i></span><span class="til">Đội nhóm</span>
+      </button>
+      <button class="ti" id="tabChat" data-panel="panelChat">
+        <div class="tdot"></div><span class="tii"><i class="fa-solid fa-comments"></i></span><span class="til">Chat</span>
+      </button>
+      <button class="ti" id="tabMap" data-panel="">
+        <span class="tii"><i class="fa-solid fa-map-location-dot"></i></span><span class="til">Bản đồ</span>
+      </button>
+      <button class="ti" id="tabSettings" data-panel="panelSettings">
+        <span class="tii"><i class="fa-solid fa-sliders"></i></span><span class="til">Cài đặt</span>
+      </button>
+    </div>
+  </div><!-- /bottomSheet -->
+
+</div><!-- /roomScreen -->
+
+<!-- MODALS -->
+<div class="mov" id="qrMov"><div class="mbd" id="qrBd"></div><div class="msheet"><div class="mhandle"></div><div class="mtitle"><i class="fa-solid fa-share-nodes" style="color:var(--blue)"></i> Chia sẻ phòng</div><div class="qr-cw"><canvas id="qrCanvas" width="200" height="200"></canvas></div><div class="qr-lr"><div id="qrLink"></div><button class="btn btn-s btn-sm" id="qrCopy"><i class="fa-solid fa-copy"></i> Sao chép</button></div><button class="btn btn-s btn-full" id="qrClose" style="margin-top:4px">Đóng</button></div></div>
+<div class="mov" id="emojiMov"><div class="mbd" id="emojiBd"></div><div class="msheet"><div class="mhandle"></div><div class="mtitle">😄 Gửi cảm xúc</div><div class="egrid" id="emojiGrid"></div><button class="btn btn-s btn-full" style="margin-top:12px" id="emojiClose">Đóng</button></div></div>
+<div class="mov" id="rdMov"><div class="mbd" id="rdBd"></div><div class="msheet"><div class="mhandle"></div><div class="mtitle"><i class="fa-solid fa-magnifying-glass" style="color:var(--blue)"></i> Phòng đang hoạt động</div><div style="position:relative;margin-bottom:12px"><span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:13px;pointer-events:none"><i class="fa-solid fa-magnifying-glass"></i></span><input type="text" class="inp" id="rdSearch" placeholder="Tìm phòng..." style="padding-left:36px"/></div><div id="rdList" style="max-height:50dvh;overflow-y:auto"></div><button class="btn btn-s btn-full" style="margin-top:10px" id="rdClose">Đóng</button></div></div>
+<div id="sosOv"><div class="sos-card"><div class="sos-e">🆘</div><div class="sos-t" id="sosTitle">SOS!</div><div class="sos-b" id="sosBody">Thành viên cần hỗ trợ.</div></div><button class="sos-dismiss" id="sosDismiss">✓ Đã biết, đóng lại</button></div>
+<div class="owb-drop" id="owDrop"></div>
+
+<!-- SCRIPTS -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+(function(){
+
+// ── V11 TRAILTAK UI OVERRIDES ─────────────────────────
+
+const SRV='https://pushtotalk-anqr.onrender.com';
+const CHUNK=350,VFPS=5,VW=160,VH=120,SK='bdv1104';
+const EMOJIS=['😂','🤣','😭','😢','😡','😠','😱','😍','🥳','😴','🤔','👍','👎','❤️','🔥','💯','🎉','😅','🙄','🤯'];
+const $=id=>document.getElementById(id);
+
+// DOM
+const joinScreen=$('joinScreen'),discoverScreen=$('discoverScreen'),waitScreen=$('waitScreen'),roomScreen=$('roomScreen');
+const roomCodeInput=$('roomCodeInput'),usernameInput=$('usernameInput'),roomPass=$('roomPass'),passGroup=$('passGroup');
+const joinBtn=$('joinBtn'),joinErr=$('joinErr'),discoverBtn=$('discoverBtn');
+const crToggle=$('crToggle'),crBody=$('crBody'),newCode=$('newCode'),newName=$('newName'),newPass=$('newPass'),newDesc=$('newDesc'),newPublic=$('newPublic'),newApproval=$('newApproval'),crBtn=$('crBtn');
+const dBack=$('dBack'),dRefresh=$('dRefresh'),dSearch=$('dSearch'),roomListEl=$('roomListEl');
+const waitSub=$('waitSub'),waitCancel=$('waitCancel');
+const roomLabel=$('roomLabel'),connDot=$('connDot'),shareChip=$('shareChip');
+const recon=$('reconBan'),iosB=$('iosBan'),iosBX=$('iosBanX');
+const waCam=$('waCam'),waWake=$('mcWake'),waNoti=$('waNoti'),waLeave=$('waLeave');
+const vmemo=$('vMemoBan'),vmemoPlay=$('vMemoSend'),vmemoInfo=$('vMemoInfo'),vmemoX=$('vMemoX');
+const aprvBan=$('aprvBan'),aprvBanList=$('aprvBanList');
+const camReqBan=$('camReqBan'),camReqSub=$('camReqSub'),camAccept=$('camAccept'),camDecline=$('camDecline');
+const micReqBan=$('micReqBan'),micReqSub=$('micReqSub'),micAccept=$('micAccept'),micDecline=$('micDecline');
+const avStrip=$('avStrip'),statLine=$('statLine'),videoGrid=$('videoGrid');
+const panelChat=$('panelChat'),panelMembers=$('panelMembers'),panelMap=$('panelMap'),panelSettings=$('panelSettings');
+const chatMsgs=$('chatMsgs'),chatInput=$('chatInput'),chatSend=$('chatSend'),emojiFab=$('emojiFabBtn');
+const memberListEl=$('memberListEl');
+const mapFull=$('mapFull'),mapFullEmpty=$('mapFullEmpty');
+const ownerBlock=$('ownerBlock'),setPublic=$('setPublic'),setApproval=$('setApproval'),setPass=$('setPass'),setDesc=$('setDesc'),setSave=$('setSave');
+const setAprvSec=$('setAprvSec'),setAprvItems=$('setAprvItems');
+const rdOpenRow=$('rdOpenRow'),sosRow=$('sosBtn'),setLeave=$('setLeaveBtn');
+const tabMap=$('tabMap'),tabChat=$('tabChat'),tabMembers=$('tabMembers'),tabSettings=$('tabSettings');
+const pttBtn=$('pttBtn'),pttOuter=$('pttOuter'),pttRing=$('pttWaveR'),pttLabel=$('pttLabel');
+const reactLayer=$('reactLayer');
+const qrMov=$('qrMov'),qrBd=$('qrBd'),qrCanvas=$('qrCanvas'),qrLink=$('qrLink'),qrCopy=$('qrCopy'),qrClose=$('qrClose');
+const emojiMov=$('emojiMov'),emojiBd=$('emojiBd'),emojiGrid=$('emojiGrid'),emojiClose=$('emojiClose');
+const rdMov=$('rdMov'),rdBd=$('rdBd'),rdSearch=$('rdSearch'),rdList=$('rdList'),rdClose=$('rdClose');
+const sosOv=$('sosOv'),sosTitle=$('sosTitle'),sosBody=$('sosBody'),sosDismiss=$('sosDismiss');
+const toastLayer=$('toastLayer');
+
+// STATE
+let socket=null,mediaStream=null,mimeType='',currentRoom='',currentUsername='',isOwner=false,isRoomAdmin=false;
+let talkState='idle',chunkRecorder=null,chunkTimer=null;
+let participants=[],knownUsernames=new Set();
+const speakingSet=new Set();let currentSpeaker=null;
+let audioCtx=null,audioUnlocked=false;
+const playQ=[];let isPlaying=false;
+let leafletFull=null;window.leafletFull=null;const mFull={};
+let watchId=null,lastLocSent=0,lastLat=null,lastLng=null;
+window.lastLat=null;window.lastLng=null;
+let wakeLock=null,wakeLockOn=false,notifSub=false;
+let chatUnread=0,activePanel='panelChat';
+let voiceMemRaw=null;
+let pingIv=null,pingTs=null;
+let camStream=null,camOn=false,vidSendIv=null,camVideo=null;
+const vidCanvases={};
+const pendingApprovals={};
+let swReg=null,isCreating=false;
+
+// STORAGE
+const ss=(r,u)=>{try{localStorage.setItem(SK,JSON.stringify({roomCode:r,username:u}))}catch(e){}};
+const ls=()=>{try{const d=localStorage.getItem(SK);return d?JSON.parse(d):null}catch(e){return null}};
+const cs=()=>{try{localStorage.removeItem(SK)}catch(e){}};
+
+// INIT
+(function(){
+  const p=new URLSearchParams(window.location.search),ur=p.get('room');
+  if(ur)roomCodeInput.value=ur;
+  else{const s=ls();if(s){roomCodeInput.value=s.roomCode;usernameInput.value=s.username;joinBtn.textContent=`↩ Vào lại "${s.roomCode}"`}}
+  roomCodeInput.addEventListener('input',()=>{const s=ls();joinBtn.textContent=(s&&roomCodeInput.value.trim()===s.roomCode)?`↩ Vào lại "${s.roomCode}"`:'Vào phòng'});
+  showScreen('join');
+})();
+
+function showScreen(name){
+  [joinScreen,discoverScreen,waitScreen].forEach(el=>el.classList.remove('active'));
+  roomScreen.classList.remove('active');
+  if(name==='room')roomScreen.classList.add('active');
+  else $(`${name}Screen`).classList.add('active');
+}
+
+// UTILS
+function colorFor(n){let h=0;for(let i=0;i<n.length;i++)h=n.charCodeAt(i)+((h<<5)-h);return`hsl(${Math.abs(h)%360},55%,52%)`}
+function ini(n){const p=n.trim().split(/\s+/);return p.length===1?p[0].substring(0,2).toUpperCase():(p[0][0]+p[p.length-1][0]).toUpperCase()}
+function esc(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML}
+function fmtT(ts){const d=new Date(ts),n=new Date(),hm=d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0');return d.toDateString()===n.toDateString()?hm:`${d.getDate()}/${d.getMonth()+1} ${hm}`}
+
+function beep(f,ms,v=0.15){if(!audioCtx)return;const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type='sine';o.frequency.value=f;g.gain.value=v;o.connect(g);g.connect(audioCtx.destination);o.start();g.gain.exponentialRampToValueAtTime(0.0001,audioCtx.currentTime+ms/1000);o.stop(audioCtx.currentTime+ms/1000+0.02)}
+function noise(dur,vol=0.06,freq=2000){if(!audioCtx)return;try{const sz=audioCtx.sampleRate*dur,nb=audioCtx.createBuffer(1,sz,audioCtx.sampleRate),od=nb.getChannelData(0);for(let i=0;i<sz;i++)od[i]=Math.random()*2-1;const ns=audioCtx.createBufferSource(),ng=audioCtx.createGain(),f=audioCtx.createBiquadFilter();f.type='bandpass';f.frequency.value=freq;f.Q.value=0.8;ns.buffer=nb;ng.gain.setValueAtTime(vol,audioCtx.currentTime);ng.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+dur);ns.connect(f);f.connect(ng);ng.connect(audioCtx.destination);ns.start()}catch(e){}}
+function beepOk(){beep(880,110,.2);setTimeout(()=>beep(1200,90,.18),90);noise(.06,.07)}
+function beepNo(){beep(280,90);setTimeout(()=>beep(200,130),90)}
+function beepEnd(){beep(520,120,.18);noise(.07,.05,1500)}
+function beepSOS(){for(let i=0;i<3;i++)setTimeout(()=>{beep(900,180,.4);setTimeout(()=>beep(660,130,.3),160)},i*380)}
+function vib(p){if(navigator.vibrate)try{navigator.vibrate(p)}catch(e){}}
+
+// ── USER STATUS ─────────────────────────────────────────
+// online | away | busy | offline
+let userStatus='online';
+let lastActivityTs=Date.now();
+
+// Status chỉ thay đổi khi user bấm — không auto-detect idle
+function updateActivity(){
+  lastActivityTs=Date.now();
+  // Không tự đổi status nữa
+}
+
+function setUserStatus(status){
+  if(userStatus===status)return;
+  userStatus=status;
+  renderStatusBtn();
+  // Broadcast lên server
+  if(socket?.connected)socket.emit('update-status',{status});
+}
+
+function renderStatusBtn(){
+  const s=STATUS_MAP[userStatus]||STATUS_MAP.online;
+  const lbl=$('statusLbl');
+  if(lbl){lbl.textContent=s.label;lbl.style.color=s.color;}
+  const btn=$('statusBtn');
+  if(btn)btn.childNodes[0].textContent=s.icon+' ';
+  // Highlight active option
+  document.querySelectorAll('.status-opt').forEach(o=>{
+    o.style.background=o.dataset.s===userStatus?'var(--surf)':'transparent';
+  });
+}
+
+// ── TEXT-TO-SPEECH ENGINE ──────────────────────────────
+let ttsEnabled=true;
+let ttsVoice=null;
+let ttsSpeaking=false;
+const ttsQueue=[];
+// Smart pending: {text, senderName, ts}
+const ttsPendingHidden=[];
+let ttsVoiceChoice='nu-nam';
+let ttsServerOk=true;
+let ttsErrCount=0;
+const TTS_FALLBACK_THRESHOLD=3;
+const TTS_MAX_AGE_MS=30000; // tin >30s cũ → không đọc khi quay lại
+const TTS_MAX_PENDING=3;    // tối đa 3 tin pending khi quay lại
+let lastTTSSender='';       // người gửi tin nhắn TTS gần nhất
+let lastTTSSenderTs=0;      // timestamp lần cuối đọc tên
+const SENDER_REPEAT_MS=10000; // sau 10s không tin → đọc lại tên dù cùng người
+
+// Map voice key → ViettelAI voice name
+const VIETTEL_VOICE_MAP={
+  'nu-nam' :'hcm-diemmy',
+  'nu-bac' :'hn-thanh',
+  'nam-nam':'hcm-minhquang',
+  'nam-bac':'hn-thanhlong',
+};
+
+function ttsInit(){
+  if(!window.speechSynthesis)return;
+  function loadVoices(){
+    const voices=window.speechSynthesis.getVoices();
+    if(!voices.length)return;
+    // Ưu tiên theo thứ tự: giọng Việt Neural > giọng Việt bất kỳ > mặc định
+    const viNeural=voices.find(v=>v.lang==='vi-VN'&&v.name.includes('Neural'));
+    const viVN=voices.find(v=>v.lang==='vi-VN');
+    const vi=voices.find(v=>v.lang.startsWith('vi'));
+    const def=voices.find(v=>v.default)||voices[0]||null;
+    ttsVoice=viNeural||viVN||vi||def;
+    // Populate voice picker in settings if it exists
+    buildVoicePicker(voices);
+  }
+  loadVoices();
+  window.speechSynthesis.onvoiceschanged=loadVoices;
+}
+
+function buildVoicePicker(voices){
+  const sel=$('ttsVoiceSel');
+  if(!sel)return;
+  // Nếu server TTS OK, hiện giọng server (Zalo/ViettelAI)
+  // Nếu server down, hiện giọng browser
+  if(ttsServerOk){
+    sel.innerHTML=`
+      <optgroup label="🇻🇳 Giọng Việt — ViettelAI (miễn phí, online)">
+        <option value="nu-nam"  ${ttsVoiceChoice==='nu-nam' ?'selected':''}>🎀 Nữ miền Nam — Điềm My</option>
+        <option value="nu-bac"  ${ttsVoiceChoice==='nu-bac' ?'selected':''}>🎀 Nữ miền Bắc — Thanh</option>
+        <option value="nam-nam" ${ttsVoiceChoice==='nam-nam'?'selected':''}>🎙️ Nam miền Nam — Minh Quang</option>
+        <option value="nam-bac" ${ttsVoiceChoice==='nam-bac'?'selected':''}>🎙️ Nam miền Bắc — Thanh Long</option>
+      </optgroup>`;
+    sel.onchange=()=>{
+      ttsVoiceChoice=sel.value;
+      toast('🔊 Đã chọn giọng: '+sel.options[sel.selectedIndex].text,'ok');
+    };
+    return;
+  }
+  // Fallback: browser voices
+  sel.innerHTML='';
+  const vi=voices.filter(v=>v.lang.startsWith('vi'));
+  const other=voices.filter(v=>!v.lang.startsWith('vi'));
+  if(vi.length){
+    const grp=document.createElement('optgroup');grp.label='🇻🇳 Giọng Việt ('+vi.length+')';
+    vi.forEach(v=>{const o=document.createElement('option');o.value=v.name;o.textContent=v.name;if(ttsVoice&&v.name===ttsVoice.name)o.selected=true;grp.appendChild(o)});
+    sel.appendChild(grp);
+  }
+  if(other.length){
+    const grp=document.createElement('optgroup');grp.label='🌐 Giọng khác';
+    other.slice(0,15).forEach(v=>{const o=document.createElement('option');o.value=v.name;o.textContent=v.name+' ('+v.lang+')';grp.appendChild(o)});
+    sel.appendChild(grp);
+  }
+  sel.onchange=()=>{
+    const voices=window.speechSynthesis.getVoices();
+    ttsVoice=voices.find(v=>v.name===sel.value)||ttsVoice;
+    toast('🔊 Đã chọn giọng: '+sel.value,'ok');
+  };
+}
+ttsInit();
+
+// ── TTS qua server (Microsoft Edge TTS) ─────────────────
+
+// Web Speech API fallback (dùng khi server down)
+function ttsMakeBrowserUtt(text,senderName){
+  const fullText=senderName?`${senderName}: ${text}`:text;
+  const utt=new SpeechSynthesisUtterance(fullText);
+  if(ttsVoice)utt.voice=ttsVoice;
+  utt.lang=ttsVoice?.lang||'vi-VN';
+  utt.rate=1.05;utt.pitch=1;utt.volume=1;
+  utt.onend=()=>{ttsSpeaking=false;ttsPlayNext()};
+  utt.onerror=()=>{ttsSpeaking=false;ttsPlayNext()};
+  return utt;
+}
+
+// Prefetch: gọi /tts trước để cache sẵn, không chờ response
+function prefetchTTS(text,senderName){
+  if(!ttsEnabled||!ttsServerOk)return;
+  const shortText=text.length>80?text.substring(0,78)+'…':text;
+  // prefetch dùng cùng format nhưng không track sender (chỉ warm cache)
+  const fullText=senderName?`bạn ${senderName} chat là: ${shortText}`:shortText;
+  const voice=ttsVoiceChoice||'nu-nam';
+  // Fire and forget — không await, chỉ để warm server cache
+  fetch(SRV+'/tts',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({text:fullText,voice,speed:1.0}),
+    signal:AbortSignal.timeout(8000),
+  }).catch(()=>{});
+}
+
+async function ttsServerSpeak(text,senderName){
+  const shortText=text.length>80?text.substring(0,78)+'…':text;
+  const now=Date.now();
+
+  // Chỉ đọc tên khi: người gửi KHÁC hoặc cùng người nhưng đã >10s không tin
+  let fullText;
+  if(senderName&&(senderName!==lastTTSSender||now-lastTTSSenderTs>SENDER_REPEAT_MS)){
+    fullText=`bạn ${senderName} chat là: ${shortText}`;
+    lastTTSSender=senderName;
+    lastTTSSenderTs=now;
+  } else {
+    fullText=shortText; // cùng người liên tiếp → bỏ tên
+    if(senderName)lastTTSSenderTs=now;
+  }
+
+  const voice=ttsVoiceChoice||'nu-nam';
+  try{
+    const res=await fetch(SRV+'/tts',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({text:fullText,voice,speed:1.0}),
+      signal:AbortSignal.timeout(8000), // giảm từ 14s → 8s
+    });
+    if(!res.ok)throw new Error('HTTP '+res.status);
+    const arrayBuf=await res.arrayBuffer();
+    if(!arrayBuf||arrayBuf.byteLength<500)throw new Error('audio too short');
+    if(!audioUnlocked)unlockAudio();
+    const decoded=await audioCtx.decodeAudioData(arrayBuf.slice(0));
+    const src=audioCtx.createBufferSource();
+    src.buffer=decoded;src.connect(audioCtx.destination);
+    src.onended=()=>{ttsSpeaking=false;ttsPlayNext()};
+    ttsSpeaking=true;src.start(0);
+    ttsErrCount=0;ttsServerOk=true;
+    return true;
+  }catch(e){
+    console.warn('[TTS] Proxy error:',e.message);
+    ttsErrCount++;
+    // Thử lại sau 5s thay vì tắt hẳn server TTS
+    if(ttsErrCount>=TTS_FALLBACK_THRESHOLD){
+      ttsServerOk=false;
+      console.warn('[TTS] Server TTS lỗi, thử lại sau 5s...');
+      setTimeout(()=>{ttsServerOk=true;ttsErrCount=0;},5000);
+    }
+    return false;
+  }
+}
+
+function ttsSpeak(text,senderName){
+  if(!ttsEnabled)return;
+  // Bận → không đọc gì cả
+  if(userStatus==='busy')return;
+
+  const item={text,senderName,ts:Date.now()};
+
+  if(document.hidden||userStatus==='away'){
+    // Tab ẩn hoặc xa máy: giữ tối đa TTS_MAX_PENDING tin mới nhất
+    ttsPendingHidden.push(item);
+    if(ttsPendingHidden.length>TTS_MAX_PENDING){
+      // Bỏ tin cũ, chỉ giữ mới nhất
+      ttsPendingHidden.splice(0,ttsPendingHidden.length-TTS_MAX_PENDING);
+    }
+    return;
+  }
+  // Đang online: nếu queue dài → trim bớt
+  if(ttsQueue.length>2)ttsQueue.splice(0,ttsQueue.length-2);
+  ttsQueue.push(item);
+  if(!ttsSpeaking)ttsPlayNext();
+}
+
+async function ttsPlayNext(){
+  if(!ttsQueue.length){ttsSpeaking=false;return}
+  if(ttsSpeaking)return;
+  const {text,senderName}=ttsQueue.shift();
+  ttsSpeaking=true;
+  // Dùng server TTS (ViettelAI giọng Việt)
+  if(ttsServerOk){
+    const ok=await ttsServerSpeak(text,senderName);
+    if(ok)return;
+  }
+  // Nếu server fail: thử lại trực tiếp không qua fallback browser
+  // (browser Web Speech thường đọc tiếng Anh → không dùng)
+  ttsSpeaking=false;
+  ttsPlayNext(); // bỏ qua tin này, đọc tin tiếp theo
+}
+
+function ttsFlushPending(){
+  if(!ttsEnabled||!ttsPendingHidden.length)return;
+  if(userStatus==='busy'){ttsPendingHidden.length=0;return;}
+  // Reset sender context — khi flush lại cần đọc tên đầy đủ
+  lastTTSSender='';lastTTSSenderTs=0;
+
+  const now=Date.now();
+  // Lọc: chỉ giữ tin trong vòng TTS_MAX_AGE_MS (30 giây)
+  const fresh=ttsPendingHidden.filter(i=>now-i.ts<TTS_MAX_AGE_MS);
+  ttsPendingHidden.length=0;
+
+  if(!fresh.length)return;
+
+  if(fresh.length===1){
+    // Chỉ 1 tin → đọc bình thường
+    ttsQueue.push(fresh[0]);
+  } else {
+    // Nhiều tin → thông báo gọn: "Có X tin nhắn mới từ A, B, C"
+    const senders=[...new Set(fresh.map(i=>i.senderName).filter(Boolean))];
+    const summary=senders.length>0
+      ?`Có ${fresh.length} tin nhắn mới từ ${senders.slice(0,2).join(', ')}${senders.length>2?' và những người khác':''}`
+      :`Có ${fresh.length} tin nhắn mới`;
+    // Đọc tóm tắt trước, rồi tin mới nhất
+    ttsQueue.push({text:summary,senderName:'',ts:now});
+    // Đọc thêm tin mới nhất
+    ttsQueue.push(fresh[fresh.length-1]);
+  }
+  if(!ttsSpeaking)ttsPlayNext();
+}
+
+function ttsStop(){
+  window.speechSynthesis?.cancel();
+  ttsQueue.length=0;ttsSpeaking=false;ttsPendingHidden.length=0;
+}
+
+// Đọc 1 tin cụ thể (nút loa)
+async function ttsSpeakOne(text,sender){
+  ttsStop();
+  ttsQueue.push({text,senderName:sender});
+  ttsPlayNext();
+}
+
+// ── Khi user quay lại tab → đọc ngay các tin đang chờ ──
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='visible'){
+    if(wakeLockOn&&!wakeLock)enableWake();
+    // Nếu bận → không đọc
+    if(!ttsEnabled||userStatus==='busy'){ttsPendingHidden.length=0;return;}
+    // Flush thông minh sau 200ms
+    if(ttsPendingHidden.length>0)setTimeout(ttsFlushPending,200);
+  } else {
+    // Tab ẩn → dừng đọc
+    if(ttsSpeaking){window.speechSynthesis?.cancel();ttsSpeaking=false;}
+    ttsQueue.length=0; // clear queue vì user không nghe được
+  }
+});
+
+// ── Service Worker postMessage → đọc ngay khi SW relay lại ──
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.addEventListener('message',event=>{
+    // Không return true — tránh "message channel closed" error
+    const {type,text,sender}=event.data||{};
+    if(!ttsEnabled)return;
+    if(type==='NOTIFICATION_CLICK_TTS'&&text){
+      setTimeout(()=>ttsSpeakOne(text,sender),500);
+    } else if(type==='CHAT_TTS'&&text){
+      ttsPendingHidden.push({text,senderName:sender});
+    }
+  });
+}
+// Gửi tin: tiếng "whoosh" nhẹ + pop
+function sndSend(){
+  if(!audioCtx)return;
+  try{
+    // Sweep lên nhanh như đang bay đi
+    const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+    o.type='sine';
+    o.frequency.setValueAtTime(300,audioCtx.currentTime);
+    o.frequency.exponentialRampToValueAtTime(900,audioCtx.currentTime+0.12);
+    g.gain.setValueAtTime(0.12,audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.14);
+    o.connect(g);g.connect(audioCtx.destination);o.start();o.stop(audioCtx.currentTime+0.15);
+    // Pop cuối
+    setTimeout(()=>beep(1100,40,.08),100);
+  }catch(e){}
+}
+
+// Nhận tin của người khác: tiếng "ding" 2 nốt dễ chịu
+function sndReceive(){
+  if(!audioCtx)return;
+  try{
+    // Nốt 1
+    const o1=audioCtx.createOscillator(),g1=audioCtx.createGain();
+    o1.type='triangle';o1.frequency.value=880;
+    g1.gain.setValueAtTime(0,audioCtx.currentTime);
+    g1.gain.linearRampToValueAtTime(0.15,audioCtx.currentTime+0.01);
+    g1.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.22);
+    o1.connect(g1);g1.connect(audioCtx.destination);o1.start();o1.stop(audioCtx.currentTime+0.23);
+    // Nốt 2 (cao hơn, trễ 120ms)
+    setTimeout(()=>{
+      const o2=audioCtx.createOscillator(),g2=audioCtx.createGain();
+      o2.type='triangle';o2.frequency.value=1320;
+      g2.gain.setValueAtTime(0,audioCtx.currentTime);
+      g2.gain.linearRampToValueAtTime(0.1,audioCtx.currentTime+0.01);
+      g2.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.3);
+      o2.connect(g2);g2.connect(audioCtx.destination);o2.start();o2.stop(audioCtx.currentTime+0.31);
+    },120);
+  }catch(e){}
+}
+
+// Có người join phòng: tiếng chào vui
+function sndJoin(){
+  if(!audioCtx)return;
+  try{
+    [523,659,784].forEach((freq,i)=>{
+      setTimeout(()=>{
+        const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+        o.type='triangle';o.frequency.value=freq;
+        g.gain.setValueAtTime(0.1,audioCtx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.18);
+        o.connect(g);g.connect(audioCtx.destination);o.start();o.stop(audioCtx.currentTime+0.19);
+      },i*90);
+    });
+  }catch(e){}
+}
+
+// Có người rời phòng: đi xuống buồn buồn
+function sndLeave(){
+  if(!audioCtx)return;
+  try{
+    [659,523,392].forEach((freq,i)=>{
+      setTimeout(()=>{
+        const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+        o.type='sine';o.frequency.value=freq;
+        g.gain.setValueAtTime(0.08,audioCtx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.2);
+        o.connect(g);g.connect(audioCtx.destination);o.start();o.stop(audioCtx.currentTime+0.21);
+      },i*100);
+    });
+  }catch(e){}
+}
+
+// Yêu cầu mic/cam từ admin: chuông cảnh báo nhẹ
+function sndRequest(){
+  if(!audioCtx)return;
+  try{
+    [784,784,988].forEach((freq,i)=>{
+      setTimeout(()=>{
+        const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+        o.type='sine';o.frequency.value=freq;
+        g.gain.setValueAtTime(0.13,audioCtx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.15);
+        o.connect(g);g.connect(audioCtx.destination);o.start();o.stop(audioCtx.currentTime+0.16);
+      },i*140);
+    });
+  }catch(e){}
+}
+function unlockAudio(){if(audioUnlocked)return;try{const C=window.AudioContext||window.webkitAudioContext;audioCtx=new C();const b=audioCtx.createBuffer(1,1,22050),src=audioCtx.createBufferSource();src.buffer=b;src.connect(audioCtx.destination);src.start(0);if(audioCtx.state==='suspended')audioCtx.resume();audioUnlocked=true}catch(e){}}
+function toast(text,type){const el=document.createElement('div');el.className='toast'+(type?' '+type:'');el.textContent=text;toastLayer.appendChild(el);setTimeout(()=>el.remove(),2700)}
+
+// CREATE ROOM
+crToggle.addEventListener('click',()=>{const o=crBody.classList.toggle('open');crToggle.classList.toggle('open',o)});
+newPublic.addEventListener('click',()=>newPublic.classList.toggle('on'));
+newApproval.addEventListener('click',()=>newApproval.classList.toggle('on'));
+crBtn.addEventListener('click',()=>{
+  unlockAudio();
+  const code=newCode.value.trim(),uname=newName.value.trim();
+  if(!code||!uname){toast('Nhập mã phòng và tên của bạn','err');return}
+  isCreating=true;currentRoom=code;currentUsername=uname;crBtn.disabled=true;
+  connectServer(code,uname,'',{isPublic:newPublic.classList.contains('on'),requireApproval:newApproval.classList.contains('on'),password:newPass.value.trim(),description:newDesc.value.trim()});
+});
+
+// JOIN
+joinBtn.addEventListener('click',()=>{
+  unlockAudio();
+  const code=roomCodeInput.value.trim(),uname=usernameInput.value.trim(),pass=roomPass.value.trim();
+  joinErr.textContent='';
+  if(!code||!uname){joinErr.textContent='Nhập đủ Mã phòng và Tên nhé.';return}
+  currentRoom=code;currentUsername=uname;isCreating=false;
+  joinBtn.disabled=true;joinBtn.textContent='Đang kết nối...';
+  connectServer(code,uname,pass,null);
+});
+function resetJoinBtn(){const s=ls();joinBtn.textContent=s?`↩ Vào lại "${s.roomCode}"`:'Vào phòng';joinBtn.disabled=false;crBtn.disabled=false}
+
+// DISCOVER
+discoverBtn.addEventListener('click',()=>{showScreen('discover');loadRooms('',roomListEl)});
+dBack.addEventListener('click',()=>showScreen('join'));
+dRefresh.addEventListener('click',()=>loadRooms(dSearch.value,roomListEl));
+let dTo=null;
+dSearch.addEventListener('input',()=>{clearTimeout(dTo);dTo=setTimeout(()=>loadRooms(dSearch.value,roomListEl),400)});
+rdBd.addEventListener('click',()=>rdMov.classList.remove('show'));
+rdClose.addEventListener('click',()=>rdMov.classList.remove('show'));
+rdSearch.addEventListener('input',()=>{clearTimeout(dTo);dTo=setTimeout(()=>loadRooms(rdSearch.value,rdList),400)});
+rdOpenRow.addEventListener('click',()=>{rdMov.classList.add('show');loadRooms('',rdList)});
+
+async function loadRooms(q,container){
+  container.innerHTML='<div class="spw"><div class="spn"></div>Đang tải...</div>';
+  for(let a=1;a<=3;a++){
+    try{
+      const ctrl=new AbortController();const t=setTimeout(()=>ctrl.abort(),8000);
+      const res=await fetch(SRV+'/rooms'+(q?'?q='+encodeURIComponent(q.trim()):''),{signal:ctrl.signal});
+      clearTimeout(t);if(!res.ok)throw new Error();
+      renderCards(await res.json(),container);return;
+    }catch(e){
+      if(a===3)container.innerHTML=`<div class="empt">❌ Không kết nối được server.<br><small>Render free có thể đang khởi động (~30s).</small><br><button class="btn btn-s" style="margin-top:10px" onclick="loadRooms('',document.getElementById('${container.id}'))">🔄 Thử lại</button></div>`;
+      else{container.innerHTML=`<div class="spw"><div class="spn"></div>Thử lại ${a+1}/3...</div>`;await new Promise(r=>setTimeout(r,2500))}
+    }
+  }
+}
+function renderCards(rooms,container){
+  if(!rooms.length){container.innerHTML='<div class="empt">Không có phòng nào đang hoạt động</div>';return}
+  container.innerHTML='';
+  rooms.forEach(r=>{
+    const c=document.createElement('div');c.className='rc';
+    const bgs=`${r.hasPassword?'<span class="badge bdg-w">🔒 Mật khẩu</span>':''}${r.requireApproval?'<span class="badge bdg-b">⏳ Cần duyệt</span>':'<span class="badge bdg-g">✓ Mở</span>'}`;
+    c.innerHTML=`<div class="rc-ico">📻</div><div class="rc-info"><div class="rc-name">${esc(r.code)}</div><div class="rc-sub">${r.description?esc(r.description)+' · ':''}<b>${r.memberCount}</b> thành viên</div><div class="rc-bgs">${bgs}</div></div>`;
+    c.addEventListener('click',()=>{
+      rdMov.classList.remove('show');
+      if(currentRoom){if(!confirm(`Rời phòng "${currentRoom}" và vào phòng "${r.code}"?`))return;doLeave();setTimeout(()=>{roomCodeInput.value=r.code;if(r.hasPassword)passGroup.style.display='block';showScreen('join')},300)}
+      else{roomCodeInput.value=r.code;if(r.hasPassword)passGroup.style.display='block';showScreen('join')}
+    });
+    container.appendChild(c);
+  });
+}
+
+waitCancel.addEventListener('click',()=>{if(socket)socket.disconnect();showScreen('join');resetJoinBtn()});
+
+// CONNECT
+function connectServer(roomCode,username,password,createOpts){
+  socket=io(SRV,{transports:['websocket','polling']});
+
+  socket.on('connect',()=>{connDot.classList.remove('warn');recon.classList.remove('show');socket.emit('join-room',{roomCode,username,password:password||''})});
+  socket.on('reconnect',()=>{if(currentRoom&&currentUsername)socket.emit('rejoin-room',{roomCode:currentRoom,username:currentUsername})});
+
+  socket.on('joined',({roomCode:rc,username:un,isOwner:ownerFlag,isAdmin:adminFlag,ttsVoice:voice})=>{
+    isOwner=!!ownerFlag;isRoomAdmin=!!ownerFlag||!!adminFlag;ss(rc,un);
+    // Apply room TTS voice from server
+    if(voice){ttsVoiceChoice=voice;const sel=$('ttsVoiceSel');if(sel)sel.value=voice;}
+    if(isCreating&&createOpts&&ownerFlag){socket.emit('create-room-options',createOpts);isCreating=false}
+    showRoom(rc);
+    requestMicPerm();initMapFull();requestGeo();startPing();startBattery();
+    if(notifSub&&swReg)swReg.pushManager.getSubscription().then(s=>{if(s)socket.emit('save-subscription',s)});
+  });
+
+  socket.on('waiting-approval',({roomCode})=>{waitSub.textContent=`Chủ phòng "${roomCode}" cần phê duyệt.\nVui lòng đợi.`;showScreen('wait')});
+  socket.on('approval-granted',()=>toast('✅ Đã được duyệt vào phòng!','ok'));
+  socket.on('approval-rejected',()=>{toast('❌ Yêu cầu bị từ chối','err');showScreen('join');resetJoinBtn()});
+  socket.on('room-closed',()=>{toast('Phòng đã đóng','warn');showScreen('join');resetJoinBtn()});
+  socket.on('join-error',msg=>{joinErr.textContent=msg;resetJoinBtn();showScreen('join')});
+  socket.on('kicked',({reason})=>{toast('👢 '+reason,'err');cs();doLeave()});
+  socket.on('you-are-muted',({muted})=>toast(muted?'🔇 Chủ phòng tắt mic của bạn':'🔊 Chủ phòng bật lại mic','warn'));
+  socket.on('camera-forced-off',()=>{stopCam();toast('📷 Chủ phòng tắt camera của bạn','warn')});
+
+  socket.on('you-are-owner',()=>{
+    isOwner=true;isRoomAdmin=true;ownerBlock.style.display='block';
+    const svfr=$('setVoiceForRoom');if(svfr)svfr.style.display='block';
+    const tap=$('ttsAdminPanel');if(tap)tap.style.display='block';
+    toast('👑 Bạn là Chủ phòng','ok');renderMembers();
+    setTimeout(loadTTSProviders,500);
+  });
+  socket.on('you-are-admin',()=>{
+    isRoomAdmin=true;ownerBlock.style.display='block';
+    const svfr=$('setVoiceForRoom');if(svfr)svfr.style.display='block';
+    toast('🛡️ Bạn là Admin phòng','ok');renderMembers();
+  });
+  socket.on('you-are-demoted',()=>{
+    isRoomAdmin=false;ownerBlock.style.display='none';
+    const svfr=$('setVoiceForRoom');if(svfr)svfr.style.display='none';
+    toast('🔽 Quyền Admin đã bị thu hồi','warn');renderMembers();
+  });
+  socket.on('room-settings',s=>{setPublic.className='tog'+(s.isPublic?' on':'');setApproval.className='tog'+(s.requireApproval?' on':'');setDesc.value=s.description||'';setPass.value=''});
+  socket.on('approval-request',({socketId,username})=>{pendingApprovals[socketId]=username;renderApproval();toast(`⏳ ${username} xin vào phòng`)});
+  socket.on('approval-done',({socketId})=>{delete pendingApprovals[socketId];renderApproval()});
+
+  socket.on('user-list',users=>{
+    const prev=knownUsernames,newN=new Set(users.map(u=>u.username));
+    const joined=[...newN].filter(n=>!prev.has(n)&&n!==currentUsername);
+    knownUsernames=newN;participants=users;
+    renderMembers(joined);renderAvStrip();renderMapMarkers();renderVidGrid();
+  });
+
+  socket.on('mic-granted',()=>{beepOk();vib([20,40,20]);setTalk('talking');startChunked()});
+  socket.on('mic-denied',({holder})=>{beepNo();vib(60);setTalk('idle');toast(`😅 ${holder} đang giữ mic`,'warn')});
+  socket.on('speaking-start',({username})=>{speakingSet.add(username);currentSpeaker=username;renderMembers();renderAvStrip();setStat(`🎙️ ${username} đang nói`,'var(--green)');if(username!==currentUsername)toast(`🎧 ${username} đang nói`)});
+  socket.on('speaking-stop',({username})=>{speakingSet.delete(username);if(currentSpeaker===username)currentSpeaker=null;renderMembers();renderAvStrip();if(statLine&&statLine.textContent===`🎙️ ${username} đang nói`)setStat('Phòng đang trống','')});
+  socket.on('audio-data',({username,audio})=>enqAudio(audio,username));
+  socket.on('reaction',({username,emoji})=>spawnR(username,emoji));
+  socket.on('chat-message',({username,text,ts})=>appendChat(username,text,ts,false));
+  socket.on('system-message',msg=>appendChat(null,msg,null,true));
+  socket.on('video-frame',({username,frame})=>{const c=vidCanvases[username];if(!c)return;const img=new Image();img.onload=()=>c.getContext('2d').drawImage(img,0,0,c.width,c.height);img.src=frame});
+
+  socket.on('sos-alert',({username,lat,lng})=>{
+    beepSOS();vib([300,100,300,100,300]);
+    sosTitle.textContent=`🆘 SOS từ ${username}!`;
+    sosBody.textContent=`${username} cần hỗ trợ!\n${lat&&lng?`Vị trí: ${lat.toFixed(5)}, ${lng.toFixed(5)}`:'Chưa có vị trí GPS'}`;
+    sosOv.classList.add('show');
+    if(lat&&lng)try{leafletFull?.setView([lat,lng],15,{animate:false})}catch(e){}
+  });
+
+  socket.on('voice-memo',({username,audio,ts})=>{voiceMemRaw=audio;vmemoInfo.textContent=`${username} · ${fmtT(ts)}`;vmemo.classList.add('show');vmemoPlay.textContent='▶ Phát lại'});
+
+  // NEW v10: camera on request
+  socket.on('camera-on-requested',({fromOwner})=>{
+    camReqSub.textContent=`${fromOwner} yêu cầu bạn bật camera`;
+    camReqBan.classList.add('show');
+    sndRequest();vib([100,50,100]);
+    if(document.hidden&&Notification.permission==='granted'){
+      new Notification('📷 Yêu cầu bật camera',{body:`${fromOwner} yêu cầu bạn bật camera trong phòng "${currentRoom}"`,icon:'icon-192.png'});
+    }
+  });
+
+  socket.on('mic-on-requested',({fromOwner})=>{
+    micReqSub.textContent=`${fromOwner} yêu cầu bạn nói ngay!`;
+    micReqBan.classList.add('show');
+    sndRequest();vib([200,100,200]);
+    unlockAudio();
+    toast('🎙️ Chủ phòng yêu cầu bạn nói — bấm PTT!','warn');
+    if(document.hidden&&Notification.permission==='granted'){
+      new Notification('🎙️ Yêu cầu bật micro',{body:`${fromOwner} yêu cầu bạn phát biểu trong phòng "${currentRoom}"`,icon:'icon-192.png'});
+    }
+  });
+
+  socket.on('disconnect',()=>{connDot.classList.add('warn');recon.classList.add('show');setStat('⚡ Đang kết nối lại...','var(--warn)');if(talkState==='talking')stopTalking()});
+  socket.on('connect_error',()=>{if(roomScreen.classList.contains('active'))return;joinErr.textContent='Không kết nối được máy chủ.';resetJoinBtn();showScreen('join')});
+  socket.on('pong-custom',()=>{if(pingTs){const ms=Date.now()-pingTs;if(socket?.connected)socket.emit('update-status',{ping:ms});pingTs=null}});
+  // Admin broadcast giọng đọc cho toàn phòng
+  socket.on('room-tts-voice',({voice,voiceLabel})=>{
+    ttsVoiceChoice=voice;
+    // Reset error state khi nhận giọng mới từ admin
+    ttsErrCount=0; ttsServerOk=true;
+    ttsStop();
+    const sel=$('ttsVoiceSel');
+    if(sel){for(const opt of sel.options){if(opt.value===voice){opt.selected=true;break}}}
+    syncTTSUI();
+    toast(`🔊 Admin đặt giọng đọc: ${voiceLabel}`,'ok');
+    // Đọc thử giọng mới
+    setTimeout(()=>ttsSpeak('Giọng đọc mới đã được áp dụng',''),300);
+  });
+}
+
+function showRoom(rc){
+  showScreen('room');
+  roomLabel.textContent=rc;connDot.classList.remove('warn');recon.classList.remove('show');
+  if(isOwner)ownerBlock.style.display='block';
+  if(window.history.replaceState)window.history.replaceState({},'',window.location.pathname);
+  // Populate voice picker
+  buildVoicePicker(window.speechSynthesis?.getVoices()||[]);
+  // Show admin voice button only for owner
+  const svfr=$('setVoiceForRoom');
+  if(svfr)svfr.style.display=isOwner?'block':'none';
+}
+function setStat(t,color){if(statLine){statLine.textContent=t;statLine.style.color=color||'var(--text3)'}}
+
+// CAM/MIC REQUEST HANDLERS
+camAccept.addEventListener('click',()=>{camReqBan.classList.remove('show');startCam()});
+camDecline.addEventListener('click',()=>camReqBan.classList.remove('show'));
+micAccept.addEventListener('click',()=>{micReqBan.classList.remove('show');if(talkState==='idle')reqMic()});
+micDecline.addEventListener('click',()=>micReqBan.classList.remove('show'));
+
+// MAP (full tab only)
+function initMapFull(){
+  if(leafletFull)return;
+  leafletFull=L.map('mapFull',{zoomControl:false,attributionControl:false}).setView([16.0544,108.2022],12);
+  window.leafletFull=leafletFull;
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(leafletFull);
+  setTimeout(()=>{try{leafletFull.invalidateSize()}catch(e){}},400);
+}
+function makePinIcon(username,isSp,color){
+  const bd=isSp?`border:3px solid ${color};box-shadow:0 0 0 3px rgba(46,160,67,.4)`:`border:2.5px solid #fff`;
+  const html=`<div style="display:flex;flex-direction:column;align-items:center">
+    <div style="font-size:10px;font-weight:700;color:#fff;background:rgba(0,0,0,.6);padding:1px 5px;border-radius:5px;white-space:nowrap;margin-bottom:2px">${esc(username)}</div>
+    <div style="width:36px;height:36px;border-radius:50%;${bd};background:${color};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff;box-shadow:0 3px 10px rgba(0,0,0,.4)">${ini(username)}</div>
+    <div style="width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:8px solid ${color}"></div>
+  </div>`;
+  return L.divIcon({html,className:'',iconSize:[60,58],iconAnchor:[30,58]});
+}
+function renderMapMarkers(){
+  if(!leafletFull)return; // map not ready yet
+  if(!leafletFull)return;
+  const wl=participants.filter(p=>p.lat!=null&&p.lng!=null);
+  if(mapFullEmpty)mapFullEmpty.style.display=wl.length?'none':'flex';
+  const seen=new Set();
+  wl.forEach(p=>{
+    seen.add(p.username);const color=colorFor(p.username),isSp=speakingSet.has(p.username);
+    const icon=makePinIcon(p.username,isSp,color);
+    if(mFull[p.username])mFull[p.username].setLatLng([p.lat,p.lng]).setIcon(icon);
+    else mFull[p.username]=L.marker([p.lat,p.lng],{icon}).addTo(leafletFull);
+  });
+  Object.keys(mFull).forEach(n=>{if(!seen.has(n)){leafletFull.removeLayer(mFull[n]);delete mFull[n]}});
+  if(wl.length){const b=L.latLngBounds(wl.map(p=>[p.lat,p.lng]));try{leafletFull.fitBounds(b.pad(.4),{maxZoom:15,animate:false})}catch(e){}}
+}
+function requestGeo(){
+  if(!navigator.geolocation)return;
+  watchId=navigator.geolocation.watchPosition(pos=>{
+    lastLat=pos.coords.latitude;lastLng=pos.coords.longitude;window.lastLat=lastLat;window.lastLng=lastLng;
+    const now=Date.now();if(now-lastLocSent<8000)return;lastLocSent=now;
+    if(socket?.connected)socket.emit('update-location',{lat:pos.coords.latitude,lng:pos.coords.longitude});
+  },()=>{},{enableHighAccuracy:false,maximumAge:15000,timeout:10000});
+}
+
+// AVATAR STRIP
+function renderAvStrip(){
+  avStrip.innerHTML='';
+  const sorted=[...participants].sort((a,b)=>{const as=speakingSet.has(a.username)?2:a.isOwner?1:0,bs=speakingSet.has(b.username)?2:b.isOwner?1:0;if(as!==bs)return bs-as;return a.username===currentUsername?-1:b.username===currentUsername?1:0});
+  sorted.forEach(p=>{
+    const isSp=speakingSet.has(p.username),isMe=p.username===currentUsername,isOw=p.isOwner;
+    const color=colorFor(p.username);
+    const item=document.createElement('div');item.className='av-item';
+    const ringClass=isSp?'speaking':isOw?'owner-ring':isMe?'me-ring':'idle';
+    item.innerHTML=`<div class="av-ring ${ringClass}"><div class="av-inner" style="background:${color}">${ini(p.username)}</div></div>
+    <div class="av-name">${esc(isMe?'Bạn':p.username)}${isOw?' 👑':''}</div>
+    <div class="av-status ${isSp?'speaking':isOw?'owner':''}">${isSp?'🎙️ Nói':isOw?'Admin':'Online'}</div>`;
+    avStrip.appendChild(item);
+  });
+}
+
+// APPROVAL
+function renderApproval(){
+  const keys=Object.keys(pendingApprovals);
+  if(aprvBan)aprvBan.classList.toggle('show',keys.length>0);
+  setAprvSec.style.display=keys.length?'block':'none';
+  if(aprvBanList)aprvBanList.innerHTML='';if(setAprvItems)setAprvItems.innerHTML='';
+  keys.forEach(id=>{
+    const name=pendingApprovals[id];
+    function mk(container){
+      const i=document.createElement('div');i.style.cssText='display:flex;align-items:center;gap:8px;margin-bottom:6px';
+      i.innerHTML=`<span style="flex:1;font-size:12.5px;font-weight:600">👤 ${esc(name)}</span><button class="btn btn-g btn-sm" data-id="${id}" data-a="ok">✓</button><button class="btn btn-r btn-sm" data-id="${id}" data-a="no">✗</button>`;
+      i.querySelector('[data-a="ok"]').addEventListener('click',()=>socket.emit('approve-user',{targetSocketId:id}));
+      i.querySelector('[data-a="no"]').addEventListener('click',()=>socket.emit('reject-user',{targetSocketId:id}));
+      container.appendChild(i);
+    }
+    if(aprvBanList)mk(aprvBanList);if(setAprvItems)mk(setAprvItems);
+  });
+}
+
+// PING & BATTERY
+function startPing(){if(pingIv)clearInterval(pingIv);pingIv=setInterval(()=>{if(socket?.connected){pingTs=Date.now();socket.emit('ping-custom')}},5000)}
+async function startBattery(){if(!navigator.getBattery)return;try{const b=await navigator.getBattery();const r=()=>{if(socket?.connected)socket.emit('update-status',{battery:Math.round(b.level*100)})};r();b.addEventListener('levelchange',r)}catch(e){}}
+
+// MEMBERS
+function qb(ping,battery){const p=[];if(ping!=null){let c='g';if(ping>300)c='b';else if(ping>100)c='o';p.push(`<span class="qb ${c}">${ping}ms</span>`)}if(battery!=null){let c='g';if(battery<20)c='b';else if(battery<40)c='o';p.push(`<span class="qb ${c}">🔋${battery}%</span>`)}return p.join('')}
+
+// shared dropdown element (single instance, reused for all members)
+const owDrop=document.createElement('div');
+owDrop.className='owb-drop';
+owDrop.id='owDrop';
+document.body.appendChild(owDrop);
+
+let owDropTargetId=null;
+let targetId_=''; // track current dropdown target
+function isAdmin(socketId){
+  const p=participants.find(x=>x.id===socketId);
+  return p?!!p.isAdmin:false;
+}
+function openOwMenu(btn,targetId,targetName,isMuted,camOn_){
+  targetId_=targetId;
+  owDropTargetId=targetId;
+  // Build menu
+  const pIsAdmin=isAdmin(targetId_);
+  owDrop.innerHTML=`
+    <div class="owb-drop-title">👤 ${targetName}</div>
+    <button class="owb-drop-item green" data-a="req-mic">🎙️ Yêu cầu bật micro</button>
+    <button class="owb-drop-item ${isMuted?'green':'warn'}" data-a="mute">${isMuted?'🔊 Bật micro lại':'🔇 Tắt micro'}</button>
+    <button class="owb-drop-item blue" data-a="req-cam">📷 Yêu cầu bật camera</button>
+    <button class="owb-drop-item warn" data-a="cam-off">📷✕ Tắt camera</button>
+    ${isOwner?`<button class="owb-drop-item ${pIsAdmin?'warn':'blue'}" data-a="${pIsAdmin?'demote':'promote'}">${pIsAdmin?'🔽 Thu hồi Admin':'👑 Thăng làm Admin'}</button>`:''}
+    <button class="owb-drop-item danger" data-a="kick">👢 Mời ra khỏi phòng</button>
+    ${isOwner?'<button class="owb-drop-item danger" data-a="ban">🚫 Cấm vào phòng</button>':''}`;
+  // Position near button
+  const rect=btn.getBoundingClientRect();
+  const dropW=200,dropH=220;
+  let top=rect.bottom+6;
+  let left=rect.right-dropW;
+  // keep inside viewport
+  if(top+dropH>window.innerHeight)top=rect.top-dropH-6;
+  if(left<8)left=8;
+  owDrop.style.top=top+'px';
+  owDrop.style.left=left+'px';
+  owDrop.classList.add('open');
+}
+function closeOwMenu(){owDrop.classList.remove('open');owDropTargetId=null}
+
+// delegate clicks inside dropdown
+owDrop.addEventListener('click',e=>{
+  const item=e.target.closest('.owb-drop-item');
+  if(!item)return;
+  e.stopPropagation();
+  const a=item.dataset.a,id=owDropTargetId;
+  closeOwMenu();
+  if(!socket||!id)return;
+  if(a==='kick'){if(confirm('Mời người này ra khỏi phòng?'))socket.emit('kick-user',{targetId:id})}
+  else if(a==='mute')socket.emit('toggle-mute',{targetId:id});
+  else if(a==='cam-off')socket.emit('force-camera-off',{targetId:id});
+  else if(a==='req-cam')socket.emit('request-camera-on',{targetId:id});
+  else if(a==='req-mic')socket.emit('request-mic-on',{targetId:id});
+  else if(a==='promote'){if(confirm('Thăng làm Admin phòng?'))socket.emit('promote-to-admin',{targetId:id})}
+  else if(a==='demote'){if(confirm('Thu hồi quyền Admin?'))socket.emit('demote-from-admin',{targetId:id})}
+  else if(a==='ban'){const reason=prompt('Lý do cấm (tuỳ chọn):','');if(reason!==null)socket.emit('ban-user',{targetId:id,reason})}
+});
+document.addEventListener('click',e=>{if(!owDrop.contains(e.target)&&!e.target.closest('.owb-btn'))closeOwMenu()});
+
+function renderMembers(justJoined=[]){
+  const sorted=[...participants].sort((a,b)=>{
+    const as=speakingSet.has(a.username)?2:a.isOwner?1:0,bs=speakingSet.has(b.username)?2:b.isOwner?1:0;
+    if(as!==bs)return bs-as;return a.username.localeCompare(b.username,'vi');
+  });
+  memberListEl.innerHTML='';
+  sorted.forEach(p=>{
+    const isSp=speakingSet.has(p.username),isMe=p.username===currentUsername,isOw=p.isOwner;
+    const row=document.createElement('div');
+    row.className='mrow'+(isSp?' speaking':'')+(justJoined.includes(p.username)?' new-j':'')+(p.muted?' muted-r':'')+(isOw?' is-owner':'');
+    const owAvClass=isOw?'owner-av':'';
+    row.innerHTML=`<div class="mav-wrap">${isOw?'<span class="mcrown">👑</span>':''}<div class="mav ${owAvClass}" style="background:${colorFor(p.username)}">${ini(p.username)}</div><div class="mol"></div></div>
+    <div class="minfo">
+      <div class="mname">${p.muted?'🔇 ':''}${esc(p.username)}${isMe?' <small style="color:var(--text3)">(bạn)</small>':''}${isOw?' <small style="color:var(--gold)">Admin</small>':''}</div>
+      <div class="msub">${isSp?'🎙️ Đang nói...':'🎧 Lắng nghe'} ${qb(p.ping,p.battery)}${p.cameraOn?' 📷':''}</div>
+    </div>
+    <div class="mwave"><svg viewBox="0 0 24 24" fill="none"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3Z" stroke="currentColor" stroke-width="2"/><path d="M19 11a7 7 0 0 1-14 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+    ${isRoomAdmin&&!isMe?`<div class="owbtns"><button class="owb-btn" data-id="${p.id}" data-name="${esc(p.username)}" data-muted="${p.muted}" data-cam="${p.cameraOn}" title="Quản lý thành viên">⋮</button></div>`:''}`;
+    // attach click for this row's menu button
+    if(isOwner&&!isMe){
+      const menuBtn=row.querySelector('.owb-btn');
+      menuBtn.addEventListener('click',e=>{
+        e.stopPropagation();
+        const isMenuOpen=owDrop.classList.contains('open')&&owDropTargetId===p.id;
+        closeOwMenu();
+        if(!isMenuOpen)openOwMenu(menuBtn,p.id,p.username,p.muted,p.cameraOn);
+      });
+    }
+    memberListEl.appendChild(row);
+  });
+}
+
+// CAMERA
+waCam.addEventListener('click',()=>{if(camOn)stopCam();else startCam()});
+async function startCam(){try{camStream=await navigator.mediaDevices.getUserMedia({video:{width:VW,height:VH,facingMode:'user'},audio:false});camOn=true;waCam.classList.add('on');if(socket?.connected)socket.emit('camera-state',{hasCamera:true,cameraOn:true});renderVidGrid();startVidSend();toast('📷 Camera đã bật','ok')}catch(e){toast('Không bật được camera','err')}}
+function stopCam(){if(camStream){camStream.getTracks().forEach(t=>t.stop());camStream=null}if(camVideo){camVideo.srcObject=null;camVideo=null}camOn=false;waCam.classList.remove('on');if(socket?.connected)socket.emit('camera-state',{hasCamera:false,cameraOn:false});if(vidSendIv){clearInterval(vidSendIv);vidSendIv=null}renderVidGrid()}
+function startVidSend(){if(vidSendIv)clearInterval(vidSendIv);camVideo=document.createElement('video');camVideo.srcObject=camStream;camVideo.muted=true;camVideo.play();vidSendIv=setInterval(()=>{if(!camOn||!socket?.connected||!camVideo)return;try{const o=document.createElement('canvas');o.width=VW;o.height=VH;o.getContext('2d').drawImage(camVideo,0,0,VW,VH);socket.emit('video-frame',{frame:o.toDataURL('image/jpeg',.5)});const mc=vidCanvases[currentUsername];if(mc)mc.getContext('2d').drawImage(camVideo,0,0,mc.width,mc.height)}catch(e){}},1000/VFPS)}
+function renderVidGrid(){const vu=participants.filter(p=>p.cameraOn||(p.username===currentUsername&&camOn));if(!vu.length){videoGrid.classList.remove('vis');videoGrid.innerHTML='';Object.keys(vidCanvases).forEach(k=>delete vidCanvases[k]);return}videoGrid.classList.add('vis');const needed=new Set(vu.map(p=>p.username));Array.from(videoGrid.querySelectorAll('.vtile')).forEach(t=>{if(!needed.has(t.dataset.u)){t.remove();delete vidCanvases[t.dataset.u]}});const ex=new Set(Array.from(videoGrid.querySelectorAll('.vtile')).map(t=>t.dataset.u));vu.forEach(p=>{if(ex.has(p.username))return;const tile=document.createElement('div');tile.className='vtile';tile.dataset.u=p.username;const canvas=document.createElement('canvas');canvas.width=VW;canvas.height=VH;vidCanvases[p.username]=canvas;const nl=document.createElement('div');nl.className='vname';nl.textContent=p.username+(p.username===currentUsername?' (Bạn)':'');tile.appendChild(canvas);tile.appendChild(nl);if(isOwner&&p.username!==currentUsername){const cb=document.createElement('button');cb.className='voff';cb.textContent='📷✕';cb.addEventListener('click',()=>{if(socket)socket.emit('force-camera-off',{targetId:p.id})});tile.appendChild(cb)}videoGrid.appendChild(tile)})}
+
+// MIC
+function pickMime(){for(const t of['audio/mp4','audio/webm;codecs=opus','audio/webm','audio/ogg;codecs=opus']){if(window.MediaRecorder&&MediaRecorder.isTypeSupported(t))return t}return''}
+async function requestMicPerm(){try{mediaStream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});mimeType=pickMime();pttBtn.classList.remove('locked');setTalk('idle')}catch(e){setStat('Chưa có quyền Micro','var(--red)')}}
+pttBtn.addEventListener('click',()=>{if(!audioUnlocked)unlockAudio();if(talkState==='idle')reqMic();else if(talkState==='talking')stopTalking()});
+function reqMic(){setTalk('preparing');if(socket)socket.emit('start-speaking')}
+function setTalk(s){
+  talkState=s;
+  pttBtn?.classList.remove('preparing','talking');
+  pttOuter?.classList.remove('talking');
+  // Sync pttOuter for v11 animation
+  document.getElementById('pttOuter')?.classList.remove('talking');
+  if(s==='idle'){setStat(currentSpeaker?`🎙️ ${currentSpeaker} đang nói`:'Phòng đang trống',currentSpeaker?'var(--green)':'');if(pttLabel){pttLabel.textContent='NHẤN ĐỂ NÓI';pttLabel.style.color=''}}
+  else if(s==='preparing'){pttBtn?.classList.add('preparing');setStat('Đang xin mic...','var(--warn)');if(pttLabel){pttLabel.textContent='ĐANG CHỜ...';pttLabel.style.color='var(--warn)'}}
+  else if(s==='talking'){pttBtn?.classList.add('talking');document.getElementById('pttOuter')?.classList.add('talking');setStat('🎙️ Bạn đang nói — Bấm để dừng','var(--green)');if(pttLabel){pttLabel.textContent='ĐANG PHÁT — BẤM ĐỂ DỪNG';pttLabel.style.color='var(--green)'}}
+}
+function startChunked(){recordNext()}
+function recordNext(){if(talkState!=='talking'||!mediaStream)return;const lc=[];let rec;try{rec=mimeType?new MediaRecorder(mediaStream,{mimeType}):new MediaRecorder(mediaStream)}catch(e){return}chunkRecorder=rec;rec.ondataavailable=ev=>{if(ev.data?.size>0)lc.push(ev.data)};rec.onstop=async()=>{if(lc.length&&socket?.connected){const blob=new Blob(lc,{type:mimeType||'audio/webm'}),buf=await blob.arrayBuffer();socket.emit('audio-data',buf)}if(talkState==='talking')recordNext()};rec.start();chunkTimer=setTimeout(()=>{if(rec.state!=='inactive')rec.stop()},CHUNK)}
+function stopTalking(){setTalk('idle');beepEnd();vib(25);if(chunkTimer)clearTimeout(chunkTimer);if(chunkRecorder?.state!=='inactive')chunkRecorder.stop();if(socket)socket.emit('stop-speaking')}
+
+// AUDIO PLAYBACK
+function enqAudio(buf,u){playQ.push({arrayBuffer:buf,username:u});if(!isPlaying)playNext()}
+async function playNext(){if(!playQ.length){isPlaying=false;return}isPlaying=true;const{arrayBuffer}=playQ.shift();if(!audioUnlocked)unlockAudio();try{const buf=await audioCtx.decodeAudioData(arrayBuffer.slice(0)),src=audioCtx.createBufferSource(),f=audioCtx.createBiquadFilter(),g=audioCtx.createGain();f.type='bandpass';f.frequency.value=1800;f.Q.value=0.7;g.gain.value=1.15;src.buffer=buf;src.connect(f);f.connect(g);g.connect(audioCtx.destination);src.onended=()=>playNext();src.start(0)}catch(e){playNext()}}
+
+// TABS (original - renamed to avoid conflict with v11 IIFE)
+const allTabs0=[tabMap,tabChat,tabMembers,tabSettings];
+const allPanels0=[panelChat,panelMembers,panelSettings].filter(Boolean);
+// Tab listeners handled by v11 override below
+function switchPanel(pid,tel){
+  // Remove active from ALL panels (cả 2 hệ thống)
+  [panelChat,panelMembers,panelSettings].filter(Boolean).forEach(p=>p.classList.remove('active'));
+  allTabs0.forEach(t=>t.classList.remove('active'));
+  if(pid && pid!=='panelMap'){
+    const p=document.getElementById(pid);
+    if(p)p.classList.add('active');
+  }
+  if(tel)tel.classList.add('active');
+  activePanel=pid;
+  if(pid==='panelChat'){chatUnread=0;tabChat?.classList.remove('has-dot')}
+  if(pid==='panelMap'||!pid){
+    bottomSheet.classList.add('map-mode');
+    if(videoGrid)videoGrid.classList.remove('vis');
+    setBSH(BS_MIN);
+    setTimeout(()=>{try{leafletFull?.invalidateSize()}catch(e){}},150);
+    setTimeout(()=>{ if(typeof renderVidGrid==='function') renderVidGrid(); },250);
+  } else {
+    bottomSheet.classList.remove('map-mode');
+    setBSH(BS_FULL);
+  }
+}
+
+
+// CHAT
+function appendChat(username,text,ts,isSystem){
+  const el=document.createElement('div');
+  if(isSystem){
+    el.className='csys';el.textContent=text;
+    if(audioUnlocked){
+      if(text.includes('đã vào phòng'))sndJoin();
+      else if(text.includes('đã rời phòng')||text.includes('đã bị mời ra'))sndLeave();
+    }
+  } else {
+    const isMe=username===currentUsername;
+    el.className='cmsg '+(isMe?'me':'other');
+
+    // Nút loa đọc tin nhắn
+    const speakBtn=`<button class="tts-msg-btn" title="Đọc tin nhắn" onclick="ttsSpeakOne(${JSON.stringify(text)},${JSON.stringify(isMe?'Bạn':username)})">🔊</button>`;
+
+    el.innerHTML=`<div class="bubble-wrap">
+      <div class="bubble">${esc(text)}</div>
+      ${speakBtn}
+    </div>
+    <div class="cmeta">${isMe?'Bạn':esc(username)} · ${fmtT(ts||Date.now())}</div>`;
+
+    if(!isMe&&audioUnlocked){
+      sndReceive();vib(15);
+      if(ttsEnabled){
+        // Prefetch audio từ server ngay khi nhận — giảm độ trễ
+        prefetchTTS(text,username);
+        ttsSpeak(text,username);
+      }
+    }
+  }
+  chatMsgs.appendChild(el);chatMsgs.scrollTop=chatMsgs.scrollHeight;
+  if(activePanel!=='panelChat'&&!isSystem){chatUnread++;tabChat.classList.add('has-dot')}
+}
+function sendChat(){const t=chatInput.value.trim();if(!t||!socket)return;socket.emit('chat-message',{text:t});chatInput.value='';sndSend();vib(8)}
+chatSend.addEventListener('click',sendChat);
+chatInput.addEventListener('keydown',e=>{if(e.key==='Enter')sendChat()});
+
+// VOICE MEMO
+vmemoX.addEventListener('click',()=>{vmemo.classList.remove('show');voiceMemRaw=null});
+vmemoPlay.addEventListener('click',async()=>{if(!voiceMemRaw||!audioCtx)return;try{unlockAudio();const buf=await audioCtx.decodeAudioData(voiceMemRaw.slice(0)),src=audioCtx.createBufferSource();src.buffer=buf;src.connect(audioCtx.destination);src.start(0);vmemoPlay.textContent='▶ Đang phát...';src.onended=()=>vmemoPlay.textContent='▶ Phát lại'}catch(e){toast('Không phát được','err')}});
+
+// SOS
+let sosCd=false;
+function sendSOS(){if(!socket||!currentRoom)return;if(sosCd){toast('⏳ Đợi trước khi gửi SOS lại','warn');return}unlockAudio();sosCd=true;setTimeout(()=>sosCd=false,10000);socket.emit('sos',{lat:lastLat,lng:lastLng});beepSOS();vib([200,100,200,100,200]);toast('🆘 Đã gửi SOS toàn phòng!','err')}
+sosRow.addEventListener('click',sendSOS);
+sosDismiss.addEventListener('click',()=>sosOv.classList.remove('show'));
+
+// QR
+function getRoomUrl(rc){return window.location.origin+window.location.pathname+'?room='+encodeURIComponent(rc)}
+shareChip?.addEventListener('click',()=>{if(!currentRoom)return;const url=getRoomUrl(currentRoom);qrLink.textContent=url;drawQR(url);qrMov.classList.add('show');if(navigator.share)navigator.share({title:`Phòng "${currentRoom}"`,url}).catch(()=>{})});
+qrBd.addEventListener('click',()=>qrMov.classList.remove('show'));
+qrClose.addEventListener('click',()=>qrMov.classList.remove('show'));
+qrCopy.addEventListener('click',async()=>{try{await navigator.clipboard.writeText(getRoomUrl(currentRoom));qrCopy.textContent='✓ Đã sao chép';setTimeout(()=>qrCopy.textContent='Sao chép',2000)}catch(e){toast('Không sao chép được','err')}});
+function drawQR(text){const ctx=qrCanvas.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,200,200);if(typeof QRCode!=='undefined'){const d=document.createElement('div');new QRCode(d,{text,width:176,height:176,colorDark:'#0d1117',colorLight:'#fff'});const img=d.querySelector('img');if(img){const load=()=>{ctx.fillStyle='#fff';ctx.fillRect(0,0,200,200);ctx.drawImage(img,12,12,176,176)};if(img.complete)load();else img.onload=load}}}
+
+// EMOJI
+EMOJIS.forEach(emo=>{const btn=document.createElement('button');btn.className='ebtn';btn.textContent=emo;btn.addEventListener('click',()=>{if(socket?.connected)socket.emit('reaction',{emoji:emo});spawnR(currentUsername,emo);emojiMov.classList.remove('show')});emojiGrid.appendChild(btn)});
+emojiFab.addEventListener('click',()=>{unlockAudio();emojiMov.classList.add('show')});
+emojiBd.addEventListener('click',()=>emojiMov.classList.remove('show'));
+emojiClose.addEventListener('click',()=>emojiMov.classList.remove('show'));
+function spawnR(u,e){const el=document.createElement('div');el.className='rb';el.style.left=(10+Math.random()*70)+'%';el.innerHTML=`<div class="re">${e}</div><div class="rw">${esc(u||'')}</div>`;reactLayer.appendChild(el);setTimeout(()=>el.remove(),2400)}
+
+// SETTINGS
+setPublic.addEventListener('click',()=>setPublic.classList.toggle('on'));
+setApproval.addEventListener('click',()=>setApproval.classList.toggle('on'));
+setSave.addEventListener('click',()=>{if(!socket)return;socket.emit('update-room-settings',{isPublic:setPublic.classList.contains('on'),requireApproval:setApproval.classList.contains('on'),password:setPass.value,description:setDesc.value.trim()});toast('✅ Đã lưu cài đặt phòng','ok')});
+
+// STATUS BUTTON
+const statusBtn=$('statusBtn');
+const statusDrop=$('statusDrop');
+const STATUS_MAP={
+  online: {icon:'🟢',label:'Online', color:'var(--green)'},
+  away:   {icon:'🟡',label:'Xa máy', color:'var(--warn)'},
+  busy:   {icon:'🔴',label:'Bận',    color:'var(--red)'},
+  offline:{icon:'⚫',label:'Offline', color:'var(--text3)'},
+};
+// Toggle dropdown
+if(statusBtn){
+  statusBtn.addEventListener('click',e=>{
+    e.stopPropagation();
+    if(statusDrop)statusDrop.style.display=statusDrop.style.display==='none'?'block':'none';
+  });
+}
+// Click outside → close
+document.addEventListener('click',()=>{if(statusDrop)statusDrop.style.display='none';});
+// Status options
+document.querySelectorAll('.status-opt').forEach(btn=>{
+  btn.addEventListener('click',e=>{
+    e.stopPropagation();
+    const s=btn.dataset.s;
+    if(s)setUserStatus(s);
+    if(statusDrop)statusDrop.style.display='none';
+  });
+});
+
+// TTS TOGGLE + VOICE FOR ROOM
+const waTTS=$('waTTS'),raTTS=$('waTTS'),raTTSlbl=null,setTTS=$('setTTS');
+const setVoiceForRoom=$('setVoiceForRoom'),ttsVoiceSelEl=$('ttsVoiceSel');
+
+// Sync voice picker selection → ttsVoiceChoice
+if(ttsVoiceSelEl){
+  ttsVoiceSelEl.value=ttsVoiceChoice;
+  ttsVoiceSelEl.onchange=()=>{
+    ttsVoiceChoice=ttsVoiceSelEl.value;
+    // Reset lỗi khi user đổi giọng — cho phép thử lại
+    ttsErrCount=0; ttsServerOk=true;
+    // Test ngay giọng mới
+    ttsStop();
+    const label=ttsVoiceSelEl.options[ttsVoiceSelEl.selectedIndex]?.text||ttsVoiceChoice;
+    ttsSpeak('Đây là giọng đọc mới','');
+  };
+}
+
+// Admin: áp dụng giọng cho toàn phòng
+if(setVoiceForRoom){
+  setVoiceForRoom.addEventListener('click',()=>{
+    if(!socket||!isOwner)return;
+    const voice=ttsVoiceSelEl?ttsVoiceSelEl.value:ttsVoiceChoice;
+    const voiceLabel=ttsVoiceSelEl?ttsVoiceSelEl.options[ttsVoiceSelEl.selectedIndex]?.text:voice;
+    ttsVoiceChoice=voice;
+    socket.emit('set-room-tts-voice',{voice,voiceLabel});
+    toast(`📢 Đã áp dụng giọng "${voiceLabel}" cho toàn phòng`,'ok');
+  });
+}
+function syncTTSUI(){
+  if(raTTS)raTTS.classList.toggle('on',ttsEnabled);
+  if(setTTS)setTTS.className='tog'+(ttsEnabled?' on':'');
+  if(raTTSlbl)raTTSlbl.textContent='Đọc chat';
+}
+waTTS.addEventListener('click',()=>{
+  ttsEnabled=!ttsEnabled;
+  if(!ttsEnabled)ttsStop();
+  syncTTSUI();
+  toast(ttsEnabled?'🔊 Đọc chat: BẬT':'🔇 Đọc chat: TẮT',ttsEnabled?'ok':'warn');
+});
+if(setTTS)setTTS.addEventListener('click',()=>{
+  ttsEnabled=!ttsEnabled;
+  if(!ttsEnabled)ttsStop();
+  syncTTSUI();
+  toast(ttsEnabled?'🔊 Đọc chat: BẬT':'🔇 Đọc chat: TẮT',ttsEnabled?'ok':'warn');
+});
+async function enableWake(){if(!('wakeLock' in navigator)){toast('Máy chưa hỗ trợ giữ màn hình sáng','warn');return}try{wakeLock=await navigator.wakeLock.request('screen');wakeLockOn=true;waWake.classList.add('on');wakeLock.addEventListener('release',()=>{wakeLockOn=false;waWake.classList.remove('on')})}catch(e){}}
+function disableWake(){if(wakeLock){wakeLock.release().catch(()=>{});wakeLock=null}wakeLockOn=false;waWake.classList.remove('on')}
+waWake.addEventListener('click',()=>{if(wakeLockOn)disableWake();else enableWake()});
+// visibilitychange handled in TTS engine above (also calls enableWake)
+
+// ── TTS ADMIN PANEL ───────────────────────────────────────
+const ADMIN_KEY = localStorage.getItem('adminKey')||'';
+
+async function loadTTSProviders(){
+  const list=$('ttsProviderList');
+  if(!list)return;
+  try{
+    const res=await fetch(SRV+'/admin/tts');
+    if(!res.ok)throw new Error('HTTP '+res.status);
+    const providers=await res.json();
+    list.innerHTML='';
+    providers.forEach(p=>{
+      const isCooling=p.status==='cooling';
+      const row=document.createElement('div');
+      row.style.cssText='display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)';
+      row.innerHTML=`
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:600">${p.name}</div>
+          <div style="font-size:10px;color:${isCooling?'var(--warn)':p.failCount>0?'var(--warn)':'var(--green)'}">
+            ${isCooling?`⏳ Cooling (${p.failCount} lỗi)`:p.failCount>0?`⚠️ ${p.failCount} lỗi`:'✅ OK'}
+            ${p.type==='fptai'?p.hasKey?'· Có key':'· Chưa có key':''}
+          </div>
+        </div>
+        <button class="btn btn-s btn-sm" data-pid="${p.id}" data-a="test" style="font-size:10px">Test</button>
+        <button class="btn btn-s btn-sm" data-pid="${p.id}" data-a="reset" style="font-size:10px">Reset</button>
+        <button class="tog ${p.enabled?'on':''}" data-pid="${p.id}" data-a="toggle" style="transform:scale(.8)"></button>`;
+      list.appendChild(row);
+    });
+    list.querySelectorAll('[data-a]').forEach(btn=>{
+      btn.addEventListener('click',async()=>{
+        const pid=btn.dataset.pid,a=btn.dataset.a,k=localStorage.getItem('adminKey')||'';
+        if(a==='toggle'){
+          const cur=btn.classList.contains('on');
+          await fetch(SRV+'/admin/tts/'+pid,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled:!cur})});
+          loadTTSProviders();
+        } else if(a==='reset'){
+          await fetch(SRV+'/admin/tts/'+pid,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({resetFail:true})});
+          toast('✅ Reset fail count OK','ok');loadTTSProviders();
+        } else if(a==='test'){
+          btn.textContent='...';
+          const r=await fetch(SRV+'/admin/tts-test',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({providerId:pid})});
+          const j=await r.json();
+          btn.textContent='Test';
+          toast(j.ok?`✅ ${j.provider} OK (${j.ms}ms)`:`❌ ${j.provider}: ${j.error}`,j.ok?'ok':'err');
+          loadTTSProviders();
+        }
+      });
+    });
+  }catch(e){list.innerHTML=`<div style="color:var(--red);font-size:12px;padding:8px">Lỗi kết nối: ${e.message}</div>`;}
+}
+
+// Save FPT key
+const saveFptKey=$('saveFptKey');
+if(saveFptKey){
+  saveFptKey.addEventListener('click',async()=>{
+    const key=localStorage.getItem('adminKey')||'';
+    const apiKey=$('fptApiKey')?.value.trim();
+    const voice=$('fptVoice')?.value;
+    if(!apiKey){toast('Nhập API key trước','err');return;}
+    const res=await fetch(SRV+'/admin/tts/fptai',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({apiKey,voice,enabled:true,resetFail:true})});
+    const j=await res.json();
+    if(j.ok){toast('✅ Đã lưu FPT.AI key, bật provider','ok');loadTTSProviders();}
+    else toast('❌ Lỗi: '+j.error,'err');
+  });
+}
+
+const refreshTtsBtn=$('refreshTtsBtn');
+if(refreshTtsBtn)refreshTtsBtn.addEventListener('click',loadTTSProviders);
+
+// NOTIFICATIONS
+function urlB64(b){const p='='.repeat((4-b.length%4)%4),b64=(b+p).replace(/-/g,'+').replace(/_/g,'/'),r=atob(b64),o=new Uint8Array(r.length);for(let i=0;i<r.length;i++)o[i]=r.charCodeAt(i);return o}
+async function enableNotify(){if(!('Notification' in window)||!('PushManager' in window)){toast('Chưa hỗ trợ thông báo đẩy','warn');return}try{if(await Notification.requestPermission()!=='granted'){toast('Chưa cho phép thông báo','warn');return}if(!swReg)swReg=await navigator.serviceWorker.ready;const{key}=await(await fetch(SRV+'/vapid-public-key')).json();let sub=await swReg.pushManager.getSubscription();if(!sub)sub=await swReg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:urlB64(key)});if(socket?.connected)socket.emit('save-subscription',sub);notifSub=true;waNoti.classList.add('on');toast('🔔 Đã bật thông báo','ok')}catch(e){toast('Không bật được thông báo','err')}}
+waNoti.addEventListener('click',()=>{if(!notifSub)enableNotify()});
+
+// iOS
+(function(){const isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent),isStandalone=window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone===true;if(isIOS&&!isStandalone)iosB.classList.add('show')})();
+iosBX.addEventListener('click',()=>iosB.classList.remove('show'));
+
+// SW
+if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').then(r=>swReg=r).catch(()=>{}));
+
+// LEAVE
+[waLeave,setLeave].forEach(btn=>btn.addEventListener('click',()=>{if(confirm('Rời phòng?'))doLeave()}));
+function doLeave(){
+  if(talkState!=='idle')stopTalking();
+  disableWake();stopCam();
+  if(pingIv){clearInterval(pingIv);pingIv=null}
+  if(socket){socket.disconnect();socket=null}
+  if(mediaStream){mediaStream.getTracks().forEach(t=>t.stop());mediaStream=null}
+  if(watchId!=null){navigator.geolocation.clearWatch(watchId);watchId=null}
+  participants=[];knownUsernames=new Set();speakingSet.clear();currentSpeaker=null;
+  if(leafletFull)Object.keys(mFull).forEach(k=>{leafletFull.removeLayer(mFull[k]);delete mFull[k]});
+  chatMsgs.innerHTML='';chatUnread=0;isOwner=false;isRoomAdmin=false;lastTTSSender='';lastTTSSenderTs=0;
+  ownerBlock.style.display='none';
+  activePanel='panelChat';switchPanel('panelChat',tabChat);
+  voiceMemRaw=null;vmemo.classList.remove('show');
+  aprvBan?.classList.remove('show');camReqBan?.classList.remove('show');micReqBan?.classList.remove('show');
+  Object.keys(pendingApprovals).forEach(k=>delete pendingApprovals[k]);
+  ttsStop();
+  currentRoom='';currentUsername='';
+  showScreen('join');resetJoinBtn();
+  pttBtn.classList.add('locked');
+}
+
+
+// ── Bottom sheet drag & height ─────────────────────────
+const bottomSheet=document.getElementById('bottomSheet');
+const memberStripView=document.getElementById('memberStripView');
+const BS_MIN=310, BS_MID=360, BS_FULL='72vh';
+
+function setBSH(h){
+  bottomSheet.style.height=typeof h==='number'?h+'px':h;
+  // Resize map
+  setTimeout(()=>{try{leafletFull?.invalidateSize();}catch(e){}},50);
+}
+setBSH(BS_MID);
+
+// Drag handle
+let dragY0=null,dragH0=null;
+const bsH=document.getElementById('bsHandle');
+if(bsH){
+  bsH.addEventListener('touchstart',e=>{dragY0=e.touches[0].clientY;dragH0=bottomSheet.offsetHeight;},{passive:true});
+  bsH.addEventListener('touchmove',e=>{
+    const dy=dragY0-e.touches[0].clientY;
+    const nh=Math.max(BS_MIN,Math.min(window.innerHeight*.85,dragH0+dy));
+    bottomSheet.style.height=nh+'px';
+  },{passive:true});
+  bsH.addEventListener('touchend',()=>{
+    const h=bottomSheet.offsetHeight;
+    if(h<BS_MIN+60)setBSH(BS_MIN);
+    else if(h>window.innerHeight*.5)setBSH(BS_FULL);
+    else setBSH(BS_MID);
+  });
+}
+
+// ── Tab switching ──────────────────────────────────────
+const panelMembers2=document.getElementById('panelMembers');
+const panelChat2=document.getElementById('panelChat');
+const panelSettings2=document.getElementById('panelSettings');
+const allPanelsV11=[panelMembers2,panelChat2,panelSettings2].filter(Boolean);
+const allTabsV11=[tabMembers,tabChat,tabMap,tabSettings].filter(Boolean);
+let activeTabV11='members';
+
+function closeAllPanels(){
+  // Close tất cả panels từ cả 2 hệ thống
+  const allP=[panelChat,panelMembers,panelSettings].filter(Boolean);
+  allP.forEach(p=>p.classList.remove('active'));
+  allTabsV11.forEach(t=>t.classList.remove('active'));
+}
+
+function openPanel(panelId,tabEl){
+  closeAllPanels();
+  if(tabEl)tabEl.classList.add('active');
+  if(panelId){
+    // Có panel → sheet có nền tối, panel hiện lên
+    bottomSheet.classList.remove('map-mode');
+    const p=document.getElementById(panelId);
+    if(p)p.classList.add('active');
+    setBSH(BS_FULL);
+    activeTabV11=panelId;
+  } else {
+    // Tab Bản đồ → sheet trong suốt hoàn toàn, chỉ ptt+tabbar hiển thị
+    bottomSheet.classList.add('map-mode');
+    if(videoGrid)videoGrid.classList.remove('vis');
+    setBSH(BS_MIN);
+    activeTabV11='map';
+    setTimeout(()=>{ if(typeof renderVidGrid==='function') renderVidGrid(); },100);
+    setTimeout(()=>{try{leafletFull?.invalidateSize();}catch(e){}},150);
+  }
+}
+
+// Tab listeners
+tabMembers?.addEventListener('click',()=>openPanel('panelMembers',tabMembers));
+tabChat?.addEventListener('click',()=>{openPanel('panelChat',tabChat);setTimeout(()=>chatMsgs?.scrollTo(0,chatMsgs?.scrollHeight),80);});
+tabMap?.addEventListener('click',()=>openPanel(null,tabMap));
+tabSettings?.addEventListener('click',()=>openPanel('panelSettings',tabSettings));
+
+// Close buttons
+document.getElementById('membersClose')?.addEventListener('click',()=>openPanel(null,tabMap));
+document.getElementById('chatClose')?.addEventListener('click',()=>openPanel(null,tabMap));
+document.getElementById('settingsClose')?.addEventListener('click',()=>openPanel(null,tabMap));
+
+// Override switchPanel used by socket events
+window.switchPanel=function(panelId,tabEl){
+  if(panelId==='panelChat')openPanel('panelChat',tabChat);
+  else if(panelId==='panelMembers')openPanel('panelMembers',tabMembers);
+  else if(panelId==='panelSettings')openPanel('panelSettings',tabSettings);
+  else openPanel(null,tabMap);
+};
+
+// ── Status dropdown ────────────────────────────────────
+const statusBtn2=document.getElementById('statusBtn');
+const statusDrop2=document.getElementById('statusDrop');
+if(statusBtn2&&statusDrop2){
+  statusBtn2.addEventListener('click',e=>{
+    e.stopPropagation();
+    const r=statusBtn2.getBoundingClientRect();
+    statusDrop2.style.top=(r.bottom+8)+'px';
+    statusDrop2.classList.toggle('open');
+  });
+  document.addEventListener('click',()=>statusDrop2?.classList.remove('open'));
+  document.querySelectorAll('.sopt').forEach(btn=>{
+    btn.addEventListener('click',e=>{
+      e.stopPropagation();
+      if(typeof setUserStatus==='function')setUserStatus(btn.dataset.s);
+      statusDrop2.classList.remove('open');
+    });
+  });
+}
+
+// ── Map controls ───────────────────────────────────────
+document.getElementById('mcLocate')?.addEventListener('click',()=>{
+  if(navigator.geolocation)navigator.geolocation.getCurrentPosition(p=>{
+    try{leafletFull?.setView([p.coords.latitude,p.coords.longitude],16);}catch(e){}
+  });
+});
+document.getElementById('mcFit')?.addEventListener('click',()=>{
+  try{if(typeof fitMapToAll==='function')fitMapToAll();}catch(e){}
+});
+document.getElementById('mcWake')?.addEventListener('click',()=>{
+  document.getElementById('waWake')?.click();
+});
+
+// ── Leave button in header ─────────────────────────────
+document.getElementById('waLeave')?.addEventListener('click',()=>{
+  document.getElementById('setLeave')?.click();
+});
+
+// ── SOS inline button ──────────────────────────────────
+document.getElementById('sosBtnPTT')?.addEventListener('click',()=>{
+  document.getElementById('sosRow')?.click();
+});
+
+// ── TTS button in header ───────────────────────────────
+const waTTSBtn=document.getElementById('waTTS');
+if(waTTSBtn){
+  waTTSBtn.addEventListener('click',()=>{
+    if(typeof ttsEnabled!=='undefined'){
+      ttsEnabled=!ttsEnabled;
+      waTTSBtn.classList.toggle('on',ttsEnabled);
+      waTTSBtn.title=ttsEnabled?'Tắt đọc chat':'Bật đọc chat';
+      if(typeof toast==='function')toast(ttsEnabled?'🔊 Đọc chat bật':'🔇 Đọc chat tắt','ok');
+    }
+  });
+}
+
+// ── Noti button ────────────────────────────────────────
+document.getElementById('waNoti')?.addEventListener('click',()=>{
+  document.getElementById('waNoti_old')?.click()||
+  (typeof registerPush==='function'&&registerPush());
+});
+
+// ── Update member count in header & badge ─────────────
+function updateMemberUI(){
+  const n=typeof participants!=='undefined'?participants.length:0;
+  const lbl=document.getElementById('memberCountLbl');
+  const badge=document.getElementById('memberCountBadge');
+  if(lbl)lbl.textContent=`${n} thành viên`;
+  if(badge)badge.textContent=`${n} online`;
+}
+
+// Hook renderMembers
+const _rm0=typeof renderMembers==='function'?renderMembers:null;
+if(_rm0){window.renderMembers=function(){_rm0();updateMemberUI();};}
+
+// pttOuter talking class
+const pttOuter2=document.getElementById('pttOuter');
+const origST=window.startTalking,origSp=window.stopTalking;
+if(origST){window.startTalking=function(){pttOuter2?.classList.add('talking');origST.call(this);};}
+if(origSp){window.stopTalking=function(){pttOuter2?.classList.remove('talking');origSp.call(this);};}
+
+// Init: đảm bảo tất cả panels đóng, bắt đầu với tab bản đồ
+[panelChat,panelMembers,panelSettings].filter(Boolean).forEach(p=>p.classList.remove('active'));
+allTabsV11.forEach(t=>t.classList.remove('active'));
+bottomSheet.classList.add('map-mode');
+openPanel(null,tabMap);
+setTimeout(()=>{try{leafletFull?.invalidateSize();}catch(e){}},500);
+
+})();
+
+
+// ══ DESKTOP + UI BRIDGE ══════════════════════════════════
+
+// setBSH: desktop = skip height set
+var _origSetBSH = window.setBSH;
+window.setBSH = function(h) {
+  if (window.innerWidth >= 900) {
+    setTimeout(function(){try{(window.leafletFull||leafletFull)&&(window.leafletFull||leafletFull).invalidateSize();}catch(e){}},50);
+    return;
+  }
+  bottomSheet.style.height = typeof h === 'number' ? h + 'px' : h;
+  setTimeout(function(){try{(window.leafletFull||leafletFull)&&(window.leafletFull||leafletFull).invalidateSize();}catch(e){}},50);
+};
+
+// openPanel: desktop map tab = don't hide sidebar
+var _origOpenPanel = window.openPanel;
+window.openPanel = function(panelId, tabEl) {
+  var allP = [panelChat, panelMembers, panelSettings].filter(Boolean);
+  allP.forEach(function(p){p.classList.remove('active');});
+  var allTabs = [tabMembers, tabChat, tabMap, tabSettings].filter(Boolean);
+  allTabs.forEach(function(t){t.classList.remove('active');});
+  if(tabEl) tabEl.classList.add('active');
+  if(panelId) {
+    bottomSheet.classList.remove('map-mode');
+    var p = document.getElementById(panelId);
+    if(p) p.classList.add('active');
+    if(window.innerWidth < 900) setBSH(BS_FULL);
+    // Update desktop left sidebar active state
+    updateDeskNav(panelId);
+  } else {
+    bottomSheet.classList.add('map-mode');
+    if(videoGrid) videoGrid.classList.remove('vis');
+    if(window.innerWidth < 900) { bottomSheet.style.height = 'auto'; }
+    updateDeskNav(null);
+    setTimeout(function(){try{(window.leafletFull||leafletFull)&&(window.leafletFull||leafletFull).invalidateSize();}catch(e){}},200);
+  }
+};
+
+// Desktop left sidebar nav
+function updateDeskNav(panelId) {
+  document.querySelectorAll('.dsk-nav-btn').forEach(function(b){ b.classList.remove('active'); });
+  if(!panelId || panelId === '') {
+    var b = document.getElementById('dskTabMap'); if(b) b.classList.add('active');
+  } else if(panelId === 'panelChat') {
+    var b = document.getElementById('dskTabChat'); if(b) b.classList.add('active');
+  } else if(panelId === 'panelMembers') {
+    var b = document.getElementById('dskTabTeam'); if(b) b.classList.add('active');
+  } else if(panelId === 'panelSettings') {
+    var b = document.getElementById('dskTabSettings'); if(b) b.classList.add('active');
+  }
+}
+
+// Wire desktop sidebar buttons
+document.querySelectorAll('.dsk-nav-btn').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    var tab = btn.dataset.tab;
+    if(tab === 'map')      openPanel(null, tabMap);
+    else if(tab === 'chat')     openPanel('panelChat', tabChat);
+    else if(tab === 'team')     openPanel('panelMembers', tabMembers);
+    else if(tab === 'settings') openPanel('panelSettings', tabSettings);
+  });
+});
+
+// Map controls
+document.getElementById('mcLocate') && document.getElementById('mcLocate').addEventListener('click', function(){
+  if(navigator.geolocation) navigator.geolocation.getCurrentPosition(function(p){
+    try{(window.leafletFull||leafletFull)&&(window.leafletFull||leafletFull).setView([p.coords.latitude,p.coords.longitude],16);}catch(e){}
+  });
+});
+// mcZoomIn/Out already handled by v11.0.9 JS
+document.getElementById('mcWake') && document.getElementById('mcWake').addEventListener('click', function(){
+  // Toggle wake lock
+  if(typeof enableWake==='function'&&typeof wakeLockOn!=='undefined'){
+    if(wakeLockOn){if(typeof disableWake==='function')disableWake();}
+    else enableWake();
+  }
+  this.classList.toggle('active');
+});
+
+// Header action wires
+document.getElementById('waLeave')   && document.getElementById('waLeave')  .addEventListener('click', function(){document.getElementById('setLeaveBtn') && document.getElementById('setLeaveBtn').click();});
+document.getElementById('shareChip') && document.getElementById('shareChip').addEventListener('click', function(){var m=document.getElementById('qrMov');if(m)m.classList.add('show');});
+document.getElementById('waTTS2')    && document.getElementById('waTTS2')   .addEventListener('click', function(){document.getElementById('waTTS') && document.getElementById('waTTS').click();});
+
+// SOS + Camera wires
+document.getElementById('sosBtn') && document.getElementById('sosBtn').addEventListener('click', function(){
+  if(typeof sendSOS==='function') sendSOS();
+  else {
+    // Fallback: click original sosRow or show overlay
+    var sosRow = document.getElementById('sosRow');
+    if(sosRow) sosRow.click();
+    else { var o=document.getElementById('sosOv'); if(o)o.classList.add('show'); }
+  }
+});
+document.getElementById('sosBtnDesk') && document.getElementById('sosBtnDesk').addEventListener('click', function(){if(typeof sendSOS==='function')sendSOS();else{var o=document.getElementById('sosOv');if(o)o.classList.add('show');}});
+document.getElementById('waCamDesk')  && document.getElementById('waCamDesk').addEventListener('click', function(){document.getElementById('waCam') && document.getElementById('waCam').click();});
+
+// Speaker button
+document.getElementById('speakerBtn') && document.getElementById('speakerBtn').addEventListener('click', function(){
+  document.getElementById('mcWake') && document.getElementById('mcWake').click();
+  this.classList.toggle('active');
+});
+
+// Status dropdown
+var statusBtn2 = document.getElementById('statusBtn');
+var statusDrop2 = document.getElementById('statusDrop');
+if(statusBtn2 && statusDrop2) {
+  statusBtn2.addEventListener('click', function(e){
+    e.stopPropagation();
+    var r = statusBtn2.getBoundingClientRect();
+    if(window.innerWidth >= 900) {
+      statusDrop2.style.position = 'absolute';
+      statusDrop2.style.top = (r.bottom + 8) + 'px';
+      statusDrop2.style.left = r.left + 'px';
+      statusDrop2.style.right = 'auto';
+    }
+    statusDrop2.classList.toggle('open');
+  });
+  document.addEventListener('click', function(){statusDrop2.classList.remove('open');});
+  document.querySelectorAll('.sopt').forEach(function(btn){
+    btn.addEventListener('click', function(e){
+      e.stopPropagation();
+      if(typeof setUserStatus==='function') setUserStatus(btn.dataset.s);
+      statusDrop2.classList.remove('open');
+    });
+  });
+}
+
+// Member count update
+function updateMemberUI() {
+  var n = typeof participants !== 'undefined' ? participants.length : 0;
+  var lbl = document.getElementById('memberCountLbl');
+  var badge = document.getElementById('memberCountBadge');
+  if(lbl) lbl.textContent = n + ' người';
+  if(badge) badge.textContent = n + ' online';
+  // Update desktop avatar
+  var av = document.getElementById('dskAvatarTxt');
+  if(av && typeof currentUsername !== 'undefined' && currentUsername) {
+    av.textContent = currentUsername.charAt(0).toUpperCase();
+  }
+}
+var _rm0 = typeof renderMembers === 'function' ? renderMembers : null;
+if(_rm0) window.renderMembers = function(){ _rm0(); updateMemberUI(); };
+
+// pttLabel sync: map to ptt-txt span
+var pttTxtEl = document.querySelector('#pttBtn .ptt-txt');
+var _origSetTalk = window.setTalk;
+if(typeof setTalk === 'function') {
+  window.setTalk = function(s){
+    _origSetTalk && _origSetTalk(s);
+    if(!pttTxtEl) return;
+    if(s==='idle') pttTxtEl.textContent='Nhấn để nói';
+    else if(s==='preparing') pttTxtEl.textContent='Đang chờ...';
+    else if(s==='talking') pttTxtEl.textContent='Bấm để dừng';
+  };
+}
+// pttOuter talking class
+var pttOuter2 = document.getElementById('pttOuter');
+var origST = window.startTalking, origSp = window.stopTalking;
+if(origST){ window.startTalking = function(){ pttOuter2 && pttOuter2.classList.add('talking'); origST.call(this); }; }
+if(origSp){ window.stopTalking  = function(){ pttOuter2 && pttOuter2.classList.remove('talking'); origSp.call(this); }; }
+
+// Desktop layout: show sidebar + mapArea
+function applyDesktopLayout() {
+  var isDesk = window.innerWidth >= 900;
+  var sidebar = document.getElementById('deskSidebar');
+  var mapArea = document.getElementById('mapArea');
+  var pttActions = document.querySelector('.ptt-desktop-actions');
+  var waCam = document.getElementById('waCam');
+  var pttRight = document.querySelector('.ptt-right');
+  if(isDesk) {
+    if(sidebar) sidebar.style.display = 'flex';
+    if(mapArea) mapArea.style.flex = '1';
+    if(pttActions) pttActions.style.display = 'grid';
+    if(waCam) waCam.style.display = 'none';
+    if(pttRight) pttRight.style.display = 'none';
+    // Init with members panel open
+    if(typeof openPanel==='function') openPanel('panelMembers', tabMembers);
+  } else {
+    if(sidebar) sidebar.style.display = 'none';
+    if(pttActions) pttActions.style.display = 'none';
+    if(waCam) waCam.style.display = '';
+    if(pttRight) pttRight.style.display = '';
+  }
+}
+applyDesktopLayout();
+window.addEventListener('resize', applyDesktopLayout);
+
+// POI FEATURES ══════════════════════════════════════════
+var POI_RADIUS=5000, POI_REQUERY=400;
+var POI_ALERT_DIST={cam:300,sign:150,gas:600,ev:600,rest:600};
+var poiState={
+  gas: {on:false,data:[],marks:[],icon:'⛽',label:'Trạm xăng'},
+  ev:  {on:false,data:[],marks:[],icon:'🔋',label:'Trạm sạc EV'},
+  rest:{on:false,data:[],marks:[],icon:'🍽️',label:'Trạm dừng'},
+  cam: {on:false,data:[],marks:[],icon:'📷',label:'Camera tốc độ'},
+  sign:{on:false,data:[],marks:[],icon:'🚦',label:'Biển báo'},
+};
+var poiLastPos=null,poiFetching=false,poiAlerted={},poiAlertTmr=null;
+var spdWatchId=null,poiInited=false;
+
+function poiDist(la1,lo1,la2,lo2){var R=6371000,dLa=(la2-la1)*Math.PI/180,dLo=(lo2-lo1)*Math.PI/180;var a=Math.sin(dLa/2)*Math.sin(dLa/2)+Math.cos(la1*Math.PI/180)*Math.cos(la2*Math.PI/180)*Math.sin(dLo/2)*Math.sin(dLo/2);return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));}
+
+function startSpeedometer(){
+  if(spdWatchId||!navigator.geolocation)return;
+  var lastP=null,lastT=null;
+  spdWatchId=navigator.geolocation.watchPosition(function(pos){
+    var spd=pos.coords.speed,kmh=0;
+    if(spd!=null&&spd>=0){kmh=Math.round(spd*3.6);}
+    else if(lastP){var dt=(pos.timestamp-lastT)/1000;if(dt>0.5)kmh=Math.round(poiDist(lastP.coords.latitude,lastP.coords.longitude,pos.coords.latitude,pos.coords.longitude)/dt*3.6);}
+    lastP=pos;lastT=pos.timestamp;
+    var el=document.getElementById('spdVal');
+    if(el){el.textContent=kmh;el.style.color=(kmh>90)?'#f87171':(kmh>70)?'#fbbf24':'#fff';}
+    poiUpdateSpeedoPos();
+    poiCheckNear(pos.coords.latitude,pos.coords.longitude);
+    if(!poiLastPos||poiDist(pos.coords.latitude,pos.coords.longitude,poiLastPos.lat,poiLastPos.lng)>POI_REQUERY){
+      poiLastPos={lat:pos.coords.latitude,lng:pos.coords.longitude};
+      window.lastLat=pos.coords.latitude;window.lastLng=pos.coords.longitude;
+      poiFetch(pos.coords.latitude,pos.coords.longitude);
+    }
+  },null,{enableHighAccuracy:true,maximumAge:2000,timeout:15000});
+}
+
+function poiUpdateSpeedoPos(){
+  var wrap=document.getElementById('speedoWrap');
+  if(!wrap)return;
+  if(window.innerWidth>=900){wrap.style.bottom='180px';return;}
+  var bsEl=document.getElementById('bottomSheet');
+  var bsH=bsEl?bsEl.offsetHeight:340;
+  if(bsH<100)bsH=340;
+  wrap.style.bottom=(bsH+12)+'px';
+}
+
+
+
+// Helper: get leafletFull từ bất kỳ scope nào
+function getMap(){ return window.leafletFull || (typeof leafletFull!=='undefined'?leafletFull:null); }
+
+function showToast(msg, type){
+  var layer=document.getElementById('toastLayer');
+  if(!layer)return;
+  var el=document.createElement('div');
+  el.className='toast'+(type?' '+type:'');
+  el.textContent=msg;
+  layer.appendChild(el);
+  setTimeout(function(){el.remove();},2500);
+}
+
+function kPOI(type){
+  window.kPOI=kPOI;
+  var s=poiState[type];if(!s)return;
+  s.on=!s.on;
+  var btn=document.getElementById('poiBtn'+type.charAt(0).toUpperCase()+type.slice(1));
+  if(btn)btn.classList.toggle('active',s.on);
+  if(s.on){
+    // Visual feedback ngay lập tức
+    showToast(s.icon+' Đang tải '+s.label+'...','');
+    if(s.data.length===0){
+      // Lấy vị trí GPS rồi fetch, hoặc dùng vị trí map hiện tại
+      var lat=window.lastLat||window.lastLng,lng=window.lastLng;
+      if(!lat&&leafletFull){
+        var center=leafletFull.getCenter();
+        lat=center.lat;lng=center.lng;
+      }
+      if(lat) poiFetch(lat,lng);
+      else {
+        // Xin GPS
+        if(navigator.geolocation){
+          navigator.geolocation.getCurrentPosition(function(pos){
+            poiLastPos={lat:pos.coords.latitude,lng:pos.coords.longitude};
+            poiFetch(pos.coords.latitude,pos.coords.longitude);
+          },function(){showToast('⚠️ Không có GPS. Dùng vị trí trung tâm bản đồ','err');
+            if(leafletFull){var ct=leafletFull.getCenter();poiFetch(ct.lat,ct.lng);}
+          },{timeout:5000});
+        }
+      }
+    } else poiRenderLayer(type);
+  } else {
+    poiClearLayer(type);
+    showToast(s.icon+' Đã tắt '+s.label,'');
+  }
+}
+window.kPOI = kPOI; window._kPOI_real = kPOI; // expose global for onclick
+
+function poiClearLayer(type){var lf=getMap();var s=poiState[type];s.marks.forEach(function(m){try{if(lf)lf.removeLayer(m);}catch(e){}});s.marks=[];}
+
+function poiRenderLayer(type){
+  var leafletFull=getMap();if(!leafletFull)return;var s=poiState[type];poiClearLayer(type);if(!s.on)return;
+  s.data.forEach(function(poi){
+    if(!poi.lat||!poi.lng)return;
+    var ico=L.divIcon({className:'',html:'<div style="width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:15px;background:rgba(15,23,42,.88);border:1px solid rgba(255,255,255,.15);box-shadow:0 3px 10px rgba(0,0,0,.5)">'+s.icon+'</div>',iconSize:[32,32],iconAnchor:[16,16],popupAnchor:[0,-20]});
+    var m=L.marker([poi.lat,poi.lng],{icon:ico}).addTo(leafletFull);
+    var html='<div style="font-family:system-ui;min-width:150px;font-size:13px"><b>'+s.icon+' '+(poi.name||s.label)+'</b>'+(poi.detail?'<br><small style="color:#666">'+poi.detail+'</small>':'')+(poi.brand?'<br><small style="color:#888">🏷️ '+poi.brand+'</small>':'')+(poi.hours?'<br><small style="color:#888">🕐 '+poi.hours+'</small>':'')+(poi.speed?'<br><b style="color:#ef4444">⚡ Giới hạn '+poi.speed+' km/h</b>':'')+'</div>';
+    m.bindPopup(html,{maxWidth:220});s.marks.push(m);
+  });
+}
+
+function poiFetch(lat,lng){
   if(poiFetching)return;poiFetching=true;
   var r=POI_RADIUS;
   var q='[out:json][timeout:25];(node["amenity"="fuel"](around:'+r+','+lat+','+lng+');node["amenity"="charging_station"](around:'+r+','+lat+','+lng+');node["highway"="rest_area"](around:'+r+','+lat+','+lng+');node["amenity"="restaurant"](around:'+r+','+lat+','+lng+');node["amenity"="fast_food"](around:'+r+','+lat+','+lng+');node["highway"="speed_camera"](around:'+r+','+lat+','+lng+');node["enforcement"="maxspeed"](around:'+r+','+lat+','+lng+');node["traffic_sign"](around:'+r+','+lat+','+lng+');node["highway"="stop"](around:'+r+','+lat+','+lng+');node["highway"="give_way"](around:'+r+','+lat+','+lng+'););out body;';

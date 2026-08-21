@@ -25,28 +25,60 @@ app.use(express.static(__dirname));
 
 // ── OVERPASS API PROXY (tránh CORS từ browser) ────────────
 const https = require('https');
+
+function overpassRequest(query, res) {
+  const mirrors = [
+    'https://overpass-api.de/api/interpreter',
+    'https://overpass.kumi.systems/api/interpreter',
+  ];
+  const postData = 'data=' + encodeURIComponent(query);
+
+  const tryMirror = (idx) => {
+    if (idx >= mirrors.length) {
+      return res.status(502).json({ error: 'All Overpass mirrors failed' });
+    }
+    const url = new URL(mirrors[idx]);
+    const options = {
+      hostname: url.hostname,
+      path: url.pathname,
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Content-Length': Buffer.byteLength(postData),
+        'User-Agent': 'CasaroomApp/12.0 (pushtotalk.ptv)',
+      },
+      timeout: 28000,
+    };
+    const req2 = https.request(options, (upstream) => {
+      if (upstream.statusCode !== 200) {
+        upstream.resume();
+        return tryMirror(idx + 1);
+      }
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader('Cache-Control', 'public, max-age=180');
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      upstream.pipe(res);
+    });
+    req2.on('error', () => tryMirror(idx + 1));
+    req2.on('timeout', () => { req2.destroy(); tryMirror(idx + 1); });
+    req2.write(postData);
+    req2.end();
+  };
+  tryMirror(0);
+}
+
+// GET (cache busting) + POST (primary)
 app.get('/api/overpass', (req, res) => {
   const query = req.query.data;
-  if (!query) return res.status(400).json({ error: 'Missing data param' });
-
-  // Rate limit đơn giản
-  const ip = req.ip || req.connection.remoteAddress;
-  const now = Date.now();
-
-  const overpassUrl = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`;
-  const mirrorUrl  = `https://overpass.kumi.systems/api/interpreter?data=${encodeURIComponent(query)}`;
-
-  const doFetch = (url, fallback) => {
-    https.get(url, { timeout: 25000 }, (upstream) => {
-      res.setHeader('Content-Type', 'application/json');
-      res.setHeader('Cache-Control', 'public, max-age=120'); // cache 2 phút
-      upstream.pipe(res);
-    }).on('error', (err) => {
-      if (fallback) doFetch(fallback, null);
-      else res.status(502).json({ error: 'Overpass unavailable', msg: err.message });
-    });
-  };
-  doFetch(overpassUrl, mirrorUrl);
+  if (!query) return res.status(400).json({ error: 'Missing data' });
+  overpassRequest(query, res);
+});
+app.post('/api/overpass', (req, res) => {
+  const body = req.body;
+  const query = (typeof body === 'string' ? body : '') ||
+                (body && body.data) || req.query.data;
+  if (!query) return res.status(400).json({ error: 'Missing data' });
+  overpassRequest(query, res);
 });
 
 const server = http.createServer(app);
