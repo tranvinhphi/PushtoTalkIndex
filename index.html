@@ -398,65 +398,25 @@ input{font-family:inherit;color:var(--text);background:none;border:none;outline:
 .map-pin-speaking{color:var(--green);background:rgba(57,255,20,.2)}
 
 /* ════ SPEEDOMETER ════════════════════════════════════ */
-#speedoWrap{
-  position:absolute;left:14px;z-index:20;
-  transition:bottom .3s cubic-bezier(.4,0,.2,1);
-  bottom:360px; /* updated by poiUpdateLayout() */
-}
-#speedo{
-  background:rgba(10,9,3,.88);backdrop-filter:blur(12px);
-  border:1.5px solid rgba(245,158,11,.3);border-radius:16px;
-  padding:10px 14px;min-width:80px;text-align:center;
-  box-shadow:0 4px 16px rgba(0,0,0,.5);
-}
+#speedoWrap{position:absolute;left:14px;z-index:20;bottom:360px;transition:bottom .3s ease}
+#speedo{background:rgba(10,9,3,.88);backdrop-filter:blur(12px);border:1.5px solid rgba(245,158,11,.3);border-radius:16px;padding:10px 14px;min-width:80px;text-align:center;box-shadow:0 4px 16px rgba(0,0,0,.5)}
 .spd-val{font-size:28px;font-weight:900;color:#fff;line-height:1;font-family:monospace}
 .spd-unit{font-size:9px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-top:2px}
 .spd-limit-row{display:flex;align-items:center;justify-content:center;gap:4px;margin-top:6px}
-.spd-limit-circle{
-  width:30px;height:30px;border-radius:50%;
-  border:3px solid var(--red);background:#fff;
-  display:flex;align-items:center;justify-content:center;
-  font-size:10px;font-weight:900;color:#000;
-}
-.spd-limit-circle.warn{border-color:var(--red);background:var(--red);color:#fff;
-  animation:sWarn .5s ease-in-out infinite alternate}
+.spd-limit-circle{width:30px;height:30px;border-radius:50%;border:3px solid var(--red);background:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;color:#000}
+.spd-limit-circle.warn{border-color:var(--red);background:var(--red);color:#fff;animation:sWarn .5s ease-in-out infinite alternate}
 @keyframes sWarn{from{transform:scale(1)}to{transform:scale(1.1)}}
 
-/* ════ POI TOGGLE BUTTONS ══════════════════════════════ */
-#poiPanel{
-  position:absolute;left:10px;z-index:20;
-  display:flex;flex-direction:column;gap:6px;
-  top:70px; /* updated by poiUpdateLayout() */
-}
-.poi-btn{
-  width:38px;height:38px;border-radius:11px;
-  background:rgba(10,9,3,.82);backdrop-filter:blur(10px);
-  border:1.5px solid rgba(255,255,255,.1);
-  display:flex;align-items:center;justify-content:center;
-  font-size:17px;cursor:pointer;transition:all .18s;
-  position:relative;
-}
+/* ════ POI BUTTONS ══════════════════════════════════════ */
+#poiPanel{position:absolute;left:10px;z-index:20;top:70px;display:flex;flex-direction:column;gap:6px}
+.poi-btn{width:38px;height:38px;border-radius:11px;background:rgba(10,9,3,.82);backdrop-filter:blur(10px);border:1.5px solid rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;font-size:17px;cursor:pointer;transition:all .18s;position:relative}
 .poi-btn.active{background:rgba(245,158,11,.18);border-color:rgba(245,158,11,.5)}
 .poi-btn:active{transform:scale(.88)}
-.poi-count{
-  position:absolute;top:-4px;right:-4px;
-  width:15px;height:15px;border-radius:50%;
-  background:var(--red);color:#fff;
-  font-size:7px;font-weight:900;
-  display:none;align-items:center;justify-content:center;
-  border:1.5px solid rgba(10,9,3,1);
-}
+.poi-count{position:absolute;top:-4px;right:-4px;width:15px;height:15px;border-radius:50%;background:var(--red);color:#fff;font-size:7px;font-weight:900;display:none;align-items:center;justify-content:center;border:1.5px solid rgba(10,9,3,1)}
 .poi-btn.has-data .poi-count{display:flex}
 
-/* ════ POI ALERT BANNER ════════════════════════════════ */
-#poiAlert{
-  display:none;
-  position:absolute;left:14px;right:56px;z-index:28;
-  background:rgba(10,9,3,.92);backdrop-filter:blur(14px);
-  border:1.5px solid rgba(245,158,11,.4);border-radius:14px;
-  padding:10px 12px;gap:10px;align-items:center;
-  animation:slideInLeft .25s ease;
-}
+/* ════ POI ALERT ════════════════════════════════════════ */
+#poiAlert{display:none;position:absolute;left:14px;right:56px;z-index:28;background:rgba(10,9,3,.92);backdrop-filter:blur(14px);border:1.5px solid rgba(245,158,11,.4);border-radius:14px;padding:10px 12px;gap:10px;align-items:center;animation:slideInLeft .25s ease}
 #poiAlert.show{display:flex}
 @keyframes slideInLeft{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:none}}
 .pai-ico{font-size:22px;flex-shrink:0}
@@ -465,158 +425,126 @@ input{font-family:inherit;color:var(--text);background:none;border:none;outline:
 .pai-sub{font-size:10px;color:var(--text2);margin-top:2px}
 .pai-close{font-size:15px;color:var(--text3);flex-shrink:0;padding:4px}
 
-
-/* ════ DESKTOP LAYOUT (≥900px) ══════════════════════════
-   Sidebar trái + Map phải — theo UXpilot WalkieTalkie style
-═════════════════════════════════════════════════════════ */
-@media (min-width: 900px) {
-  /* Body */
-  body { overflow: hidden; display: flex; }
-
-  /* Non-room screens: centered card */
-  #joinScreen, #discoverScreen, #waitScreen {
-    position: fixed !important;
-    inset: 0 !important;
-    display: none;
-    align-items: center;
-    justify-content: center;
-    background: #0f0d07 !important;
-    z-index: 200;
+/* ════ DESKTOP LAYOUT ≥900px ═══════════════════════════
+   Map full left | Sidebar right 320px fixed
+═══════════════════════════════════════════════════════ */
+@media(min-width:900px){
+  /* Non-room: centered card */
+  #joinScreen,#discoverScreen,#waitScreen{
+    position:fixed !important;inset:0 !important;display:none;
+    align-items:center;justify-content:center;z-index:200;
+    background:radial-gradient(ellipse 70% 50% at 50% 0%,#1a1508,#0f0d07 70%) !important;
   }
-  #joinScreen.active, #discoverScreen.active, #waitScreen.active {
-    display: flex !important;
-  }
-  .join-wrap {
-    max-width: 480px !important;
-    width: 100% !important;
-    background: rgba(28,26,16,.6);
-    border: 1px solid rgba(245,158,11,.15);
-    border-radius: 24px;
-    padding: 32px !important;
-    backdrop-filter: blur(16px);
-  }
+  #joinScreen.active,#discoverScreen.active,#waitScreen.active{display:flex !important}
+  .join-wrap{max-width:460px !important;background:rgba(28,26,16,.65);border:1px solid rgba(245,158,11,.2);border-radius:24px;padding:32px !important;backdrop-filter:blur(20px);max-height:90vh;overflow-y:auto}
+  #roomScreen{position:fixed !important;inset:0 !important}
+  #roomScreen.active{display:block !important}
 
-  /* Room: full screen no card */
-  #roomScreen {
-    position: fixed !important;
-    inset: 0 !important;
-    display: none;
-  }
-  #roomScreen.active { display: block !important; }
+  /* Header full width */
+  #roomTopbar{left:0 !important;right:0 !important;height:52px}
 
-  /* Header: slim, full width */
-  #roomTopbar {
-    left: 0 !important;
-    right: 0 !important;
-    height: 56px;
-  }
+  /* Map full screen */
+  #mapFull{position:absolute !important;inset:0 !important;z-index:1}
 
-  /* Map: full screen behind everything */
-  #mapFull {
-    position: absolute !important;
-    inset: 0 !important;
-    z-index: 1;
+  /* SIDEBAR — right panel */
+  #bottomSheet{
+    position:fixed !important;
+    top:52px !important;bottom:0 !important;
+    right:0 !important;left:auto !important;
+    width:320px !important;height:auto !important;
+    border-radius:0 !important;border-top:none !important;
+    border-left:1px solid rgba(245,158,11,.12) !important;
+    background:rgba(15,13,5,.98) !important;
+    backdrop-filter:none !important;
+    display:flex !important;flex-direction:column !important;
+    overflow:hidden !important;transition:none !important;z-index:40 !important;
   }
+  /* Desktop: sidebar always visible even in map-mode */
+  #bottomSheet.map-mode{
+    background:rgba(15,13,5,.98) !important;
+    border-left:1px solid rgba(245,158,11,.12) !important;
+    height:auto !important;
+  }
+  #bottomSheet.map-mode #sheetScrollArea{display:flex !important}
+  #bottomSheet.map-mode .bs-handle-wrap{display:none !important}
+  .bs-handle-wrap{display:none !important}
 
-  /* Bottom sheet: RIGHT SIDE PANEL on desktop */
-  #bottomSheet {
-    position: fixed !important;
-    top: 56px !important;
-    bottom: 0 !important;
-    left: auto !important;
-    right: 0 !important;
-    width: 340px !important;
-    height: auto !important;
-    border-radius: 0 !important;
-    border-top: none !important;
-    border-left: 1px solid rgba(245,158,11,.15) !important;
-    display: flex;
-    flex-direction: column;
-    transition: none !important;
+  /* avStrip: compact horizontal row at top of sidebar */
+  .av-strip{
+    padding:8px 12px !important;gap:6px !important;
+    border-bottom:1px solid rgba(255,255,255,.05) !important;
+    flex-shrink:0 !important;overflow-x:auto !important;overflow-y:hidden !important;
+    max-height:68px !important;
+  }
+  .av-item{min-width:100px !important;height:52px !important;padding:0 10px !important;border-radius:12px !important}
+
+  /* sheetScrollArea: flex column fills remaining */
+  #sheetScrollArea{
+    flex:1 !important;min-height:0 !important;
+    overflow:hidden !important;position:relative !important;
+    display:flex !important;flex-direction:column !important;
   }
 
-  /* Prevent map-mode from hiding sheet on desktop */
-  #bottomSheet.map-mode {
-    background: #1c1a10 !important;
-    border-left: 1px solid rgba(245,158,11,.15) !important;
-    height: auto !important;
+  /* Section header in sidebar */
+  .bs-members-hdr{padding:8px 14px 4px !important;flex-shrink:0 !important}
+  .bs-members-title{font-size:9px !important}
+
+  /* Content panels: in-flow not absolute */
+  .content-panel{
+    position:relative !important;border-radius:0 !important;
+    flex:1 !important;display:none !important;overflow:hidden !important;
+    min-height:0 !important;
   }
-  #bottomSheet.map-mode #sheetScrollArea { display: flex !important; }
-  #bottomSheet.map-mode .bs-handle-wrap { display: none !important; }
+  .content-panel.active{display:flex !important}
 
-  /* Sheet scroll area takes remaining height */
-  #sheetScrollArea {
-    flex: 1 !important;
-    overflow-y: auto !important;
-    min-height: 0 !important;
+  /* Scrollable content */
+  .mlist,.chat-msgs,.set-scroll{overflow-y:auto !important}
+  .chat-input-row{padding-bottom:8px !important}
+
+  /* PTT zone: at bottom of sidebar */
+  .ptt-zone{
+    flex-shrink:0 !important;padding:10px 14px 10px !important;
+    background:rgba(12,10,4,.99) !important;
+    border-top:1px solid rgba(245,158,11,.1) !important;
   }
+  #pttBtn{width:62px !important;height:62px !important}
+  #pttBtn svg{width:22px !important;height:22px !important}
+  .ptt-outer{width:70px !important;height:70px !important}
+  #waCam{width:42px !important;height:42px !important}
+  .ptt-right .ptt-r-btn{width:40px !important;height:40px !important}
+  .ptt-txt-label{font-size:8px !important}
+  .stat-line{font-size:10px !important}
 
-  /* PTT zone: always visible at bottom of sidebar */
-  .ptt-zone {
-    flex-shrink: 0 !important;
-    padding-bottom: 12px !important;
-    border-top: 1px solid rgba(255,255,255,.06) !important;
+  /* Tabbar: at very bottom */
+  .tabbar{
+    flex-shrink:0 !important;padding-bottom:6px !important;
+    background:rgba(12,10,4,.99) !important;
+    border-top:1px solid rgba(255,255,255,.04) !important;
   }
+  .til{font-size:8px !important}.tii{font-size:18px !important}
 
-  /* Tabbar: in sidebar */
-  .tabbar {
-    flex-shrink: 0 !important;
-    padding-bottom: 8px !important;
-  }
+  /* Map controls */
+  .map-ctrl{right:336px !important;top:calc(58px + var(--st)) !important}
+  .banners{right:320px !important;top:52px !important}
 
-  /* Handle: hide on desktop */
-  .bs-handle-wrap { display: none !important; }
+  /* POI & Speedo */
+  #poiPanel{left:14px !important;top:66px !important;transform:none !important}
+  #speedoWrap{left:14px !important;bottom:180px !important}
+  #poiAlert{left:14px !important;right:336px !important;top:62px !important}
 
-  /* Map controls: reposition left of sidebar */
-  .map-ctrl { right: 356px !important; }
+  /* Modals: centered */
+  .mov{justify-content:center !important;align-items:center !important}
+  .msheet{border-radius:20px !important;border:1px solid rgba(245,158,11,.2) !important;max-width:480px !important;max-height:80vh !important}
+  .mhandle{display:none}
 
-  /* POI panel: left side of map */
-  #poiPanel { left: 14px !important; }
-
-  /* Speedo: left side, above PTT area */
-  #speedoWrap { left: 14px !important; bottom: 200px !important; }
-
-  /* POI Alert: top left under header */
-  #poiAlert {
-    left: 14px !important;
-    right: 356px !important;
-    top: calc(62px + 8px) !important;
-  }
-
-  /* Member strip: vertical in sidebar */
-  .av-strip {
-    flex-direction: column !important;
-    overflow-x: hidden !important;
-    overflow-y: auto !important;
-    max-height: 200px !important;
-    gap: 6px !important;
-  }
-  .av-item {
-    min-width: 0 !important;
-    width: 100% !important;
-  }
-
-  /* Member list full width */
-  #panelMembers, #panelChat, #panelSettings {
-    position: relative !important;
-    border-radius: 0 !important;
-  }
-
-  /* Content panels: take sidebar width */
-  .content-panel {
-    width: 340px !important;
-  }
-
-  /* Drag handle: hide */
-  .bs-handle { display: none; }
+  /* SOS overlay */
+  #sosOv{z-index:10000}
 }
-
-/* Wide desktop: slightly wider sidebar */
-@media (min-width: 1280px) {
-  #bottomSheet { width: 380px !important; }
-  .map-ctrl { right: 396px !important; }
-  #poiAlert { right: 396px !important; }
-  .content-panel { width: 380px !important; }
+@media(min-width:1280px){
+  #bottomSheet{width:360px !important}
+  .map-ctrl{right:376px !important}
+  .banners{right:360px !important}
+  #poiAlert{right:376px !important}
 }
 
 </style>
@@ -686,22 +614,20 @@ input{font-family:inherit;color:var(--text);background:none;border:none;outline:
   <div class="map-bottom-fade"></div>
 
   <!-- SPEEDOMETER -->
-  <div id="speedoWrap">
-    <div id="speedo">
-      <div class="spd-val" id="spdVal">--</div>
-      <div class="spd-unit">km/h</div>
-      <div class="spd-limit-row" id="spdLimitRow" style="display:none">
-        <div class="spd-limit-circle" id="spdLimitCircle">--</div>
-      </div>
+  <div id="speedoWrap"><div id="speedo">
+    <div class="spd-val" id="spdVal">--</div>
+    <div class="spd-unit">km/h</div>
+    <div class="spd-limit-row" id="spdLimitRow" style="display:none">
+      <div class="spd-limit-circle" id="spdLimitCircle">--</div>
     </div>
-  </div>
+  </div></div>
 
   <!-- POI PANEL -->
   <div id="poiPanel">
     <button class="poi-btn" id="poiBtnGas"  onclick="kPOI('gas')"  title="Trạm xăng">⛽<span class="poi-count" id="poiCntGas"></span></button>
     <button class="poi-btn" id="poiBtnEv"   onclick="kPOI('ev')"   title="Sạc EV">🔋<span class="poi-count" id="poiCntEv"></span></button>
     <button class="poi-btn" id="poiBtnRest" onclick="kPOI('rest')" title="Trạm dừng">🍽️<span class="poi-count" id="poiCntRest"></span></button>
-    <button class="poi-btn" id="poiBtnCam"  onclick="kPOI('cam')"  title="Camera tốc độ">📷<span class="poi-count" id="poiCntCam"></span></button>
+    <button class="poi-btn" id="poiBtnCam"  onclick="kPOI('cam')"  title="Camera">📷<span class="poi-count" id="poiCntCam"></span></button>
     <button class="poi-btn" id="poiBtnSign" onclick="kPOI('sign')" title="Biển báo">🚦<span class="poi-count" id="poiCntSign"></span></button>
   </div>
 
@@ -2279,8 +2205,12 @@ const memberStripView=document.getElementById('memberStripView');
 const BS_MIN=140, BS_MID=340, BS_FULL='72vh';
 
 function setBSH(h){
+  // Desktop (≥900px): sidebar dùng top/bottom, không set height
+  if(window.innerWidth>=900){
+    setTimeout(()=>{try{leafletFull?.invalidateSize();}catch(e){}},50);
+    return;
+  }
   bottomSheet.style.height=typeof h==='number'?h+'px':h;
-  // Resize map
   setTimeout(()=>{try{leafletFull?.invalidateSize();}catch(e){}},50);
 }
 setBSH(BS_MID);
@@ -2329,10 +2259,12 @@ function openPanel(panelId,tabEl){
     setBSH(BS_FULL);
     activeTabV11=panelId;
   } else {
-    // Tab Bản đồ → sheet trong suốt hoàn toàn, chỉ ptt+tabbar hiển thị
+    // Tab Bản đồ
     bottomSheet.classList.add('map-mode');
     if(videoGrid)videoGrid.classList.remove('vis');
-    bottomSheet.style.height='auto'; // auto = vừa đủ PTT+tabbar, không nhảy
+    if(window.innerWidth<900){
+      bottomSheet.style.height='auto';
+    }
     activeTabV11='map';
     setTimeout(()=>{ if(typeof renderVidGrid==='function') renderVidGrid(); },100);
     setTimeout(()=>{try{leafletFull?.invalidateSize();}catch(e){}},200);
@@ -2439,128 +2371,90 @@ const origST=window.startTalking,origSp=window.stopTalking;
 if(origST){window.startTalking=function(){pttOuter2?.classList.add('talking');origST.call(this);};}
 if(origSp){window.stopTalking=function(){pttOuter2?.classList.remove('talking');origSp.call(this);};}
 
-// Init: đảm bảo tất cả panels đóng, bắt đầu với tab bản đồ
+// Init: desktop mở panel Đội nhóm mặc định, mobile mở bản đồ
 [panelChat,panelMembers,panelSettings].filter(Boolean).forEach(p=>p.classList.remove('active'));
 allTabsV11.forEach(t=>t.classList.remove('active'));
-bottomSheet.classList.add('map-mode');
-openPanel(null,tabMap);
+if(window.innerWidth>=900){
+  // Desktop: hiện panel members mặc định
+  openPanel('panelMembers',tabMembers);
+} else {
+  // Mobile: map tab mặc định
+  bottomSheet.classList.add('map-mode');
+  openPanel(null,tabMap);
+}
 setTimeout(()=>{try{leafletFull?.invalidateSize();}catch(e){}},500);
-
 // ════════════════════════════════════════════════════════
-// POI + SPEEDOMETER — v11.2.0
-// Không ảnh hưởng các chức năng khác
+// POI + SPEEDOMETER — inject sau IIFE v11.0.9
 // ════════════════════════════════════════════════════════
-
-// ── Cấu hình ──────────────────────────────────────────
-var POI_RADIUS = 5000;    // bán kính query (m)
-var POI_REQUERY = 400;    // di chuyển bao nhiêu mét thì query lại
-var POI_ALERT_DIST = {cam:300, sign:150, gas:600, ev:600, rest:600};
-
-// ── State ──────────────────────────────────────────────
-var poiState = {
-  gas:  {on:false, data:[], marks:[], icon:'⛽', label:'Trạm xăng',     cls:'pm-gas'},
-  ev:   {on:false, data:[], marks:[], icon:'🔋', label:'Trạm sạc EV',   cls:'pm-ev'},
-  rest: {on:false, data:[], marks:[], icon:'🍽️', label:'Trạm dừng',     cls:'pm-rest'},
-  cam:  {on:false, data:[], marks:[], icon:'📷', label:'Camera tốc độ', cls:'pm-cam'},
-  sign: {on:false, data:[], marks:[], icon:'🚦', label:'Biển báo',       cls:'pm-sign'},
+var POI_RADIUS=5000,POI_REQUERY=400;
+var POI_ALERT_DIST={cam:300,sign:150,gas:600,ev:600,rest:600};
+var poiState={
+  gas: {on:false,data:[],marks:[],icon:'⛽',label:'Trạm xăng'},
+  ev:  {on:false,data:[],marks:[],icon:'🔋',label:'Trạm sạc EV'},
+  rest:{on:false,data:[],marks:[],icon:'🍽️',label:'Trạm dừng'},
+  cam: {on:false,data:[],marks:[],icon:'📷',label:'Camera tốc độ'},
+  sign:{on:false,data:[],marks:[],icon:'🚦',label:'Biển báo'},
 };
-var poiLastPos   = null;
-var poiFetching  = false;
-var poiAlerted   = {};
-var poiAlertTmr  = null;
-var spdWatchId   = null;
-var spdCurrent   = 0;
-var spdLimit     = 0;
-var poiInited    = false;
+var poiLastPos=null,poiFetching=false,poiAlerted={},poiAlertTmr=null;
+var spdWatchId=null,spdCurrent=0,spdLimit=0,poiInited=false;
 
-// ── Haversine ──────────────────────────────────────────
 function poiDist(la1,lo1,la2,lo2){
-  var R=6371000, dLa=(la2-la1)*Math.PI/180, dLo=(lo2-lo1)*Math.PI/180;
-  var a=Math.sin(dLa/2)*Math.sin(dLa/2)+
-        Math.cos(la1*Math.PI/180)*Math.cos(la2*Math.PI/180)*
-        Math.sin(dLo/2)*Math.sin(dLo/2);
+  var R=6371000,dLa=(la2-la1)*Math.PI/180,dLo=(lo2-lo1)*Math.PI/180;
+  var a=Math.sin(dLa/2)*Math.sin(dLa/2)+Math.cos(la1*Math.PI/180)*Math.cos(la2*Math.PI/180)*Math.sin(dLo/2)*Math.sin(dLo/2);
   return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
 }
 
-// ── Speedometer ───────────────────────────────────────
 function startSpeedometer(){
-  if(spdWatchId)return;
-  if(!navigator.geolocation)return;
-  var lastP=null, lastT=null;
+  if(spdWatchId||!navigator.geolocation)return;
+  var lastP=null,lastT=null;
   spdWatchId=navigator.geolocation.watchPosition(function(pos){
-    var spd=pos.coords.speed, kmh=0;
-    if(spd!=null&&spd>=0){ kmh=Math.round(spd*3.6); }
-    else if(lastP){
-      var dt=(pos.timestamp-lastT)/1000;
-      if(dt>0.5) kmh=Math.round(poiDist(lastP.coords.latitude,lastP.coords.longitude,
-                                         pos.coords.latitude,pos.coords.longitude)/dt*3.6);
-    }
-    lastP=pos; lastT=pos.timestamp; spdCurrent=kmh;
-    renderSpeedo(kmh);
-    // check proximity
-    poiCheckNear(pos.coords.latitude, pos.coords.longitude);
-    // re-query nếu đi xa
-    if(!poiLastPos||poiDist(pos.coords.latitude,pos.coords.longitude,
-                             poiLastPos.lat,poiLastPos.lng)>POI_REQUERY){
+    var spd=pos.coords.speed,kmh=0;
+    if(spd!=null&&spd>=0){kmh=Math.round(spd*3.6);}
+    else if(lastP){var dt=(pos.timestamp-lastT)/1000;if(dt>0.5)kmh=Math.round(poiDist(lastP.coords.latitude,lastP.coords.longitude,pos.coords.latitude,pos.coords.longitude)/dt*3.6);}
+    lastP=pos;lastT=pos.timestamp;spdCurrent=kmh;
+    var el=document.getElementById('spdVal');
+    if(el){el.textContent=kmh;el.style.color=spdLimit>0&&kmh>spdLimit*1.05?'#f87171':spdLimit>0&&kmh>spdLimit*0.9?'#fbbf24':'#fff';}
+    poiUpdateLayout();
+    poiCheckNear(pos.coords.latitude,pos.coords.longitude);
+    if(!poiLastPos||poiDist(pos.coords.latitude,pos.coords.longitude,poiLastPos.lat,poiLastPos.lng)>POI_REQUERY){
       poiLastPos={lat:pos.coords.latitude,lng:pos.coords.longitude};
-      poiFetch(pos.coords.latitude, pos.coords.longitude);
+      poiFetch(pos.coords.latitude,pos.coords.longitude);
     }
   },null,{enableHighAccuracy:true,maximumAge:2000,timeout:15000});
 }
 
-function renderSpeedo(kmh){
-  var el=document.getElementById('spdVal');
-  if(!el)return;
-  el.textContent=kmh;
-  el.style.color = spdLimit>0&&kmh>spdLimit*1.05 ? '#f87171' :
-                   spdLimit>0&&kmh>spdLimit*0.9  ? '#fbbf24' : '#fff';
-  // update vị trí dựa theo bottomSheet
-  poiUpdateLayout();
-}
-
-// ── Layout: đặt speedo + poiPanel không chồng UI ─────
 function poiUpdateLayout(){
-  var isDesktop = window.innerWidth >= 900;
-  var wrap  = document.getElementById('speedoWrap');
-  var panel = document.getElementById('poiPanel');
-  var alertEl = document.getElementById('poiAlert');
-  var bsEl = typeof bottomSheet!=='undefined' ? bottomSheet : document.getElementById('bottomSheet');
-
-  if (isDesktop) {
-    // Desktop: sidebar dọc bên phải, speedo cố định
-    if (wrap)  { wrap.style.bottom  = '200px'; wrap.style.left = '14px'; }
-    if (panel) { panel.style.top    = '70px';  panel.style.left = '14px'; }
-    if (alertEl) alertEl.style.top  = 'calc(62px + 8px)';
+  var isDesktop=window.innerWidth>=900;
+  var wrap=document.getElementById('speedoWrap');
+  var panel=document.getElementById('poiPanel');
+  var alertEl=document.getElementById('poiAlert');
+  if(isDesktop){
+    if(wrap){wrap.style.bottom='180px';wrap.style.left='14px';}
+    if(panel){panel.style.top='66px';panel.style.left='14px';}
+    if(alertEl)alertEl.style.top='62px';
     return;
   }
-
-  // Mobile: tính theo bottom sheet height
-  var bsH = bsEl ? bsEl.offsetHeight : 340;
-  if (bsH < 100) bsH = 340;
-  if (wrap) wrap.style.bottom = (bsH + 12) + 'px';
-  if (panel) {
-    var headerH = 60;
-    var speedoH = wrap ? wrap.offsetHeight : 80;
-    var speedoTop = window.innerHeight - bsH - speedoH - 12;
-    var panelH = panel.offsetHeight || 220;
-    var freeH = speedoTop - headerH - 8;
-    var top = headerH + 8 + Math.max(0, (freeH - panelH) / 2);
-    panel.style.top = Math.round(top) + 'px';
+  var bsEl=typeof bottomSheet!=='undefined'?bottomSheet:document.getElementById('bottomSheet');
+  var bsH=bsEl?bsEl.offsetHeight:340;
+  if(bsH<100)bsH=340;
+  if(wrap)wrap.style.bottom=(bsH+12)+'px';
+  if(panel){
+    var freeH=(window.innerHeight-bsH-60-8);
+    var ph=panel.offsetHeight||200;
+    var top=60+8+Math.max(0,(freeH-ph)/2);
+    panel.style.top=Math.round(top)+'px';
   }
-  if (alertEl) alertEl.style.top = 'calc(58px + var(--st) + 6px)';
+  if(alertEl)alertEl.style.top='calc(58px + var(--st) + 6px)';
 }
-// ── Toggle POI layer ──────────────────────────────────
+
 function kPOI(type){
-  var s=poiState[type]; if(!s)return;
+  var s=poiState[type];if(!s)return;
   s.on=!s.on;
-  var btn=document.getElementById('poiBtn'+type.charAt(0).toUpperCase()+type.slice(1));
+  var id='poiBtn'+type.charAt(0).toUpperCase()+type.slice(1);
+  var btn=document.getElementById(id);
   if(btn)btn.classList.toggle('active',s.on);
-  if(s.on){
-    if(s.data.length===0&&myLat&&myLng) poiFetch(myLat,myLng);
-    else poiRenderLayer(type);
-  } else {
-    poiClearLayer(type);
-  }
+  if(s.on){if(s.data.length===0&&myLat&&myLng)poiFetch(myLat,myLng);else poiRenderLayer(type);}
+  else poiClearLayer(type);
 }
 
 function poiClearLayer(type){
@@ -2571,35 +2465,27 @@ function poiClearLayer(type){
 
 function poiRenderLayer(type){
   if(!leafletFull)return;
-  var s=poiState[type];
-  poiClearLayer(type);
-  if(!s.on)return;
+  var s=poiState[type];poiClearLayer(type);if(!s.on)return;
   s.data.forEach(function(poi){
     if(!poi.lat||!poi.lng)return;
-    var ico=L.divIcon({
-      className:'',
-      html:'<div style="width:34px;height:34px;border-radius:10px;display:flex;align-items:center;'+
-           'justify-content:center;font-size:16px;box-shadow:0 3px 10px rgba(0,0,0,.6);'+
-           'background:rgba(10,9,3,.85);border:1.5px solid rgba(255,255,255,.18)">'+s.icon+'</div>',
-      iconSize:[34,34],iconAnchor:[17,17],popupAnchor:[0,-20]
-    });
+    var ico=L.divIcon({className:'',
+      html:'<div style="width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:15px;background:rgba(10,9,3,.85);border:1.5px solid rgba(255,255,255,.18);box-shadow:0 3px 10px rgba(0,0,0,.6)">'+s.icon+'</div>',
+      iconSize:[32,32],iconAnchor:[16,16],popupAnchor:[0,-20]});
     var m=L.marker([poi.lat,poi.lng],{icon:ico}).addTo(leafletFull);
     var html='<div style="font-family:system-ui;min-width:150px;font-size:13px">'
       +'<b>'+s.icon+' '+(poi.name||s.label)+'</b>'
-      +(poi.detail?'<br><span style="color:#666;font-size:11px">'+poi.detail+'</span>':'')
-      +(poi.brand?'<br><span style="color:#888;font-size:11px">🏷️ '+poi.brand+'</span>':'')
-      +(poi.hours?'<br><span style="color:#888;font-size:11px">🕐 '+poi.hours+'</span>':'')
-      +(poi.speed?'<br><span style="color:#ef4444;font-weight:700">⚡ Giới hạn '+poi.speed+' km/h</span>':'')
+      +(poi.detail?'<br><small style="color:#666">'+poi.detail+'</small>':'')
+      +(poi.brand?'<br><small style="color:#888">🏷️ '+poi.brand+'</small>':'')
+      +(poi.hours?'<br><small style="color:#888">🕐 '+poi.hours+'</small>':'')
+      +(poi.speed?'<br><b style="color:#ef4444">⚡ Giới hạn '+poi.speed+' km/h</b>':'')
       +'</div>';
     m.bindPopup(html,{maxWidth:220});
     s.marks.push(m);
   });
 }
 
-// ── Overpass query ────────────────────────────────────
 function poiFetch(lat,lng){
-  if(poiFetching)return;
-  poiFetching=true;
+  if(poiFetching)return;poiFetching=true;
   var r=POI_RADIUS;
   var q='[out:json][timeout:25];('
     +'node["amenity"="fuel"](around:'+r+','+lat+','+lng+');'
@@ -2617,47 +2503,32 @@ function poiFetch(lat,lng){
     .then(function(res){return res.json();})
     .then(function(data){
       poiFetching=false;
-      // reset
       Object.keys(poiState).forEach(function(k){poiState[k].data=[];});
       data.elements.forEach(function(el){
         if(!el.lat&&el.center){el.lat=el.center.lat;el.lon=el.center.lon;}
         if(!el.lat)return;
         var t=el.tags||{};
-        var b={lat:el.lat,lng:el.lon,
-               name:t.name||t['name:vi']||'',
-               brand:t.brand||'',
-               hours:t.opening_hours||''};
-        if(t.amenity==='fuel'){
-          poiState.gas.data.push(Object.assign({},b,{
-            detail:(t['fuel:octane_95']==='yes'?'RON 95 ':'')+(t['fuel:diesel']==='yes'?'Diesel':'').trim()||'Trạm xăng'}));
-        } else if(t.amenity==='charging_station'){
-          poiState.ev.data.push(Object.assign({},b,{
-            detail:(t.capacity?t.capacity+' cổng ':'')+(t.socket||'')||'Sạc điện'}));
-        } else if(t.highway==='rest_area'||t.amenity==='restaurant'||t.amenity==='fast_food'){
-          poiState.rest.data.push(Object.assign({},b,{
-            detail:t.highway==='rest_area'?'Trạm dừng nghỉ':(t.cuisine||t.amenity||'Ăn uống')}));
-        } else if(t.highway==='speed_camera'||t.enforcement==='maxspeed'){
-          poiState.cam.data.push(Object.assign({},b,{
-            name:b.name||'Camera tốc độ',
-            speed:t.maxspeed||'',
-            detail:t.direction?'Hướng '+t.direction:''}));
-        } else if(t.traffic_sign||t.highway==='stop'||t.highway==='give_way'){
-          var stype=t.highway==='stop'?'Biển DỪNG':
-                    t.highway==='give_way'?'Nhường đường':
-                    poiSignName(t.traffic_sign);
-          poiState.sign.data.push(Object.assign({},b,{name:b.name||stype,detail:t.traffic_sign||''}));
+        var b={lat:el.lat,lng:el.lon,name:t.name||t['name:vi']||'',brand:t.brand||'',hours:t.opening_hours||''};
+        if(t.amenity==='fuel')
+          poiState.gas.data.push(Object.assign({},b,{detail:(t['fuel:octane_95']==='yes'?'RON 95 ':'')+(t['fuel:diesel']==='yes'?'Diesel':'').trim()||'Trạm xăng'}));
+        else if(t.amenity==='charging_station')
+          poiState.ev.data.push(Object.assign({},b,{detail:(t.capacity?t.capacity+' cổng ':'')+(t.socket||'')||'Sạc điện'}));
+        else if(t.highway==='rest_area'||t.amenity==='restaurant'||t.amenity==='fast_food')
+          poiState.rest.data.push(Object.assign({},b,{detail:t.highway==='rest_area'?'Trạm dừng nghỉ':(t.cuisine||t.amenity||'Ăn uống')}));
+        else if(t.highway==='speed_camera'||t.enforcement==='maxspeed')
+          poiState.cam.data.push(Object.assign({},b,{name:b.name||'Camera tốc độ',speed:t.maxspeed||'',detail:t.direction?'Hướng '+t.direction:''}));
+        else if(t.traffic_sign||t.highway==='stop'||t.highway==='give_way'){
+          var sn=t.highway==='stop'?'Biển DỪNG':t.highway==='give_way'?'Nhường đường':poiSignName(t.traffic_sign);
+          poiState.sign.data.push(Object.assign({},b,{name:b.name||sn,detail:t.traffic_sign||''}));
         }
       });
-      // update count badges
+      // Update count badges
       ['gas','ev','rest','cam','sign'].forEach(function(type){
-        var cnt=document.getElementById('poiCnt'+type.charAt(0).toUpperCase()+type.slice(1));
-        var btn=document.getElementById('poiBtn'+type.charAt(0).toUpperCase()+type.slice(1));
+        var cid='poiCnt'+type.charAt(0).toUpperCase()+type.slice(1);
+        var bid='poiBtn'+type.charAt(0).toUpperCase()+type.slice(1);
         var n=poiState[type].data.length;
-        if(cnt)cnt.textContent=n>0?n:'';
-        if(btn)btn.classList.toggle('has-data',n>0);
-      });
-      // re-render active layers
-      Object.keys(poiState).forEach(function(type){
+        var cnt=document.getElementById(cid);if(cnt)cnt.textContent=n>0?n:'';
+        var btn=document.getElementById(bid);if(btn)btn.classList.toggle('has-data',n>0);
         if(poiState[type].on)poiRenderLayer(type);
       });
     })
@@ -2673,20 +2544,17 @@ function poiSignName(s){
   return 'Biển báo';
 }
 
-// ── Proximity alert ───────────────────────────────────
 function poiCheckNear(lat,lng){
   var now=Date.now();
   Object.keys(poiState).forEach(function(type){
     if(!poiState[type].on)return;
     var rad=POI_ALERT_DIST[type]||300;
     poiState[type].data.forEach(function(poi){
-      var d=poiDist(lat,lng,poi.lat,poi.lng);
-      if(d>rad)return;
+      var d=poiDist(lat,lng,poi.lat,poi.lng);if(d>rad)return;
       var key=type+'_'+poi.lat+'_'+poi.lng;
       if(poiAlerted[key]&&now-poiAlerted[key]<90000)return;
       poiAlerted[key]=now;
       poiShowAlert(type,poi,Math.round(d));
-      // TTS đọc cảnh báo
       var msg=(poi.name||poiState[type].label)+' phía trước '+Math.round(d)+' mét'
               +(poi.speed?'. Giới hạn tốc độ '+poi.speed+' kilômét giờ':'')
               +(type==='cam'?'. Chú ý camera tốc độ':'');
@@ -2712,28 +2580,16 @@ function poiShowAlert(type,poi,distM){
   poiAlertTmr=setTimeout(function(){el.classList.remove('show');},8000);
 }
 
-// ── Init: khởi động khi vào phòng ────────────────────
 function poiInit(){
-  if(poiInited)return;
-  poiInited=true;
-  startSpeedometer();
-  poiUpdateLayout();
-  // observe bottomSheet size change
-  if(window.ResizeObserver&&bottomSheet){
-    new ResizeObserver(poiUpdateLayout).observe(bottomSheet);
-  } else if(bottomSheet){
-    new MutationObserver(poiUpdateLayout).observe(bottomSheet,
-      {attributes:true,attributeFilter:['style','class']});
-  }
+  if(poiInited)return;poiInited=true;
+  startSpeedometer();poiUpdateLayout();
+  var bsEl=typeof bottomSheet!=='undefined'?bottomSheet:document.getElementById('bottomSheet');
+  if(bsEl){new MutationObserver(poiUpdateLayout).observe(bsEl,{attributes:true,attributeFilter:['style','class']});}
   window.addEventListener('resize',poiUpdateLayout);
 }
 
-// Hook vào showRoom (đã có trong v11.0.9)
 var _poiOldShowRoom=window.showRoom;
-window.showRoom=function(rc){
-  if(_poiOldShowRoom)_poiOldShowRoom(rc);
-  setTimeout(poiInit,800);
-};
+window.showRoom=function(rc){if(_poiOldShowRoom)_poiOldShowRoom(rc);setTimeout(poiInit,800);};
 
 })();
 </script>
