@@ -143,10 +143,10 @@ input,select,textarea{font-family:inherit;outline:none;color:inherit}
 .req-btns{display:flex;gap:6px}
 
 /* ── MAP CONTROLS ────────────────────────────────────── */
-.map-ctrl{position:absolute;right:16px;z-index:20;display:flex;flex-direction:column;gap:8px}
+.map-ctrl{position:absolute;right:16px;top:calc(60px + var(--st));z-index:20;display:flex;flex-direction:column;gap:8px}
 
 /* ── SPEEDOMETER ─────────────────────────────────────── */
-#speedoWrap{position:absolute;z-index:20;left:10px;transition:bottom .3s ease;bottom:300px}
+#speedoWrap{position:absolute;z-index:20;left:10px;transition:bottom .3s ease;bottom:300px;opacity:0;pointer-events:none}
 #speedo{background:var(--glass2);backdrop-filter:blur(16px);border:1px solid var(--border2);border-left:3px solid var(--blue);border-radius:12px;padding:8px 12px;min-width:72px;text-align:center;box-shadow:0 4px 20px rgba(0,0,0,.4)}
 .spd-val{font-size:24px;font-weight:900;color:#fff;line-height:1;font-family:monospace;letter-spacing:-.02em}
 .spd-unit{font-size:9px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.2em;margin-top:2px}
@@ -156,7 +156,7 @@ input,select,textarea{font-family:inherit;outline:none;color:inherit}
 @keyframes sWarn{from{transform:scale(1)}to{transform:scale(1.1)}}
 
 /* ── POI PANEL ───────────────────────────────────────── */
-#poiPanel{position:absolute;z-index:20;display:flex;flex-direction:column;gap:6px;left:10px;top:calc(60px + var(--st) + 6px)}
+
 .poi-btn{width:34px;height:34px;border-radius:9px;background:var(--glass2);backdrop-filter:blur(10px);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;transition:all .18s;position:relative}
 .poi-btn.active{background:rgba(59,130,246,.2);border-color:rgba(59,130,246,.4)}
 .poi-btn:active{transform:scale(.9)}
@@ -164,7 +164,7 @@ input,select,textarea{font-family:inherit;outline:none;color:inherit}
 .poi-btn.has-data .poi-count{display:flex}
 
 /* ── POI ALERT ───────────────────────────────────────── */
-#poiAlert{display:none;position:absolute;z-index:28;background:var(--glass2);backdrop-filter:blur(14px);border:1px solid rgba(245,158,11,.3);border-radius:14px;padding:10px 12px;gap:10px;align-items:center;animation:slideLeft .25s ease}
+
 #poiAlert.show{display:flex}
 @keyframes slideLeft{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:none}}
 .pai-ico{font-size:20px;flex-shrink:0}
@@ -449,7 +449,7 @@ input,select,textarea{font-family:inherit;outline:none;color:inherit}
   #mapFull{position:absolute !important;inset:0 !important;z-index:1}
   .map-top-fade,.map-bottom-fade,.map-ctrl,.banners,#poiPanel,#speedoWrap,#poiAlert{position:absolute;z-index:20}
   .banners{top:0;left:0;right:0}
-  .map-ctrl{right:400px !important;top:80px !important}
+  .map-ctrl{right:16px !important;top:80px !important}
   #poiPanel{left:16px !important;top:80px !important}
   #speedoWrap{left:16px;bottom:180px}
   #poiAlert{left:16px;right:60px;top:70px}
@@ -807,7 +807,7 @@ window.kPOI = function(type) {
     </div>
 
     <!-- Map controls -->
-    <div class="map-ctrl" style="top:calc(56px + var(--st) + 8px)">
+    <div class="map-ctrl">
       <button class="glass2" id="mcLocate" style="width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--blue)" title="Vị trí"><i class="fa-solid fa-location-crosshairs"></i></button>
       <div class="glass2" style="border-radius:12px;overflow:hidden;display:flex;flex-direction:column">
         <button id="mcZoomIn" style="width:42px;height:42px;display:flex;align-items:center;justify-content:center;font-size:14px;border-bottom:1px solid var(--border)"><i class="fa-solid fa-plus"></i></button>
@@ -835,21 +835,8 @@ window.kPOI = function(type) {
       </div>
     </div>
 
-    <!-- POI Panel -->
-    <div id="poiPanel" style="top:calc(56px + var(--st) + 8px)">
-      <button class="poi-btn" id="poiBtnGas"  onclick="kPOI('gas')"  title="Trạm xăng"><i class="fa-solid fa-gas-pump"></i><span class="poi-count" id="poiCntGas"></span></button>
-      <button class="poi-btn" id="poiBtnEv"   onclick="kPOI('ev')"   title="Sạc EV"><i class="fa-solid fa-charging-station"></i><span class="poi-count" id="poiCntEv"></span></button>
-      <button class="poi-btn" id="poiBtnRest" onclick="kPOI('rest')" title="Trạm dừng"><i class="fa-solid fa-utensils"></i><span class="poi-count" id="poiCntRest"></span></button>
-      <button class="poi-btn" id="poiBtnCam"  onclick="kPOI('cam')"  title="Camera tốc độ"><i class="fa-solid fa-camera"></i><span class="poi-count" id="poiCntCam"></span></button>
-      <button class="poi-btn" id="poiBtnSign" onclick="kPOI('sign')" title="Biển báo"><i class="fa-solid fa-road-barrier"></i><span class="poi-count" id="poiCntSign"></span></button>
-    </div>
 
-    <!-- POI Alert -->
-    <div id="poiAlert" style="top:calc(56px + var(--st) + 8px);left:60px;right:60px">
-      <span class="pai-ico" id="paiIco">⚠️</span>
-      <div class="pai-body"><div class="pai-title" id="paiTitle">Phía trước</div><div class="pai-sub" id="paiSub">--</div></div>
-      <button class="pai-close" onclick="document.getElementById('poiAlert').classList.remove('show')"><i class="fa-solid fa-xmark"></i></button>
-    </div>
+
   </div><!-- /mapArea -->
 
   <!-- ══ BOTTOM SHEET / RIGHT COMMS PANEL ══════════════ -->
@@ -2575,6 +2562,9 @@ function startSpeedometer(){
     if(spd!=null&&spd>=0){kmh=Math.round(spd*3.6);}
     else if(lastP){var dt=(pos.timestamp-lastT)/1000;if(dt>0.5)kmh=Math.round(poiDist(lastP.coords.latitude,lastP.coords.longitude,pos.coords.latitude,pos.coords.longitude)/dt*3.6);}
     lastP=pos;lastT=pos.timestamp;
+    // Show speedo khi GPS active
+    var sw=document.getElementById('speedoWrap');
+    if(sw){sw.style.opacity='1';sw.style.pointerEvents='auto';}
     var el=document.getElementById('spdVal');
     if(el){el.textContent=kmh;el.style.color=(kmh>90)?'#f87171':(kmh>70)?'#fbbf24':'#fff';}
     poiUpdateSpeedoPos();
