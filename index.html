@@ -449,7 +449,7 @@ input,select,textarea{font-family:inherit;outline:none;color:inherit}
   #mapFull{position:absolute !important;inset:0 !important;z-index:1}
   .map-top-fade,.map-bottom-fade,.map-ctrl,.banners,#poiPanel,#speedoWrap,#poiAlert{position:absolute;z-index:20}
   .banners{top:0;left:0;right:0}
-  .map-ctrl{right:16px !important;top:80px !important}
+  .map-ctrl{right:400px !important;top:80px !important}
   #poiPanel{left:16px !important;top:80px !important}
   #speedoWrap{left:16px;bottom:180px}
   #poiAlert{left:16px;right:60px;top:70px}
@@ -2725,6 +2725,73 @@ function poiFetch(lat,lng){
     showToast('⚠️ POI cần server. Deploy lại Render để dùng tính năng này.','warn');
   });
 }
+
+// ══ ALL BUTTON LISTENERS ══════════════════════════════
+// Chạy sau 300ms đảm bảo DOM + JS đã load xong
+setTimeout(function(){
+  // Map controls
+  var mcL=document.getElementById('mcLocate');
+  if(mcL&&!mcL._wired){mcL._wired=1;mcL.addEventListener('click',function(){
+    if(navigator.geolocation)navigator.geolocation.getCurrentPosition(function(p){
+      var lf=window.leafletFull;
+      try{if(lf)lf.setView([p.coords.latitude,p.coords.longitude],16);}catch(e){}
+    },{timeout:8000});
+  });}
+  
+  var mcZI=document.getElementById('mcZoomIn');
+  if(mcZI&&!mcZI._wired){mcZI._wired=1;mcZI.addEventListener('click',function(){
+    var lf=window.leafletFull;try{if(lf)lf.zoomIn();}catch(e){}
+  });}
+  
+  var mcZO=document.getElementById('mcZoomOut');
+  if(mcZO&&!mcZO._wired){mcZO._wired=1;mcZO.addEventListener('click',function(){
+    var lf=window.leafletFull;try{if(lf)lf.zoomOut();}catch(e){}
+  });}
+  
+  // POI buttons
+  var poiMap={Gas:'gas',Ev:'ev',Rest:'rest',Cam:'cam',Sign:'sign'};
+  Object.keys(poiMap).forEach(function(key){
+    var btn=document.getElementById('poiBtn'+key);
+    if(btn&&!btn._wired){btn._wired=1;
+      btn.onclick=null;
+      btn.addEventListener('click',function(e){
+        e.stopPropagation();
+        if(typeof kPOI==='function')kPOI(poiMap[key]);
+        else if(typeof window.kPOI==='function')window.kPOI(poiMap[key]);
+      });
+    }
+  });
+  
+  // Header buttons
+  var waL=document.getElementById('waLeave');
+  if(waL&&!waL._wired){waL._wired=1;waL.addEventListener('click',function(){
+    var sl=document.getElementById('setLeaveBtn');if(sl)sl.click();
+  });}
+  
+  var sc=document.getElementById('shareChip');
+  if(sc&&!sc._wired){sc._wired=1;sc.addEventListener('click',function(){
+    var m=document.getElementById('qrMov');if(m)m.classList.add('show');
+  });}
+  
+  var wT2=document.getElementById('waTTS2');
+  if(wT2&&!wT2._wired){wT2._wired=1;wT2.addEventListener('click',function(){
+    var w=document.getElementById('waTTS');if(w)w.click();
+  });}
+  
+  // SOS
+  var sosBtn=document.getElementById('sosBtn');
+  if(sosBtn&&!sosBtn._wired){sosBtn._wired=1;sosBtn.addEventListener('click',function(){
+    if(typeof sendSOS==='function')sendSOS();
+    else{var o=document.getElementById('sosOv');if(o)o.classList.add('show');}
+  });}
+  var sosBD=document.getElementById('sosBtnDesk');
+  if(sosBD&&!sosBD._wired){sosBD._wired=1;sosBD.addEventListener('click',function(){
+    if(typeof sendSOS==='function')sendSOS();
+    else{var o=document.getElementById('sosOv');if(o)o.classList.add('show');}
+  });}
+  
+  console.log('[Casaroom] All buttons wired ✓');
+},300);
 
 </script>
 </body>
