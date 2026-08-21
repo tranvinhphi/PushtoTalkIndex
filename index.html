@@ -465,6 +465,160 @@ input{font-family:inherit;color:var(--text);background:none;border:none;outline:
 .pai-sub{font-size:10px;color:var(--text2);margin-top:2px}
 .pai-close{font-size:15px;color:var(--text3);flex-shrink:0;padding:4px}
 
+
+/* ════ DESKTOP LAYOUT (≥900px) ══════════════════════════
+   Sidebar trái + Map phải — theo UXpilot WalkieTalkie style
+═════════════════════════════════════════════════════════ */
+@media (min-width: 900px) {
+  /* Body */
+  body { overflow: hidden; display: flex; }
+
+  /* Non-room screens: centered card */
+  #joinScreen, #discoverScreen, #waitScreen {
+    position: fixed !important;
+    inset: 0 !important;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: #0f0d07 !important;
+    z-index: 200;
+  }
+  #joinScreen.active, #discoverScreen.active, #waitScreen.active {
+    display: flex !important;
+  }
+  .join-wrap {
+    max-width: 480px !important;
+    width: 100% !important;
+    background: rgba(28,26,16,.6);
+    border: 1px solid rgba(245,158,11,.15);
+    border-radius: 24px;
+    padding: 32px !important;
+    backdrop-filter: blur(16px);
+  }
+
+  /* Room: full screen no card */
+  #roomScreen {
+    position: fixed !important;
+    inset: 0 !important;
+    display: none;
+  }
+  #roomScreen.active { display: block !important; }
+
+  /* Header: slim, full width */
+  #roomTopbar {
+    left: 0 !important;
+    right: 0 !important;
+    height: 56px;
+  }
+
+  /* Map: full screen behind everything */
+  #mapFull {
+    position: absolute !important;
+    inset: 0 !important;
+    z-index: 1;
+  }
+
+  /* Bottom sheet: RIGHT SIDE PANEL on desktop */
+  #bottomSheet {
+    position: fixed !important;
+    top: 56px !important;
+    bottom: 0 !important;
+    left: auto !important;
+    right: 0 !important;
+    width: 340px !important;
+    height: auto !important;
+    border-radius: 0 !important;
+    border-top: none !important;
+    border-left: 1px solid rgba(245,158,11,.15) !important;
+    display: flex;
+    flex-direction: column;
+    transition: none !important;
+  }
+
+  /* Prevent map-mode from hiding sheet on desktop */
+  #bottomSheet.map-mode {
+    background: #1c1a10 !important;
+    border-left: 1px solid rgba(245,158,11,.15) !important;
+    height: auto !important;
+  }
+  #bottomSheet.map-mode #sheetScrollArea { display: flex !important; }
+  #bottomSheet.map-mode .bs-handle-wrap { display: none !important; }
+
+  /* Sheet scroll area takes remaining height */
+  #sheetScrollArea {
+    flex: 1 !important;
+    overflow-y: auto !important;
+    min-height: 0 !important;
+  }
+
+  /* PTT zone: always visible at bottom of sidebar */
+  .ptt-zone {
+    flex-shrink: 0 !important;
+    padding-bottom: 12px !important;
+    border-top: 1px solid rgba(255,255,255,.06) !important;
+  }
+
+  /* Tabbar: in sidebar */
+  .tabbar {
+    flex-shrink: 0 !important;
+    padding-bottom: 8px !important;
+  }
+
+  /* Handle: hide on desktop */
+  .bs-handle-wrap { display: none !important; }
+
+  /* Map controls: reposition left of sidebar */
+  .map-ctrl { right: 356px !important; }
+
+  /* POI panel: left side of map */
+  #poiPanel { left: 14px !important; }
+
+  /* Speedo: left side, above PTT area */
+  #speedoWrap { left: 14px !important; bottom: 200px !important; }
+
+  /* POI Alert: top left under header */
+  #poiAlert {
+    left: 14px !important;
+    right: 356px !important;
+    top: calc(62px + 8px) !important;
+  }
+
+  /* Member strip: vertical in sidebar */
+  .av-strip {
+    flex-direction: column !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    max-height: 200px !important;
+    gap: 6px !important;
+  }
+  .av-item {
+    min-width: 0 !important;
+    width: 100% !important;
+  }
+
+  /* Member list full width */
+  #panelMembers, #panelChat, #panelSettings {
+    position: relative !important;
+    border-radius: 0 !important;
+  }
+
+  /* Content panels: take sidebar width */
+  .content-panel {
+    width: 340px !important;
+  }
+
+  /* Drag handle: hide */
+  .bs-handle { display: none; }
+}
+
+/* Wide desktop: slightly wider sidebar */
+@media (min-width: 1280px) {
+  #bottomSheet { width: 380px !important; }
+  .map-ctrl { right: 396px !important; }
+  #poiAlert { right: 396px !important; }
+  .content-panel { width: 380px !important; }
+}
+
 </style>
 
 </head>
@@ -2366,28 +2520,35 @@ function renderSpeedo(kmh){
 
 // ── Layout: đặt speedo + poiPanel không chồng UI ─────
 function poiUpdateLayout(){
-  var wrap=document.getElementById('speedoWrap');
-  var panel=document.getElementById('poiPanel');
-  var alertEl=document.getElementById('poiAlert');
-  if(!wrap)return;
-  var bsEl=typeof bottomSheet!=='undefined'?bottomSheet:document.getElementById('bottomSheet');
-  var bsH=bsEl?bsEl.offsetHeight:340;
-  if(bsH<100)bsH=340;
-  // Speedo: trên bottomSheet, góc dưới trái
-  wrap.style.bottom=(bsH+12)+'px';
-  // POI panel: bên trái, căn giữa vùng map (giữa header và speedo)
-  if(panel){
-    var headerH=60;
-    var speedoTop=window.innerHeight-bsH-wrap.offsetHeight-12;
-    var panelH=panel.offsetHeight||220;
-    var freeH=speedoTop-headerH-8;
-    var top=headerH+8+Math.max(0,(freeH-panelH)/2);
-    panel.style.top=Math.round(top)+'px';
-  }
-  // Alert: ngay dưới header
-  if(alertEl) alertEl.style.top='calc(58px + var(--st) + 6px)';
-}
+  var isDesktop = window.innerWidth >= 900;
+  var wrap  = document.getElementById('speedoWrap');
+  var panel = document.getElementById('poiPanel');
+  var alertEl = document.getElementById('poiAlert');
+  var bsEl = typeof bottomSheet!=='undefined' ? bottomSheet : document.getElementById('bottomSheet');
 
+  if (isDesktop) {
+    // Desktop: sidebar dọc bên phải, speedo cố định
+    if (wrap)  { wrap.style.bottom  = '200px'; wrap.style.left = '14px'; }
+    if (panel) { panel.style.top    = '70px';  panel.style.left = '14px'; }
+    if (alertEl) alertEl.style.top  = 'calc(62px + 8px)';
+    return;
+  }
+
+  // Mobile: tính theo bottom sheet height
+  var bsH = bsEl ? bsEl.offsetHeight : 340;
+  if (bsH < 100) bsH = 340;
+  if (wrap) wrap.style.bottom = (bsH + 12) + 'px';
+  if (panel) {
+    var headerH = 60;
+    var speedoH = wrap ? wrap.offsetHeight : 80;
+    var speedoTop = window.innerHeight - bsH - speedoH - 12;
+    var panelH = panel.offsetHeight || 220;
+    var freeH = speedoTop - headerH - 8;
+    var top = headerH + 8 + Math.max(0, (freeH - panelH) / 2);
+    panel.style.top = Math.round(top) + 'px';
+  }
+  if (alertEl) alertEl.style.top = 'calc(58px + var(--st) + 6px)';
+}
 // ── Toggle POI layer ──────────────────────────────────
 function kPOI(type){
   var s=poiState[type]; if(!s)return;
