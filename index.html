@@ -3,175 +3,138 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover"/>
-<title>Bộ Đàm Web</title>
+<title>Casaroom — Bộ Đàm</title>
 <link rel="manifest" href="manifest.json"/>
-<meta name="theme-color" content="#0a0a0a"/>
-<link rel="icon" href="icon-192.png"/>
+<meta name="theme-color" content="#0f172a"/>
 <link rel="apple-touch-icon" href="icon-192.png"/>
-<meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
 <style>
-/* ═══ TRAILTAK v11 — DARK TRAIL STYLE ══════════════════════════════════ */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+/* ═══ RESET ════════════════════════════════════════════ */
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;overflow:hidden;font-family:'Inter',system-ui,sans-serif;background:#0f172a;color:#f8fafc;-webkit-font-smoothing:antialiased}
+button{cursor:pointer;font-family:inherit;border:none;background:none;color:inherit;outline:none}
+input,select,textarea{font-family:inherit;outline:none;color:inherit}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:10px}
+::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,.2)}
+
+/* ═══ CSS VARIABLES ════════════════════════════════════ */
 :root{
-  --bg:#0a0a0a;--bg2:#111111;--surf:#1a1a1a;--surf2:#222;
-  --border:rgba(255,255,255,0.08);--border2:rgba(255,255,255,0.13);
-  --green:#39FF14;--greens:rgba(57,255,20,0.12);
-  --orange:#FF5F1F;--oranges:rgba(255,95,31,0.18);
-  --blue:#3b82f6;--blues:rgba(59,130,246,0.18);
-  --red:#ef4444;--reds:rgba(239,68,68,0.14);
-  --warn:#f59e0b;--gold:#fbbf24;
-  --text:#fff;--text2:#a1a1aa;--text3:#52525b;--text4:#3f3f46;
-  --glass:rgba(10,10,10,0.88);--glass2:rgba(14,14,14,0.75);
+  --bg:#0f172a;--bg2:#020617;--surf:rgba(30,41,59,.4);--surf2:rgba(30,41,59,.7);
+  --border:rgba(255,255,255,.05);--border2:rgba(255,255,255,.1);
+  --blue:#3b82f6;--blue-glow:rgba(59,130,246,.3);
+  --green:#22c55e;--red:#ef4444;--orange:#f97316;--amber:#f59e0b;
+  --text:#f8fafc;--text2:#94a3b8;--text3:#475569;
+  --glass:rgba(30,41,59,.7);--glass2:rgba(15,23,42,.75);
   --sb:env(safe-area-inset-bottom,0px);--st:env(safe-area-inset-top,0px);
-  --radius:20px;
 }
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:'Inter',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
-button{cursor:pointer;font-family:inherit;border:none;padding:0;background:none;color:inherit;outline:none}
-input{font-family:inherit;color:var(--text);background:none;border:none;outline:none}
-::-webkit-scrollbar{display:none}
 
-/* ── SCREENS ───────────────────────────────────────────── */
-.screen{display:none;position:fixed;inset:0;z-index:100;flex-direction:column;align-items:center;justify-content:center;background:var(--bg)}
-.screen.active{display:flex}
+/* ═══ GLASS MORPHISM ════════════════════════════════════ */
+.glass{background:var(--glass);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid var(--border2)}
+.glass2{background:var(--glass2);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid var(--border)}
 
-/* ── TOAST ─────────────────────────────────────────────── */
+/* ═══ TOAST ════════════════════════════════════════════ */
 #toastLayer{position:fixed;top:calc(14px + var(--st));left:50%;transform:translateX(-50%);z-index:99999;display:flex;flex-direction:column;gap:8px;width:calc(100% - 32px);max-width:340px;align-items:center;pointer-events:none}
-.toast{padding:10px 18px;border-radius:30px;font-size:13px;font-weight:700;color:#fff;background:rgba(30,30,30,0.97);border:1px solid rgba(255,255,255,0.12);backdrop-filter:blur(16px);box-shadow:0 8px 32px rgba(0,0,0,0.5);animation:toastIn .2s ease;max-width:100%;text-align:center}
-.toast.ok{background:rgba(57,255,20,0.15);border-color:rgba(57,255,20,0.3);color:#39FF14}
-.toast.err{background:rgba(239,68,68,0.15);border-color:rgba(239,68,68,0.3);color:#f87171}
-.toast.warn{background:rgba(245,158,11,0.15);border-color:rgba(245,158,11,0.3);color:#fbbf24}
-@keyframes toastIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+.toast{padding:10px 18px;border-radius:30px;font-size:12.5px;font-weight:700;color:#fff;background:rgba(15,23,42,.96);border:1px solid var(--border2);backdrop-filter:blur(16px);box-shadow:0 8px 32px rgba(0,0,0,.5);animation:tIn .2s ease;text-align:center}
+.toast.ok{background:rgba(34,197,94,.15);border-color:rgba(34,197,94,.4);color:#4ade80}
+.toast.err{background:rgba(239,68,68,.15);border-color:rgba(239,68,68,.4);color:#f87171}
+.toast.warn{background:rgba(245,158,11,.15);border-color:rgba(245,158,11,.4);color:#fbbf24}
+@keyframes tIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
 
-/* ── BUTTONS ───────────────────────────────────────────── */
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:0 18px;height:44px;border-radius:12px;font-size:14px;font-weight:700;border:none;cursor:pointer;transition:opacity .12s,transform .1s;-webkit-user-select:none;user-select:none}
+/* ═══ COMMON BUTTONS ═══════════════════════════════════ */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:0 18px;height:44px;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;transition:all .12s}
 .btn:active{opacity:.75;transform:scale(.97)}
-.btn-g{background:var(--green);color:#000}
-.btn-s{background:var(--surf2);color:var(--text2);border:1px solid var(--border2)}
-.btn-r{background:rgba(239,68,68,.15);color:var(--red);border:1px solid rgba(239,68,68,.3)}
+.btn:disabled{opacity:.35;pointer-events:none}
+.btn-blue{background:var(--blue);color:#fff}
+.btn-s{background:rgba(255,255,255,.06);color:var(--text2);border:1px solid var(--border2)}
+.btn-r{background:rgba(239,68,68,.12);color:var(--red);border:1px solid rgba(239,68,68,.3)}
 .btn-full{width:100%}
 .btn-lg{height:50px;font-size:15px;border-radius:14px}
 .btn-sm{height:32px;padding:0 12px;font-size:12px;border-radius:8px}
-.btn:disabled{opacity:.35;pointer-events:none}
-
-/* ── INPUTS ────────────────────────────────────────────── */
-.inp{width:100%;height:46px;padding:0 14px;background:var(--surf);border:1px solid var(--border2);border-radius:12px;font-size:14px;font-weight:500;color:var(--text);transition:border-color .15s}
-.inp:focus{border-color:rgba(57,255,20,.5)}
-.lbl{font-size:11px;font-weight:700;color:var(--text3);margin-bottom:5px;display:block;text-transform:uppercase;letter-spacing:.06em}
+.inp{width:100%;height:46px;padding:0 14px;background:rgba(255,255,255,.05);border:1px solid var(--border2);border-radius:12px;font-size:14px;color:var(--text);transition:border-color .15s}
+.inp:focus{border-color:var(--blue)}
+.inp::placeholder{color:var(--text3)}
+.lbl{font-size:11px;font-weight:700;color:var(--text3);margin-bottom:5px;display:block;text-transform:uppercase;letter-spacing:.05em}
 .fg{margin-bottom:12px}
+.tog{width:44px;height:26px;border-radius:13px;background:rgba(255,255,255,.12);border:1px solid var(--border2);position:relative;transition:background .2s;flex-shrink:0}
+.tog::after{content:'';position:absolute;top:4px;left:4px;width:18px;height:18px;border-radius:50%;background:var(--text3);transition:transform .2s,background .2s}
+.tog.on{background:rgba(59,130,246,.2);border-color:rgba(59,130,246,.4)}
+.tog.on::after{transform:translateX(18px);background:var(--blue)}
+.badge{display:inline-flex;align-items:center;font-size:10px;font-weight:700;border-radius:999px;padding:2px 7px;border:1px solid}
+.bdg-g{background:rgba(34,197,94,.1);color:var(--green);border-color:rgba(34,197,94,.3)}
+.bdg-b{background:rgba(59,130,246,.1);color:var(--blue);border-color:rgba(59,130,246,.3)}
 
-/* ── JOIN SCREEN ───────────────────────────────────────── */
-.join-wrap{width:100%;max-width:400px;padding:24px 20px;overflow-y:auto;max-height:100vh;display:flex;flex-direction:column;align-items:center;gap:14px}
-.j-logo{font-size:48px;text-align:center}
-.j-title{font-size:26px;font-weight:900;letter-spacing:-.03em;text-align:center}
-.j-sub{font-size:13px;color:var(--text3);font-weight:500;text-align:center}
-.j-card{background:var(--surf);border:1px solid var(--border2);border-radius:18px;padding:20px;width:100%}
-.j-card h3{font-size:11px;font-weight:800;color:var(--text3);margin-bottom:16px;text-transform:uppercase;letter-spacing:.07em}
-.j-err{color:var(--red);font-size:12px;font-weight:600;margin-top:8px;text-align:center;min-height:16px}
-.jdiv{text-align:center;font-size:11px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.06em;position:relative}
-.jdiv::before,.jdiv::after{content:'';position:absolute;top:50%;width:30%;height:1px;background:var(--border2)}
+/* ═══ JOIN / DISCOVER / WAIT SCREENS ══════════════════ */
+.screen{display:none;position:fixed;inset:0;z-index:500;flex-direction:column;overflow-y:auto;background:var(--bg)}
+.screen.active{display:flex}
+#joinScreen{align-items:center;justify-content:center;background:radial-gradient(ellipse 70% 50% at 50% 0%,#1e3a5f,#0f172a 70%)}
+.join-wrap{width:100%;max-width:420px;padding:calc(24px + var(--st)) 24px calc(24px + var(--sb));display:flex;flex-direction:column;align-items:center;gap:16px}
+.j-logo{width:64px;height:64px;background:#3b82f6;border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:28px;box-shadow:0 12px 40px rgba(59,130,246,.4)}
+.j-title{font-size:24px;font-weight:900;letter-spacing:-.03em}
+.j-sub{font-size:13px;color:var(--text3);text-align:center}
+.j-card{background:rgba(30,41,59,.5);border:1px solid var(--border2);border-radius:20px;padding:22px;width:100%;backdrop-filter:blur(12px)}
+.j-card h3{font-size:10px;font-weight:800;color:var(--text3);margin-bottom:14px;text-transform:uppercase;letter-spacing:.06em}
+.j-err{color:var(--red);font-size:12px;font-weight:700;margin-top:8px;text-align:center;min-height:16px}
+.jdiv{text-align:center;font-size:11px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.06em;position:relative;width:100%}
+.jdiv::before,.jdiv::after{content:'';position:absolute;top:50%;width:35%;height:1px;background:var(--border2)}
 .jdiv::before{left:0}.jdiv::after{right:0}
-.cr-card{background:var(--surf);border:1px solid var(--border2);border-radius:18px;overflow:hidden;width:100%}
-.cr-hdr{width:100%;padding:14px 16px;display:flex;align-items:center;gap:10px;font-size:14px;font-weight:700;background:none;border:none;color:var(--text)}
+.cr-card{background:rgba(30,41,59,.4);border:1px solid var(--border2);border-radius:16px;overflow:hidden;width:100%}
+.cr-hdr{width:100%;padding:14px 16px;display:flex;align-items:center;gap:10px;font-size:14px;font-weight:700;background:none;border:none;color:var(--text2)}
 .arr{transition:transform .2s;color:var(--text3)}
 .cr-body{display:none;padding:16px;border-top:1px solid var(--border)}
 .cr-body.open{display:block}
 .trow{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)}
 .trow:last-of-type{border-bottom:none;margin-bottom:8px}
 .tl{font-size:13px;font-weight:600}.ts{font-size:11px;color:var(--text3);margin-top:2px}
-.tog{width:42px;height:24px;border-radius:12px;background:var(--surf2);border:1px solid var(--border2);position:relative;transition:background .2s;flex-shrink:0}
-.tog::after{content:'';position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:var(--text3);transition:transform .2s,background .2s}
-.tog.on{background:var(--greens);border-color:rgba(57,255,20,.3)}
-.tog.on::after{transform:translateX(18px);background:var(--green)}
-
-/* ── DISCOVER SCREEN ───────────────────────────────────── */
-.topbar{display:flex;align-items:center;gap:10px;padding:calc(10px + var(--st)) 16px 10px;background:var(--glass);border-bottom:1px solid var(--border);flex-shrink:0;backdrop-filter:blur(16px);width:100%}
-.topbar h2{font-size:15px;font-weight:800;flex:1;letter-spacing:-.02em}
-.ib{width:36px;height:36px;border-radius:10px;background:var(--surf2);display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--text2)}
+.topbar{display:flex;align-items:center;gap:10px;padding:calc(10px + var(--st)) 16px 10px;background:rgba(15,23,42,.88);border-bottom:1px solid var(--border);flex-shrink:0;backdrop-filter:blur(16px)}
+.topbar h2{font-size:15px;font-weight:800;flex:1;color:var(--text)}
+.ib{width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,.06);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--text2)}
 .page{flex:1;overflow-y:auto;padding:12px 16px}
-.sw{position:relative;margin-bottom:12px}
-.sw .si{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:14px;pointer-events:none}
-.rc{display:flex;align-items:center;gap:12px;padding:13px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid var(--border);margin-bottom:9px;cursor:pointer;transition:border-color .15s}
-.rc:active{border-color:var(--green)}
-.ri{font-size:24px;flex-shrink:0}
-.rn{font-size:14px;font-weight:800}.rd{font-size:11px;color:var(--text3);margin-top:2px}
-.rb2{font-size:11px;color:var(--text2);margin-left:auto;flex-shrink:0}
-.empt{text-align:center;padding:32px;color:var(--text3);font-size:13px}
+.rc{display:flex;align-items:center;gap:12px;padding:13px;border-radius:14px;background:rgba(30,41,59,.4);border:1px solid var(--border);margin-bottom:9px;cursor:pointer;transition:border-color .15s}
+.rc:active{border-color:var(--blue)}
+.rc-name{font-size:14px;font-weight:700}.rc-sub{font-size:11.5px;color:var(--text2);margin-top:2px}
+.empt{text-align:center;padding:44px 16px;color:var(--text3);font-size:13px}
+#waitScreen{align-items:center;justify-content:center;padding:40px 24px;gap:16px}
+.wt{font-size:20px;font-weight:800;letter-spacing:-.02em}.ws{font-size:13px;color:var(--text2);line-height:1.7;text-align:center}
 
-/* ── WAIT SCREEN ───────────────────────────────────────── */
-.wi{font-size:56px;text-align:center;margin-bottom:16px}
-.wt{font-size:20px;font-weight:900;margin-bottom:8px;text-align:center}
-.ws{font-size:13px;color:var(--text3);text-align:center;margin-bottom:24px;line-height:1.5;padding:0 20px}
+/* ═══════════════════════════════════════════════════════
+   ROOM SCREEN — Full application layout
+═══════════════════════════════════════════════════════ */
+#roomScreen{position:fixed;inset:0;background:var(--bg);display:none;overflow:hidden}
+#roomScreen.active{display:flex;flex-direction:column}
 
-/* ══ ROOM SCREEN ════════════════════════════════════════ */
-#roomScreen{position:fixed;inset:0;overflow:hidden;background:var(--bg);display:none;flex-direction:column}
-#roomScreen.active{display:flex}
-
-/* Map full background */
+/* ── MAP ─────────────────────────────────────────────── */
 #mapFull{position:absolute;inset:0;z-index:1}
-#mapFullEmpty{display:none;position:absolute;inset:0;z-index:2;align-items:center;justify-content:center;flex-direction:column;gap:8px;pointer-events:none}
+#mapFull .leaflet-tile-pane{filter:brightness(.75) saturate(.6) contrast(1.1)}
+#mapFullEmpty{display:none;position:absolute;inset:0;z-index:2;align-items:center;justify-content:center;flex-direction:column;gap:8px;pointer-events:none;color:var(--text3);font-size:13px}
 
-/* Map gradient overlay */
-.map-top-fade{position:absolute;top:0;left:0;right:0;height:140px;z-index:3;pointer-events:none;background:linear-gradient(to bottom,rgba(0,0,0,.75) 0%,transparent 100%)}
-.map-bottom-fade{position:absolute;bottom:0;left:0;right:0;height:60%;z-index:2;pointer-events:none;background:linear-gradient(to top,rgba(0,0,0,.85) 0%,rgba(0,0,0,.3) 50%,transparent 100%)}
+/* Gradients */
+.map-top-fade{position:absolute;top:0;left:0;right:0;height:180px;z-index:3;pointer-events:none;
+  background:linear-gradient(to bottom,rgba(15,23,42,.92) 0%,rgba(15,23,42,.2) 65%,transparent 100%)}
+.map-bottom-fade{position:absolute;bottom:0;left:0;right:0;height:60%;z-index:2;pointer-events:none;
+  background:linear-gradient(to top,rgba(15,23,42,.97) 0%,rgba(15,23,42,.3) 45%,transparent 100%)}
 
-/* ── TOPBAR ─────────────────────────────────────────────── */
-#roomTopbar{
-  position:absolute;top:0;left:0;right:0;z-index:30;
-  display:flex;align-items:center;gap:8px;
-  padding:calc(10px + var(--st)) 12px 10px;
-}
-.rtb-left{flex:1;min-width:0}
-.rtb-room{font-size:15px;font-weight:900;letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-shadow:0 2px 8px rgba(0,0,0,.8)}
-.rtb-status{display:flex;align-items:center;gap:6px;margin-top:2px}
-.rtb-dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);flex-shrink:0}
-.rtb-sub{font-size:10px;font-weight:700;color:rgba(255,255,255,.65);text-transform:uppercase;letter-spacing:.05em}
-.status-wrap{position:relative}
-.status-btn{display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:20px;background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.15);backdrop-filter:blur(10px);font-size:11px;font-weight:700;color:var(--text)}
-.status-dot-btn{width:7px;height:7px;border-radius:50%;background:var(--green)}
-.status-arr{font-size:9px;color:var(--text3)}
-#statusDrop{display:none;position:absolute;top:calc(100% + 6px);left:0;min-width:200px;background:rgba(14,14,14,.98);border:1px solid var(--border2);border-radius:16px;overflow:hidden;box-shadow:0 20px 50px rgba(0,0,0,.9);z-index:9999;backdrop-filter:blur(24px)}
-#statusDrop.open{display:block}
-.sdrop-title{font-size:10px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;padding:10px 14px 6px}
-.sopt{width:100%;padding:11px 14px;text-align:left;font-size:13px;font-weight:700;display:flex;align-items:center;gap:12px;border:none;background:transparent;color:var(--text);border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer}
-.sopt:last-child{border-bottom:none}
-.sopt:active{background:rgba(255,255,255,.05)}
-.sopt-ico{font-size:16px;width:20px;text-align:center}
-.sopt-lbl{font-size:13px;font-weight:700}.sopt-sub{font-size:10px;color:var(--text3);margin-top:1px}
-.rha{width:38px;height:38px;border-radius:12px;background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.15);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;transition:background .15s}
-.rha:active{background:rgba(255,255,255,.1)}
-.rha.on{background:rgba(57,255,20,.2);border-color:rgba(57,255,20,.4)}
-
-/* ── MAP CONTROLS (right side) ─────────────────────────── */
-.map-ctrl{position:absolute;right:12px;z-index:20;display:flex;flex-direction:column;gap:8px;top:calc(68px + var(--st))}
-.mc-btn{width:42px;height:42px;border-radius:12px;background:rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.12);backdrop-filter:blur(12px);display:flex;align-items:center;justify-content:center;font-size:17px;color:var(--text2);transition:background .15s}
-.mc-btn:active{background:rgba(255,255,255,.12)}
-
-/* ── BANNERS ────────────────────────────────────────────── */
-.banners{position:absolute;z-index:25;left:0;right:0;top:calc(60px + var(--st));display:flex;flex-direction:column}
-.ban{font-size:12px;font-weight:700;padding:8px 14px;display:flex;align-items:center;gap:8px}
-.ban-recon{background:rgba(245,158,11,.18);color:#fbbf24;display:none}
-.ban-recon.show{display:flex}
-.ban-ios{background:rgba(59,130,246,.18);color:var(--blue);display:none;position:relative}
-.ban-ios.show{display:flex}
-.bx{position:absolute;right:12px;font-size:16px;cursor:pointer;color:rgba(255,255,255,.5)}
-.vmemo{background:rgba(30,30,30,.98);border-bottom:1px solid var(--border);display:none;padding:10px 14px;align-items:center;justify-content:space-between;gap:8px}
-.vmemo.show{display:flex}
+/* ── BANNERS ─────────────────────────────────────────── */
+.banners{position:absolute;z-index:25;left:0;right:0;top:0;display:flex;flex-direction:column}
+.ban{display:none;padding:8px 16px;font-size:12px;font-weight:700;text-align:center;align-items:center;gap:8px}
+.ban.show{display:flex;justify-content:center}
+.ban-recon{background:rgba(245,158,11,.2);color:#fbbf24}
+.ban-ios{background:rgba(59,130,246,.2);color:var(--blue);position:relative}
+.bx{position:absolute;right:14px;cursor:pointer;opacity:.5;font-size:15px}
+.vmemo{display:none;padding:8px 14px;background:rgba(15,23,42,.98);border-bottom:1px solid var(--border2)}
+.vmemo.show{display:flex;align-items:center;gap:8px}
 .vmemo-row{display:flex;align-items:center;gap:8px;width:100%}
-.vmemo-btn{padding:6px 12px;border-radius:8px;background:var(--surf2);border:1px solid var(--border2);font-size:12px;font-weight:700;color:var(--text)}
-.vmemo-info{font-size:11px;color:var(--text3);flex:1}
-.vmemo-x{font-size:18px;color:var(--text3)}
-
-/* Approval banner */
-#aprvBan{display:none;background:rgba(245,158,11,.13);border-bottom:1px solid rgba(245,158,11,.25);padding:8px 14px;font-size:12px;font-weight:700;color:#fbbf24}
+.vmemo-btn{padding:5px 12px;border-radius:8px;background:rgba(255,255,255,.1);color:var(--text);font-size:12px;font-weight:700}
+.vmemo-info{flex:1;font-size:11px;color:var(--text3)}
+.vmemo-x{font-size:17px;color:var(--text3)}
+#aprvBan{display:none;background:rgba(245,158,11,.12);border-bottom:1px solid rgba(245,158,11,.2);padding:8px 16px;font-size:12px;font-weight:700;color:#fbbf24}
 #aprvBan.show{display:block}
-#aprvBanList{margin-top:6px;display:flex;flex-direction:column;gap:4px}
-
-/* Request banners */
-.req-ban{display:none;background:rgba(14,14,14,.98);border-bottom:1px solid var(--border2);padding:10px 14px}
+#aprvBanList{margin-top:5px;display:flex;flex-direction:column;gap:4px}
+.req-ban{display:none;background:rgba(15,23,42,.98);border-bottom:1px solid var(--border2);padding:10px 16px}
 .req-ban.show{display:flex}
 .req-inner{display:flex;align-items:center;gap:10px;width:100%}
 .req-icon{font-size:22px;flex-shrink:0}
@@ -179,127 +142,165 @@ input{font-family:inherit;color:var(--text);background:none;border:none;outline:
 .req-title{font-size:13px;font-weight:800}.req-sub{font-size:11px;color:var(--text3);margin-top:2px}
 .req-btns{display:flex;gap:6px}
 
-/* ── BOTTOM SHEET ───────────────────────────────────────── */
+/* ── MAP CONTROLS ────────────────────────────────────── */
+.map-ctrl{position:absolute;right:16px;z-index:20;display:flex;flex-direction:column;gap:8px}
+
+/* ── SPEEDOMETER ─────────────────────────────────────── */
+#speedoWrap{position:absolute;z-index:20;left:16px;transition:bottom .3s ease}
+#speedo{background:var(--glass2);backdrop-filter:blur(16px);border:1px solid var(--border2);border-left:4px solid var(--blue);border-radius:16px;padding:12px 16px;min-width:90px;text-align:center;box-shadow:0 4px 20px rgba(0,0,0,.4)}
+.spd-val{font-size:30px;font-weight:900;color:#fff;line-height:1;font-family:monospace;letter-spacing:-.02em}
+.spd-unit{font-size:9px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.2em;margin-top:2px}
+.spd-limit-row{display:flex;align-items:center;justify-content:center;gap:4px;margin-top:6px}
+.spd-limit-circle{width:28px;height:28px;border-radius:50%;border:3px solid var(--red);background:#fff;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:900;color:#000}
+.spd-limit-circle.warn{border-color:var(--red);background:var(--red);color:#fff;animation:sWarn .5s ease-in-out infinite alternate}
+@keyframes sWarn{from{transform:scale(1)}to{transform:scale(1.1)}}
+
+/* ── POI PANEL ───────────────────────────────────────── */
+#poiPanel{position:absolute;z-index:20;display:flex;flex-direction:column;gap:6px;left:16px}
+.poi-btn{width:38px;height:38px;border-radius:11px;background:var(--glass2);backdrop-filter:blur(10px);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;transition:all .18s;position:relative}
+.poi-btn.active{background:rgba(59,130,246,.2);border-color:rgba(59,130,246,.4)}
+.poi-btn:active{transform:scale(.9)}
+.poi-count{position:absolute;top:-4px;right:-4px;width:15px;height:15px;border-radius:50%;background:var(--red);color:#fff;font-size:7px;font-weight:900;display:none;align-items:center;justify-content:center;border:1.5px solid #0f172a}
+.poi-btn.has-data .poi-count{display:flex}
+
+/* ── POI ALERT ───────────────────────────────────────── */
+#poiAlert{display:none;position:absolute;z-index:28;background:var(--glass2);backdrop-filter:blur(14px);border:1px solid rgba(245,158,11,.3);border-radius:14px;padding:10px 12px;gap:10px;align-items:center;animation:slideLeft .25s ease}
+#poiAlert.show{display:flex}
+@keyframes slideLeft{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:none}}
+.pai-ico{font-size:20px;flex-shrink:0}
+.pai-body{flex:1;min-width:0}
+.pai-title{font-size:12px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pai-sub{font-size:10px;color:var(--text2);margin-top:2px}
+.pai-close{font-size:14px;color:var(--text3);flex-shrink:0}
+
+/* ── MOBILE BOTTOM SHEET ─────────────────────────────── */
 #bottomSheet{
   position:absolute;bottom:0;left:0;right:0;z-index:40;
-  display:flex;flex-direction:column;
-  border-radius:28px 28px 0 0;
-  background:rgba(8,8,8,.97);
-  backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
-  border-top:1px solid rgba(255,255,255,.1);
+  background:rgba(15,23,42,.96);backdrop-filter:blur(20px);
+  border-top-left-radius:24px;border-top-right-radius:24px;
+  border-top:1px solid var(--border2);
+  display:flex;flex-direction:column;overflow:hidden;
   transition:height .3s cubic-bezier(.4,0,.2,1);
-  overflow:hidden;
 }
-/* Khi tab bản đồ active — sheet trong suốt, chỉ ptt+tabbar có nền */
 #bottomSheet.map-mode{
-  background:transparent;
-  backdrop-filter:none;-webkit-backdrop-filter:none;
-  border-top:none;
-  height:auto !important;
-  transition:none;
+  background:transparent !important;backdrop-filter:none !important;
+  border-top:none !important;height:auto !important;transition:none;
 }
-#bottomSheet.map-mode #sheetScrollArea{
-  display:none;
-}
-#bottomSheet.map-mode .bs-handle-wrap{
-  display:none;
-}
+#bottomSheet.map-mode #sheetScrollArea{display:none !important}
+#bottomSheet.map-mode .bs-handle-wrap{display:none !important}
 #bottomSheet.map-mode .ptt-zone{
-  background:rgba(12,10,4,.92);
-  backdrop-filter:blur(12px);
-  border-top:1px solid rgba(245,158,11,.15);
+  background:rgba(15,23,42,.9) !important;
+  backdrop-filter:blur(12px) !important;
+  border-top:1px solid var(--border2) !important;
 }
 #bottomSheet.map-mode .tabbar{
-  background:rgba(12,10,4,.95);
-  border-top:1px solid rgba(255,255,255,.06);
+  background:rgba(15,23,42,.95) !important;
 }
-.bs-handle-wrap{display:flex;justify-content:center;padding:10px 0 4px;flex-shrink:0;cursor:grab}
-.bs-handle{width:36px;height:4px;background:rgba(255,255,255,.18);border-radius:2px}
+.bs-handle-wrap{display:flex;justify-content:center;padding:10px 0 2px;flex-shrink:0;cursor:grab}
+.bs-handle{width:36px;height:4px;background:rgba(255,255,255,.15);border-radius:2px}
 
-/* ── SHEET SCROLL AREA ──────────────────────────────────── */
-#sheetScrollArea{flex:1;position:relative;overflow:hidden;min-height:0}
+/* ── MEMBER STRIP (Mobile) ───────────────────────────── */
+.bs-members-hdr{display:flex;align-items:center;justify-content:space-between;padding:6px 16px 2px;flex-shrink:0}
+.bs-members-title{font-size:9px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.07em}
+.bs-members-count{font-size:9px;font-weight:700;color:var(--blue)}
+.av-strip{display:flex;overflow-x:auto;padding:4px 14px 8px;-webkit-overflow-scrolling:touch;flex-shrink:0;gap:8px}
+.av-strip::-webkit-scrollbar{display:none}
+/* Member pill style — from UXpilot mobile */
+.av-item{
+  display:flex;align-items:center;gap:8px;
+  background:rgba(255,255,255,.04);border:1px solid var(--border);
+  border-radius:999px;padding:4px 12px 4px 4px;
+  min-width:110px;flex-shrink:0;cursor:pointer;transition:border-color .15s;
+}
+.av-item.speaking-card{border-color:rgba(34,197,94,.4);background:rgba(34,197,94,.08)}
+.av-ring{width:28px;height:28px;border-radius:50%;padding:2px;flex-shrink:0}
+.av-ring.idle{background:rgba(255,255,255,.1)}
+.av-ring.speaking{background:var(--green);animation:aPulse 1.2s ease-in-out infinite}
+.av-ring.owner-r{background:#fbbf24}.av-ring.me-r{background:var(--blue)}
+@keyframes aPulse{0%,100%{box-shadow:0 0 0 0 rgba(34,197,94,.5)}50%{box-shadow:0 0 0 5px rgba(34,197,94,0)}}
+.av-inner{width:100%;height:100%;border-radius:50%;overflow:hidden;background:rgba(30,41,59,1);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;color:#fff}
+.av-info{flex:1;min-width:0}
+.av-name{font-size:11px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.av-stat{font-size:9px;color:var(--text3);margin-top:1px}
+.av-stat.speaking{color:var(--green)}
 
-/* Member strip */
-.bs-members-hdr{display:flex;align-items:center;justify-content:space-between;padding:6px 16px;flex-shrink:0}
-.bs-members-title{font-size:10px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.07em}
-.bs-members-count{font-size:10px;font-weight:700;color:var(--green)}
-.av-strip{display:flex;gap:0;overflow-x:auto;padding:4px 14px 8px;-webkit-overflow-scrolling:touch;flex-shrink:0;scroll-snap-type:x mandatory}
-.av-item{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:64px;flex-shrink:0;scroll-snap-align:start;padding:0 4px;cursor:pointer}
-.av-ring{width:50px;height:50px;border-radius:50%;padding:2.5px;position:relative;flex-shrink:0}
-.av-ring.idle{background:rgba(255,255,255,.1)}.av-ring.speaking{background:var(--green);animation:aPulse 1.2s ease-in-out infinite}
-.av-ring.owner-r{background:var(--gold)}.av-ring.me-r{background:var(--blue)}
-@keyframes aPulse{0%,100%{box-shadow:0 0 0 0 rgba(57,255,20,.4)}50%{box-shadow:0 0 0 8px rgba(57,255,20,0)}}
-.av-inner{width:100%;height:100%;border-radius:50%;overflow:hidden;background:var(--surf2);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:900;color:#fff;border:2.5px solid rgba(0,0,0,.5)}
-.av-name{font-size:9px;font-weight:700;color:var(--text2);text-align:center;max-width:58px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.av-stat{font-size:8px;font-weight:800;color:var(--text3);text-transform:uppercase}
-
-/* Content panels */
-.content-panel{display:none;flex-direction:column;position:absolute;inset:0;border-radius:28px 28px 0 0;background:rgba(8,8,8,.99);z-index:5;overflow:hidden}
+/* ── CONTENT PANELS ──────────────────────────────────── */
+#sheetScrollArea{flex:1;position:relative;overflow:hidden;min-height:0;display:flex;flex-direction:column}
+.content-panel{display:none;flex-direction:column;flex:1;overflow:hidden;min-height:0}
 .content-panel.active{display:flex}
-.cp-hdr{display:flex;align-items:center;gap:10px;padding:16px 16px 10px;border-bottom:1px solid var(--border);flex-shrink:0}
-.cp-title{font-size:15px;font-weight:900;flex:1;letter-spacing:-.02em}
-.cp-close{width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--text2)}
 
 /* Member list */
 .mlist{flex:1;overflow-y:auto;padding:4px 0;display:flex;flex-direction:column}
-.mrow{display:flex;align-items:center;gap:11px;padding:10px 16px;border-bottom:1px solid rgba(255,255,255,.04);transition:background .15s;cursor:default}
-.mrow:active{background:rgba(255,255,255,.04)}
-.mrow.speaking{background:rgba(57,255,20,.07);border-bottom-color:rgba(57,255,20,.15)}
-.mrow.is-owner{border-left:3px solid var(--gold)}
+/* UXpilot style member row */
+.mrow{
+  display:flex;align-items:center;gap:12px;padding:10px 16px;
+  border-bottom:1px solid var(--border);
+  background:rgba(30,41,59,.25);transition:background .15s;
+}
+.mrow:active{background:rgba(30,41,59,.5)}
+.mrow.speaking{background:rgba(59,130,246,.1);border-bottom-color:rgba(59,130,246,.2);border-left:3px solid var(--blue)}
+.mrow.is-owner{border-left:3px solid #fbbf24}
 .mav-wrap{position:relative;flex-shrink:0}
-.mav{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:14px;color:#fff;border:2.5px solid transparent;overflow:hidden}
-.mav.owner-av{border-color:var(--gold)}.mav.speaking-av{border-color:var(--green);box-shadow:0 0 0 3px rgba(57,255,20,.25);animation:avPulse 1.3s ease-in-out infinite}
-@keyframes avPulse{0%,100%{box-shadow:0 0 0 3px rgba(57,255,20,.25)}50%{box-shadow:0 0 0 7px rgba(57,255,20,.05)}}
-.mcrown{position:absolute;left:-5px;top:-5px;font-size:12px}
-.mol{position:absolute;right:-2px;bottom:-2px;width:10px;height:10px;border-radius:50%;background:var(--green);border:2px solid #0a0a0a}
+.mav{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:14px;color:#fff;overflow:hidden;border:1px solid var(--border2)}
+.mav.owner-av{box-shadow:0 0 0 2px #fbbf24}
+.mav.speaking-av{box-shadow:0 0 0 2px var(--blue);animation:avP 1.3s ease-in-out infinite}
+@keyframes avP{0%,100%{box-shadow:0 0 0 2px rgba(59,130,246,.6)}50%{box-shadow:0 0 0 5px rgba(59,130,246,.1)}}
+.mcrown{position:absolute;left:-5px;top:-5px;font-size:11px}
+.mol{position:absolute;right:-2px;bottom:-2px;width:9px;height:9px;border-radius:50%;background:var(--green);border:2px solid #0f172a}
 .minfo{flex:1;min-width:0}
-.mname{font-size:13px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:-.01em}
+.mname{font-size:13px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .msub{font-size:10.5px;color:var(--text2);margin-top:2px;display:flex;align-items:center;gap:4px;flex-wrap:wrap}
-.mbat{font-size:10px;color:var(--text3)}
-.owbtns{margin-left:auto;flex-shrink:0}
-.owb-btn{width:30px;height:30px;border-radius:8px;background:rgba(255,255,255,.06);border:1px solid var(--border);font-size:16px;display:flex;align-items:center;justify-content:center;color:var(--text2)}
-.owb-drop{display:none;position:fixed;background:rgba(10,10,10,.97);border:1px solid var(--border2);border-radius:16px;box-shadow:0 20px 50px rgba(0,0,0,.9);z-index:9999;min-width:210px;overflow:hidden;backdrop-filter:blur(24px)}
+.mrow.speaking .mname{color:var(--text)}.mrow.speaking .msub{color:var(--blue)}
+.qb{font-size:9px;padding:1px 5px;border-radius:5px;border:1px solid var(--border);background:rgba(30,41,59,.8);font-weight:600;color:var(--text2)}
+.qb.g{border-color:rgba(34,197,94,.4);color:var(--green);background:rgba(34,197,94,.08)}
+.qb.o{border-color:rgba(245,158,11,.4);color:#fbbf24;background:rgba(245,158,11,.08)}
+.mwave{display:none;align-items:center;gap:2px;margin-left:auto}
+.mrow.speaking .mwave{display:flex}
+.mwave span{width:3px;border-radius:2px;background:var(--blue);animation:wB 1s ease-in-out infinite}
+.mwave span:nth-child(1){height:8px}.mwave span:nth-child(2){height:14px;animation-delay:.15s}.mwave span:nth-child(3){height:10px;animation-delay:.3s}
+@keyframes wB{0%,100%{transform:scaleY(.4)}50%{transform:scaleY(1)}}
+.owbtns{flex-shrink:0}
+.owb-btn{width:30px;height:30px;border-radius:8px;background:rgba(255,255,255,.05);border:1px solid var(--border);font-size:14px;display:flex;align-items:center;justify-content:center;color:var(--text2)}
+.owb-drop{display:none;position:fixed;background:rgba(15,23,42,.97);border:1px solid var(--border2);border-radius:16px;box-shadow:0 20px 50px rgba(0,0,0,.9);z-index:9999;min-width:210px;overflow:hidden;backdrop-filter:blur(24px)}
 .owb-drop.open{display:block}
-.owb-drop-item{width:100%;padding:12px 14px;text-align:left;font-size:13px;font-weight:700;display:flex;align-items:center;gap:10px;border:none;background:transparent;color:var(--text);border-bottom:1px solid rgba(255,255,255,.05);cursor:pointer}
+.owb-drop-title{padding:10px 14px 6px;font-size:9px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.07em}
+.owb-drop-item{width:100%;padding:12px 14px;text-align:left;font-size:13px;font-weight:700;display:flex;align-items:center;gap:10px;border:none;background:transparent;color:var(--text);border-bottom:1px solid var(--border);cursor:pointer}
 .owb-drop-item:last-child{border-bottom:none}
-.owb-drop-item:active{background:rgba(255,255,255,.06)}
-.owb-drop-item.red{color:var(--red)}.owb-drop-item.warn{color:var(--warn)}.owb-drop-item.blue{color:var(--blue)}
+.owb-drop-item:active{background:rgba(255,255,255,.05)}
+.owb-drop-item.danger{color:var(--red)}.owb-drop-item.warn{color:#fbbf24}.owb-drop-item.blue{color:var(--blue)}.owb-drop-item.green{color:var(--green)}
 
 /* Chat */
-.chat-msgs{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:8px 12px;display:flex;flex-direction:column;gap:6px}
-.cmsg{display:flex;flex-direction:column;max-width:82%}
+.chat-msgs{flex:1;overflow-y:auto;padding:8px 16px;display:flex;flex-direction:column;gap:6px}
+.csys{align-self:center;font-size:10.5px;color:var(--text3);padding:3px 10px;background:rgba(255,255,255,.05);border-radius:999px;margin:2px 0}
+.cmsg{display:flex;flex-direction:column;max-width:80%}
 .cmsg.me{align-self:flex-end;align-items:flex-end}
-.cmsg.other{align-self:flex-start;align-items:flex-start}
-.cmsg.system{align-self:center;align-items:center;max-width:95%}
-.bubble{padding:8px 12px;border-radius:16px;font-size:13px;line-height:1.45;word-break:break-word;position:relative}
-.cmsg.me .bubble{background:var(--green);color:#000;border-bottom-right-radius:5px;font-weight:700}
-.cmsg.other .bubble{background:rgba(255,255,255,.09);border:1px solid var(--border);color:var(--text);border-bottom-left-radius:5px}
-.cmsg.system .bubble{background:rgba(255,255,255,.05);color:var(--text3);font-size:11px;font-weight:600;border-radius:20px;padding:5px 14px}
-.cmeta{font-size:10px;color:var(--text3);margin-top:3px;padding:0 4px;display:flex;align-items:center;gap:4px}
-.tts-msg-btn{background:none;border:none;color:var(--text3);font-size:12px;padding:0;cursor:pointer}
-.chat-input-row{display:flex;gap:8px;padding:9px 14px;border-top:1px solid var(--border);background:rgba(8,8,8,.99);flex-shrink:0;padding-bottom:calc(9px + var(--sb))}
-.chat-inp{flex:1;height:38px;padding:0 12px;background:var(--surf);border:1px solid var(--border2);border-radius:20px;font-size:14px;color:var(--text)}
-.cemoji{width:38px;height:38px;border-radius:50%;background:var(--surf);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
-.csend{width:38px;height:38px;border-radius:50%;background:var(--green);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#000}
+.cmsg.other{align-self:flex-start}
+.bubble{padding:10px 14px;border-radius:18px;font-size:14px;line-height:1.45;word-break:break-word}
+.cmsg.me .bubble{background:var(--blue);color:#fff;border-bottom-right-radius:5px;font-weight:600}
+.cmsg.other .bubble{background:rgba(30,41,59,.7);border:1px solid var(--border);border-bottom-left-radius:5px}
+.cmeta{font-size:10px;color:var(--text3);margin-top:3px;padding:0 4px}
+.chat-input-row{display:flex;gap:8px;padding:9px 16px;border-top:1px solid var(--border);background:rgba(15,23,42,.98);flex-shrink:0;padding-bottom:calc(9px + var(--sb))}
+.chat-inp{flex:1;height:40px;padding:0 14px;background:rgba(30,41,59,.6);border:1px solid var(--border2);border-radius:22px;font-size:14px}
+.chat-inp:focus{border-color:var(--blue)}
+.cemoji{width:40px;height:40px;border-radius:50%;background:rgba(30,41,59,.6);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.csend{width:40px;height:40px;border-radius:50%;background:var(--blue);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#fff}
+.csend:active{transform:scale(.88)}
 
 /* Settings */
-.set-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:10px 14px;display:flex;flex-direction:column;gap:4px}
-.set-section{background:var(--surf);border-radius:14px;overflow:hidden;border:1px solid var(--border)}
-.set-item{display:flex;align-items:center;gap:12px;padding:13px;border-bottom:1px solid rgba(255,255,255,.05)}
+.set-scroll{flex:1;overflow-y:auto;padding:10px 16px;display:flex;flex-direction:column;gap:4px}
+.set-section{background:rgba(30,41,59,.4);border-radius:14px;overflow:hidden;border:1px solid var(--border);margin-bottom:8px}
+.set-item{display:flex;align-items:center;gap:12px;padding:13px;border-bottom:1px solid var(--border)}
 .set-item:last-child{border-bottom:none}
-.set-icon{font-size:18px;width:24px;text-align:center;flex-shrink:0}
+.set-icon{font-size:16px;width:24px;text-align:center;flex-shrink:0}
 .set-body{flex:1;min-width:0}
 .set-label{font-size:13px;font-weight:700}
 .set-sub{font-size:11px;color:var(--text3);margin-top:2px}
 .set-ctrl{margin-left:auto;flex-shrink:0}
 .set-inp-wrap{padding:12px 13px}
 .sec{font-size:10px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;padding:0 2px;margin-top:4px}
-.aprv-item{display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:11px;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.25);margin-bottom:6px}
-.tts-prov-row{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.05)}
-.tts-prov-row:last-child{border-bottom:none}
-.tts-prov-row input[type=radio]{accent-color:var(--green);width:16px;height:16px}
+.aprv-item{display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:10px;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);margin-bottom:6px}
 
-/* ── VIDEO GRID ─────────────────────────────────────────── */
+/* Video */
 #videoGrid{display:none;flex-wrap:wrap;gap:4px;padding:4px 10px 0;flex-shrink:0}
 #videoGrid.vis{display:flex}
 .vtile{position:relative;border-radius:10px;overflow:hidden;background:#000;flex:1;min-width:140px;max-width:200px}
@@ -307,733 +308,593 @@ input{font-family:inherit;color:var(--text);background:none;border:none;outline:
 .vname{position:absolute;bottom:0;left:0;right:0;padding:4px 7px;font-size:10px;font-weight:700;background:linear-gradient(0deg,rgba(0,0,0,.8),transparent);color:#fff}
 .voff{position:absolute;top:4px;right:4px;background:rgba(0,0,0,.6);border:none;border-radius:6px;padding:3px 6px;font-size:10px;color:#fff;cursor:pointer}
 
-/* ── PTT ZONE ───────────────────────────────────────────── */
+/* ── PTT ZONE — UXpilot mobile style ─────────────────── */
 .ptt-zone{
   flex-shrink:0;
   display:flex;align-items:center;justify-content:space-between;
-  padding:14px 20px calc(10px + var(--sb));
-  background:rgba(8,8,8,.99);
-  border-top:1px solid rgba(255,255,255,.08);
-  position:relative;z-index:10;
+  padding:14px 24px calc(10px + var(--sb));
+  background:rgba(15,23,42,.96);
+  border-top:1px solid var(--border);
+  position:relative;
 }
 #reactLayer{position:absolute;bottom:100%;left:0;right:0;height:80px;pointer-events:none;overflow:visible;z-index:50}
-.ptt-side{display:flex;flex-direction:column;align-items:center;gap:5px;min-width:64px}
-.ptt-side-btn{width:54px;height:54px;border-radius:16px;background:rgba(255,255,255,.07);border:1px solid var(--border2);display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:20px;gap:3px;transition:background .15s}
-.ptt-side-btn:active{transform:scale(.9);background:rgba(255,255,255,.12)}
-.ptt-side-btn.on{background:rgba(57,255,20,.15);border-color:rgba(57,255,20,.3)}
-.ptt-side-lbl{font-size:9px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;text-align:center}
-.ptt-center{display:flex;flex-direction:column;align-items:center;gap:6px}
-.stat-line{font-size:11px;font-weight:700;color:var(--text3);text-align:center;min-height:14px}
-.ptt-outer{position:relative;width:96px;height:96px;display:flex;align-items:center;justify-content:center}
-.ptt-wave-r{position:absolute;inset:-16px;border-radius:50%;border:2.5px solid rgba(255,255,255,.08);pointer-events:none}
-.ptt-outer.talking .ptt-wave-r{border-color:var(--orange);animation:pWave 1.4s ease-out infinite}
-@keyframes pWave{0%{transform:scale(.78);opacity:.8}100%{transform:scale(1.8);opacity:0}}
-#pttBtn{
-  width:88px;height:88px;border-radius:50%;
-  background:linear-gradient(135deg,#FF5F1F 0%,#FF8C00 100%);
-  border:6px solid rgba(0,0,0,.8);
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
-  transition:all .1s;position:relative;z-index:1;
-  box-shadow:0 0 28px rgba(255,95,31,.35),0 6px 20px rgba(0,0,0,.5);
-  color:#fff;
-}
-#pttBtn svg{width:28px;height:28px;color:#fff;filter:drop-shadow(0 2px 4px rgba(0,0,0,.3))}
-#pttBtn .ptt-txt{font-size:8px;font-weight:900;text-transform:uppercase;letter-spacing:.05em;line-height:1.2;color:#fff;text-align:center}
-#pttBtn.locked{background:rgba(50,50,50,.9);box-shadow:none;border-color:rgba(0,0,0,.7);opacity:.5;pointer-events:none}
-#pttBtn.locked svg{color:var(--text3)}
-#pttBtn.preparing{background:linear-gradient(135deg,#ca8a04,#f59e0b)}
-#pttBtn.talking{background:linear-gradient(135deg,#16a34a,#39FF14);box-shadow:0 0 0 10px rgba(57,255,20,.12),0 0 36px rgba(57,255,20,.35);border-color:rgba(0,0,0,.4)}
-#pttBtn:active:not(.locked){transform:scale(.91)}
-.sos-btn{padding:0 12px;height:54px;border-radius:16px;min-width:54px;background:rgba(220,38,38,.12);border:1px solid rgba(239,68,68,.35);color:var(--red);font-size:11px;font-weight:900;letter-spacing:.04em;display:flex;align-items:center;justify-content:center}
-.sos-btn:active{transform:scale(.88);background:rgba(220,38,38,.25)}
 
-/* ── TABBAR ─────────────────────────────────────────────── */
-.tabbar{flex-shrink:0;display:flex;background:rgba(8,8,8,.99);border-top:1px solid rgba(255,255,255,.07);padding-bottom:var(--sb);position:relative;z-index:10}
-.ti{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:8px 4px 6px;cursor:pointer;border:none;background:transparent;transition:opacity .14s;position:relative;min-width:0}
+/* PTT camera left */
+#waCam{
+  width:50px;height:50px;border-radius:16px;
+  background:rgba(30,41,59,.8);border:1px solid var(--border2);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  font-size:18px;color:rgba(255,255,255,.5);transition:all .2s;
+}
+#waCam.on{background:rgba(59,130,246,.15);border-color:rgba(59,130,246,.4);color:var(--blue)}
+
+/* PTT Center */
+.ptt-center{display:flex;flex-direction:column;align-items:center;gap:4px}
+.stat-line{font-size:11px;color:var(--text2);font-weight:500;text-align:center;min-height:15px}
+.stat-line.talking{color:var(--green)}.stat-line.preparing{color:#fbbf24}.stat-line.remote{color:#fbbf24}
+.ptt-outer{position:relative;width:88px;height:88px;display:flex;align-items:center;justify-content:center}
+#pttWaveR{position:absolute;inset:-14px;border-radius:50%;border:2.5px solid var(--orange);opacity:0;pointer-events:none}
+.ptt-outer.talking #pttWaveR{opacity:1;animation:pWave 1.4s ease-out infinite}
+@keyframes pWave{0%{transform:scale(.78);opacity:.8}100%{transform:scale(1.8);opacity:0}}
+/* PTT button — UXpilot orange gradient */
+#pttBtn{
+  width:80px;height:80px;border-radius:50%;
+  background:linear-gradient(135deg,#f97316 0%,#dc2626 100%);
+  border:4px solid rgba(255,255,255,.08);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  transition:all .1s;z-index:1;position:relative;color:#fff;
+  box-shadow:0 0 30px rgba(249,115,22,.35),0 8px 24px rgba(0,0,0,.4);
+}
+#pttBtn i{font-size:26px}
+#pttBtn .ptt-txt{font-size:7.5px;font-weight:900;text-transform:uppercase;letter-spacing:.07em;color:rgba(255,255,255,.85)}
+#pttBtn.locked{background:rgba(30,41,59,.8);box-shadow:none;border-color:var(--border);opacity:.5;pointer-events:none}
+#pttBtn.locked i{color:rgba(255,255,255,.3)}
+#pttBtn.preparing{background:linear-gradient(135deg,#f59e0b,#d97706);box-shadow:0 0 0 8px rgba(245,158,11,.12),0 0 28px rgba(245,158,11,.35)}
+#pttBtn.talking{background:linear-gradient(135deg,#22c55e,#16a34a);box-shadow:0 0 0 10px rgba(34,197,94,.12),0 0 36px rgba(34,197,94,.4)}
+#pttBtn:active:not(.locked){transform:scale(.93)}
+#pttLabel{display:none} /* handled by ptt-txt inside button */
+
+/* PTT Right side: Speaker + SOS */
+.ptt-right{display:flex;gap:8px}
+.ptt-r-btn{
+  width:48px;height:48px;border-radius:16px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  font-size:15px;transition:all .15s;
+}
+.ptt-r-btn:active{transform:scale(.9)}
+.ptt-r-lbl{font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:.04em}
+.btn-loa{background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.2);color:var(--green)}
+.btn-sos{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);color:var(--red)}
+
+/* ── TABBAR — UXpilot style ──────────────────────────── */
+.tabbar{
+  flex-shrink:0;display:flex;
+  background:rgba(15,23,42,.97);
+  border-top:1px solid var(--border);
+  padding-bottom:var(--sb);
+}
+.ti{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:9px 4px 7px;cursor:pointer;border:none;background:transparent;transition:opacity .14s;position:relative;min-width:0}
 .ti:active{opacity:.55}
-.ti .tii{font-size:20px;line-height:1.15;transition:transform .15s}
-.ti .til{font-size:9px;font-weight:800;color:var(--text3);white-space:nowrap;text-transform:uppercase;letter-spacing:.04em}
-.ti.active .til{color:var(--green)}
+.tii{font-size:19px;line-height:1.15;transition:transform .15s}
+.til{font-size:9px;font-weight:600;color:var(--text3);white-space:nowrap;text-transform:uppercase;letter-spacing:.03em}
+.ti.active .til{color:var(--blue)}
 .ti.active .tii{transform:scale(1.1)}
-.ti .tdot{position:absolute;top:6px;right:calc(50% - 18px);width:8px;height:8px;border-radius:50%;background:var(--red);border:1.5px solid #0a0a0a;display:none}
+.tdot{position:absolute;top:7px;right:calc(50% - 17px);width:7px;height:7px;border-radius:50%;background:var(--red);border:1.5px solid #0f172a;display:none}
 .ti.has-dot .tdot{display:block}
 
-/* ── MODALS ─────────────────────────────────────────────── */
-.mov{display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.75);align-items:flex-end;justify-content:center;backdrop-filter:blur(6px)}
+/* ── MODALS ──────────────────────────────────────────── */
+.mov{display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.8);align-items:flex-end;justify-content:center;backdrop-filter:blur(8px)}
 .mov.show{display:flex}
 .mbd{position:absolute;inset:0}
-.msheet{position:relative;background:rgba(12,12,12,.99);border-top-left-radius:26px;border-top-right-radius:26px;border:1px solid var(--border2);border-bottom:none;padding:0 18px calc(18px + var(--sb));width:100%;max-width:480px;max-height:90dvh;overflow-y:auto;box-shadow:0 -12px 50px rgba(0,0,0,.7);backdrop-filter:blur(20px)}
-.mhandle{width:36px;height:4px;background:rgba(255,255,255,.18);border-radius:2px;margin:12px auto 16px}
+.msheet{position:relative;background:rgba(15,23,42,.98);border-top-left-radius:24px;border-top-right-radius:24px;border:1px solid var(--border2);border-bottom:none;padding:0 18px calc(18px + var(--sb));width:100%;max-width:480px;max-height:90dvh;overflow-y:auto;box-shadow:0 -12px 50px rgba(0,0,0,.7);backdrop-filter:blur(20px)}
+.mhandle{width:36px;height:4px;border-radius:2px;background:rgba(255,255,255,.15);margin:12px auto 16px}
 .mtitle{font-size:16px;font-weight:900;margin-bottom:16px;letter-spacing:-.02em}
 .qr-cw{display:flex;justify-content:center;margin-bottom:14px}
-.qr-lb{font-size:11px;color:var(--text2);flex:1;word-break:break-all;line-height:1.4}
+#qrCanvas{border-radius:14px;background:#fff;padding:10px}
 .qr-lr{display:flex;gap:8px;margin-bottom:10px;align-items:center}
-.egrid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
-.ebtn{width:100%;aspect-ratio:1;border-radius:12px;background:var(--surf);border:1px solid var(--border);font-size:22px;display:flex;align-items:center;justify-content:center}
-.ebtn:active{background:var(--surf2);transform:scale(.9)}
-
-/* SOS overlay */
-#sosOv{display:none;position:fixed;inset:0;z-index:10000;background:rgba(200,20,20,.9);align-items:center;justify-content:center;flex-direction:column;gap:16px;backdrop-filter:blur(8px)}
+#qrLink{font-size:12px;color:var(--blue);word-break:break-all;flex:1}
+.egrid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+.ebtn{aspect-ratio:1;border-radius:14px;background:rgba(30,41,59,.6);border:1px solid var(--border);font-size:24px;display:flex;align-items:center;justify-content:center}
+.ebtn:active{transform:scale(.85)}
+#sosOv{display:none;position:fixed;inset:0;z-index:10000;background:rgba(220,38,38,.9);align-items:center;justify-content:center;flex-direction:column;gap:16px;backdrop-filter:blur(10px)}
 #sosOv.show{display:flex}
-.sos-card{text-align:center}
-.sos-e{font-size:56px;margin-bottom:10px;animation:sosBounce .5s ease-in-out infinite alternate}
-@keyframes sosBounce{from{transform:scale(1)}to{transform:scale(1.12)}}
-.sos-t{font-size:22px;font-weight:900;color:#fff;margin-bottom:8px}
-.sos-b{font-size:14px;color:rgba(255,255,255,.8);font-weight:600}
-.sos-dismiss{padding:14px 32px;background:rgba(0,0,0,.4);border:2px solid rgba(255,255,255,.3);border-radius:14px;font-size:14px;font-weight:800;color:#fff;cursor:pointer}
-
-/* Reaction bubbles */
+.sos-card{background:rgba(255,255,255,.97);border-radius:26px;padding:28px 24px;width:calc(100% - 40px);max-width:320px;text-align:center;box-shadow:0 24px 60px rgba(0,0,0,.5)}
+.sos-e{font-size:52px;margin-bottom:10px;animation:sosBounce .5s ease-in-out infinite alternate}
+@keyframes sosBounce{from{transform:scale(1)}to{transform:scale(1.1)}}
+.sos-t{font-size:19px;font-weight:900;color:#c00;margin-bottom:8px}
+.sos-b{font-size:13px;color:#444;line-height:1.6;white-space:pre-wrap}
+.sos-dismiss{padding:12px 28px;border-radius:14px;background:rgba(220,38,38,.2);color:#c00;font-weight:800;font-size:14px;border:2px solid rgba(220,38,38,.3);cursor:pointer}
 .rb{position:absolute;bottom:0;display:flex;flex-direction:column;align-items:center;animation:fUp 2.4s ease-out forwards}
-@keyframes fUp{0%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(-80px)}}
-.re{font-size:26px}.rw{font-size:9px;font-weight:800;color:var(--text3);margin-top:2px}
+.rb .re{font-size:26px}.rb .rw{font-size:9px;color:var(--text3);background:rgba(30,41,59,1);padding:1px 5px;border-radius:6px;margin-top:1px}
+@keyframes fUp{0%{transform:translateY(0) scale(.5);opacity:0}12%{transform:translateY(-14px) scale(1.05);opacity:1}85%{opacity:1}100%{transform:translateY(-160px) scale(.9);opacity:0}}
 
-/* Share chip */
-#shareChip{display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:20px;background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.15);backdrop-filter:blur(10px);font-size:11px;font-weight:700;color:var(--text);cursor:pointer}
-
-/* Status dropdown option */
-.status-opt-active { color: var(--green) !important; }
-
-/* Map pin marker */
-.map-pin-label{font-size:10px;font-weight:800;color:#fff;background:rgba(0,0,0,.65);padding:1px 5px;border-radius:5px;white-space:nowrap;margin-bottom:3px;text-align:center}
-.map-pin-speaking{color:var(--green);background:rgba(57,255,20,.2)}
-
-/* ════ SPEEDOMETER ════════════════════════════════════ */
-#speedoWrap{position:absolute;left:14px;z-index:20;bottom:360px;transition:bottom .3s ease}
-#speedo{background:rgba(10,9,3,.88);backdrop-filter:blur(12px);border:1.5px solid rgba(245,158,11,.3);border-radius:16px;padding:10px 14px;min-width:80px;text-align:center;box-shadow:0 4px 16px rgba(0,0,0,.5)}
-.spd-val{font-size:28px;font-weight:900;color:#fff;line-height:1;font-family:monospace}
-.spd-unit{font-size:9px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-top:2px}
-.spd-limit-row{display:flex;align-items:center;justify-content:center;gap:4px;margin-top:6px}
-.spd-limit-circle{width:30px;height:30px;border-radius:50%;border:3px solid var(--red);background:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;color:#000}
-.spd-limit-circle.warn{border-color:var(--red);background:var(--red);color:#fff;animation:sWarn .5s ease-in-out infinite alternate}
-@keyframes sWarn{from{transform:scale(1)}to{transform:scale(1.1)}}
-
-/* ════ POI BUTTONS ══════════════════════════════════════ */
-#poiPanel{position:absolute;left:10px;z-index:20;top:70px;display:flex;flex-direction:column;gap:6px}
-.poi-btn{width:38px;height:38px;border-radius:11px;background:rgba(10,9,3,.82);backdrop-filter:blur(10px);border:1.5px solid rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;font-size:17px;cursor:pointer;transition:all .18s;position:relative}
-.poi-btn.active{background:rgba(245,158,11,.18);border-color:rgba(245,158,11,.5)}
-.poi-btn:active{transform:scale(.88)}
-.poi-count{position:absolute;top:-4px;right:-4px;width:15px;height:15px;border-radius:50%;background:var(--red);color:#fff;font-size:7px;font-weight:900;display:none;align-items:center;justify-content:center;border:1.5px solid rgba(10,9,3,1)}
-.poi-btn.has-data .poi-count{display:flex}
-
-/* ════ POI ALERT ════════════════════════════════════════ */
-#poiAlert{display:none;position:absolute;left:14px;right:56px;z-index:28;background:rgba(10,9,3,.92);backdrop-filter:blur(14px);border:1.5px solid rgba(245,158,11,.4);border-radius:14px;padding:10px 12px;gap:10px;align-items:center;animation:slideInLeft .25s ease}
-#poiAlert.show{display:flex}
-@keyframes slideInLeft{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:none}}
-.pai-ico{font-size:22px;flex-shrink:0}
-.pai-body{flex:1;min-width:0}
-.pai-title{font-size:12px;font-weight:800;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.pai-sub{font-size:10px;color:var(--text2);margin-top:2px}
-.pai-close{font-size:15px;color:var(--text3);flex-shrink:0;padding:4px}
-
-/* ════ DESKTOP LAYOUT ≥900px ═══════════════════════════
-   Map full left | Sidebar right 320px fixed
+/* ═══════════════════════════════════════════════════════
+   DESKTOP LAYOUT ≥900px — UXpilot Dashboard style
+   Left icon sidebar | Map full | Right comms panel
 ═══════════════════════════════════════════════════════ */
 @media(min-width:900px){
-  /* Non-room: centered card */
-  #joinScreen,#discoverScreen,#waitScreen{
-    position:fixed !important;inset:0 !important;display:none;
-    align-items:center;justify-content:center;z-index:200;
-    background:radial-gradient(ellipse 70% 50% at 50% 0%,#1a1508,#0f0d07 70%) !important;
-  }
+  /* Non-room centered */
+  #joinScreen,#discoverScreen,#waitScreen{position:fixed !important;inset:0 !important;display:none;align-items:center;justify-content:center;z-index:500}
   #joinScreen.active,#discoverScreen.active,#waitScreen.active{display:flex !important}
-  .join-wrap{max-width:460px !important;background:rgba(28,26,16,.65);border:1px solid rgba(245,158,11,.2);border-radius:24px;padding:32px !important;backdrop-filter:blur(20px);max-height:90vh;overflow-y:auto}
-  #roomScreen{position:fixed !important;inset:0 !important}
-  #roomScreen.active{display:block !important}
+  .join-wrap{background:rgba(30,41,59,.5);border:1px solid var(--border2);border-radius:24px;padding:32px !important;backdrop-filter:blur(16px);max-height:90vh;overflow-y:auto;max-width:440px !important}
+  #roomScreen{display:none;flex-direction:row !important}
+  #roomScreen.active{display:flex !important}
 
-  /* Header full width */
-  #roomTopbar{left:0 !important;right:0 !important;height:52px}
-
-  /* Map full screen */
-  #mapFull{position:absolute !important;inset:0 !important;z-index:1}
-
-  /* SIDEBAR — right panel */
-  #bottomSheet{
-    position:fixed !important;
-    top:52px !important;bottom:0 !important;
-    right:0 !important;left:auto !important;
-    width:320px !important;height:auto !important;
-    border-radius:0 !important;border-top:none !important;
-    border-left:1px solid rgba(245,158,11,.12) !important;
-    background:rgba(15,13,5,.98) !important;
-    backdrop-filter:none !important;
-    display:flex !important;flex-direction:column !important;
-    overflow:hidden !important;transition:none !important;z-index:40 !important;
+  /* ── LEFT ICON SIDEBAR (UXpilot: 80px) ── */
+  #deskSidebar{
+    width:80px;background:#020617;border-right:1px solid var(--border);
+    display:flex;flex-direction:column;align-items:center;padding:24px 0;
+    flex-shrink:0;z-index:50;
   }
-  /* Desktop: sidebar always visible even in map-mode */
-  #bottomSheet.map-mode{
-    background:rgba(15,13,5,.98) !important;
-    border-left:1px solid rgba(245,158,11,.12) !important;
+  .dsk-logo{
+    width:48px;height:48px;background:#fff;border-radius:16px;
+    display:flex;align-items:center;justify-content:center;margin-bottom:36px;
+    box-shadow:0 8px 24px rgba(255,255,255,.08);
+  }
+  .dsk-logo span{color:#0f172a;font-weight:900;font-size:22px;letter-spacing:-.04em}
+  .dsk-nav{flex:1;display:flex;flex-direction:column;gap:8px;align-items:center}
+  .dsk-nav-btn{
+    width:48px;height:48px;border-radius:14px;
+    display:flex;align-items:center;justify-content:center;
+    font-size:18px;color:var(--text3);transition:all .18s;cursor:pointer;border:none;background:none;
+  }
+  .dsk-nav-btn:hover{background:rgba(255,255,255,.05);color:var(--text)}
+  .dsk-nav-btn.active{background:rgba(59,130,246,.2);color:var(--blue)}
+  .dsk-nav-btn:active{transform:scale(.9)}
+  .dsk-avatar{width:40px;height:40px;border-radius:50%;border:2px solid var(--border2);overflow:hidden;background:rgba(59,130,246,.3);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;cursor:pointer;transition:border-color .2s}
+  .dsk-avatar:hover{border-color:var(--blue)}
+
+  /* ── MAP AREA: full remaining ── */
+  #mapArea{flex:1;position:relative;overflow:hidden}
+  #mapFull{position:absolute !important;inset:0 !important;z-index:1}
+  .map-top-fade,.map-bottom-fade,.map-ctrl,.banners,#poiPanel,#speedoWrap,#poiAlert{position:absolute;z-index:20}
+  .banners{top:0;left:0;right:0}
+  .map-ctrl{right:16px;top:24px}
+  #poiPanel{left:16px;top:70px}
+  #speedoWrap{left:16px;bottom:180px}
+  #poiAlert{left:16px;right:60px;top:70px}
+
+  /* Desktop header: floating glass panel in map */
+  #roomTopbar{
+    position:absolute !important;
+    top:20px !important;left:20px !important;right:auto !important;
+    background:var(--glass2) !important;
+    backdrop-filter:blur(16px) !important;
+    border:1px solid var(--border2) !important;
+    border-radius:16px !important;
+    padding:10px 16px !important;
     height:auto !important;
+    max-width:380px;
+    z-index:30;
+  }
+  /* Status dropdown on desktop */
+  #statusDrop{top:calc(100% + 8px) !important;left:0 !important;right:auto !important;min-width:220px}
+
+  /* Hide mobile-only elements */
+  .bs-handle-wrap{display:none !important}
+  .map-top-fade,.map-bottom-fade{display:none}
+
+  /* ── RIGHT COMMS PANEL (UXpilot: w-96 = 384px) ── */
+  #bottomSheet{
+    position:relative !important;
+    top:auto !important;bottom:auto !important;left:auto !important;right:auto !important;
+    width:384px !important;
+    height:100% !important;
+    border-radius:0 !important;
+    border-top:none !important;border-left:1px solid var(--border) !important;
+    background:#0f172a !important;
+    backdrop-filter:none !important;
+    flex-shrink:0 !important;
+    transition:none !important;
+    z-index:50 !important;
+  }
+  #bottomSheet.map-mode{
+    background:#0f172a !important;border-left:1px solid var(--border) !important;
+    height:100% !important;
   }
   #bottomSheet.map-mode #sheetScrollArea{display:flex !important}
-  #bottomSheet.map-mode .bs-handle-wrap{display:none !important}
-  .bs-handle-wrap{display:none !important}
+  #bottomSheet.map-mode .ptt-zone{background:transparent !important;backdrop-filter:none !important;border-top:1px solid var(--border) !important}
+  #bottomSheet.map-mode .tabbar{background:#0f172a !important}
 
-  /* avStrip: compact horizontal row at top of sidebar */
+  /* Members in panel: UXpilot card style */
   .av-strip{
-    padding:8px 12px !important;gap:6px !important;
-    border-bottom:1px solid rgba(255,255,255,.05) !important;
-    flex-shrink:0 !important;overflow-x:auto !important;overflow-y:hidden !important;
-    max-height:68px !important;
+    padding:16px 16px 10px !important;gap:8px !important;
+    overflow-x:auto !important;overflow-y:hidden !important;
+    flex-direction:row !important;
+    flex-shrink:0 !important;
+    border-bottom:1px solid var(--border) !important;
   }
-  .av-item{min-width:100px !important;height:52px !important;padding:0 10px !important;border-radius:12px !important}
+  /* Desktop av-item: pill style */
+  .av-item{min-width:100px !important;border-radius:999px !important}
 
-  /* sheetScrollArea: flex column fills remaining */
-  #sheetScrollArea{
-    flex:1 !important;min-height:0 !important;
-    overflow:hidden !important;position:relative !important;
-    display:flex !important;flex-direction:column !important;
-  }
+  #sheetScrollArea{flex:1 !important;min-height:0 !important;overflow:hidden !important;display:flex !important;flex-direction:column !important}
 
-  /* Section header in sidebar */
-  .bs-members-hdr{padding:8px 14px 4px !important;flex-shrink:0 !important}
-  .bs-members-title{font-size:9px !important}
-
-  /* Content panels: in-flow not absolute */
-  .content-panel{
-    position:relative !important;border-radius:0 !important;
-    flex:1 !important;display:none !important;overflow:hidden !important;
-    min-height:0 !important;
-  }
+  .content-panel{position:relative !important;border-radius:0 !important;flex:1 !important;display:none !important;min-height:0 !important}
   .content-panel.active{display:flex !important}
-
-  /* Scrollable content */
   .mlist,.chat-msgs,.set-scroll{overflow-y:auto !important}
   .chat-input-row{padding-bottom:8px !important}
 
-  /* PTT zone: at bottom of sidebar */
+  /* PTT on desktop — UXpilot large PTT */
   .ptt-zone{
-    flex-shrink:0 !important;padding:10px 14px 10px !important;
-    background:rgba(12,10,4,.99) !important;
-    border-top:1px solid rgba(245,158,11,.1) !important;
+    flex-shrink:0 !important;
+    flex-direction:column !important;
+    align-items:center !important;
+    justify-content:center !important;
+    padding:24px 16px !important;
+    gap:16px !important;
+    border-top:1px solid var(--border) !important;
+    background:linear-gradient(to top,rgba(15,23,42,1),rgba(30,41,59,.3)) !important;
   }
-  #pttBtn{width:62px !important;height:62px !important}
-  #pttBtn svg{width:22px !important;height:22px !important}
-  .ptt-outer{width:70px !important;height:70px !important}
-  #waCam{width:42px !important;height:42px !important}
-  .ptt-right .ptt-r-btn{width:40px !important;height:40px !important}
-  .ptt-txt-label{font-size:8px !important}
-  .stat-line{font-size:10px !important}
+  .ptt-zone > *{order:1}
+  #reactLayer{order:0;position:relative !important;bottom:auto !important}
 
-  /* Tabbar: at very bottom */
+  /* Hide side buttons on desktop PTT, show below */
+  .ptt-center{width:100%;display:flex;flex-direction:column;align-items:center;gap:8px}
+  .stat-line{font-size:12px !important}
+  .ptt-outer{width:120px !important;height:120px !important}
+  #pttBtn{width:108px !important;height:108px !important;box-shadow:0 0 50px rgba(59,130,246,.25),0 0 30px rgba(249,115,22,.2) !important}
+  #pttBtn i{font-size:40px !important}
+  .ptt-txt{font-size:9px !important;letter-spacing:.3em !important}
+  #waCam,.ptt-right{display:none !important} /* Hidden: shown as grid below */
+
+  /* Desktop action grid below PTT */
+  .ptt-desktop-actions{display:grid !important;grid-template-columns:1fr 1fr;gap:12px;width:100%;padding:0 8px}
+
   .tabbar{
-    flex-shrink:0 !important;padding-bottom:6px !important;
-    background:rgba(12,10,4,.99) !important;
-    border-top:1px solid rgba(255,255,255,.04) !important;
+    flex-shrink:0 !important;
+    border-top:1px solid var(--border) !important;
+    padding-bottom:6px !important;
+    background:#0f172a !important;
   }
-  .til{font-size:8px !important}.tii{font-size:18px !important}
+  .til{font-size:8px !important}.tii{font-size:16px !important}
 
-  /* Map controls */
-  .map-ctrl{right:336px !important;top:calc(58px + var(--st)) !important}
-  .banners{right:320px !important;top:52px !important}
-
-  /* POI & Speedo */
-  #poiPanel{left:14px !important;top:66px !important;transform:none !important}
-  #speedoWrap{left:14px !important;bottom:180px !important}
-  #poiAlert{left:14px !important;right:336px !important;top:62px !important}
-
-  /* Modals: centered */
+  /* Modals centered on desktop */
   .mov{justify-content:center !important;align-items:center !important}
-  .msheet{border-radius:20px !important;border:1px solid rgba(245,158,11,.2) !important;max-width:480px !important;max-height:80vh !important}
+  .msheet{border-radius:20px !important;border:1px solid var(--border2) !important;max-width:480px !important;max-height:80vh !important}
   .mhandle{display:none}
 
-  /* SOS overlay */
-  #sosOv{z-index:10000}
+  /* setBSH skip on desktop */
+  #bottomSheet{height:100% !important}
 }
 @media(min-width:1280px){
-  #bottomSheet{width:360px !important}
-  .map-ctrl{right:376px !important}
-  .banners{right:360px !important}
-  #poiAlert{right:376px !important}
+  #bottomSheet{width:420px !important}
 }
 
+/* STATUS DROPDOWN */
+#statusWrap{position:relative;z-index:200;flex-shrink:0}
+#statusBtn{display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:20px;background:rgba(255,255,255,.07);border:1px solid var(--border2);font-size:11px;font-weight:700}
+#statusDrop{display:none;position:fixed;left:10px;right:10px;background:rgba(15,23,42,.98);border:1px solid var(--border2);border-radius:20px;box-shadow:0 24px 60px rgba(0,0,0,.9);z-index:9999;overflow:hidden;backdrop-filter:blur(24px)}
+#statusDrop.open{display:block}
+.sdrop-title{padding:12px 16px 6px;font-size:9px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.08em}
+.sopt{width:100%;padding:12px 16px;text-align:left;font-size:13px;font-weight:700;display:flex;align-items:center;gap:14px;border:none;background:transparent;color:var(--text);border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer}
+.sopt:last-child{border-bottom:none}
+.sopt:active,.sopt.active-s{background:rgba(255,255,255,.05)}
+.sopt-ico{font-size:16px;width:22px;text-align:center}
+.sopt-lbl{font-size:13px;font-weight:800}
+.sopt-sub{font-size:10px;color:var(--text2);margin-top:1px}
 </style>
-
 </head>
 <body>
 <div id="toastLayer"></div>
 
-<!-- ── JOIN ─────────────────────────────────────────── -->
+<!-- ══ JOIN SCREEN ══════════════════════════════════════ -->
 <div id="joinScreen" class="screen">
   <div class="join-wrap">
-    <div class="j-logo">📻</div>
-    <div class="j-title">Bộ Đàm Web</div>
-    <div class="j-sub">Walkie-talkie nhóm · mọi thiết bị</div>
+    <div class="j-logo"><i class="fa-solid fa-house-chimney" style="color:#fff;font-size:26px"></i></div>
+    <div class="j-title">Casaroom</div>
+    <div class="j-sub">Bộ đàm nhóm · Mọi thiết bị</div>
     <div class="j-card">
       <h3>🚪 Vào phòng</h3>
-      <div class="fg"><label class="lbl">Mã phòng</label><input type="text" id="roomCodeInput" class="inp" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Nhập mã phòng..."/><div style="font-size:11px;color:var(--text3);margin-top:4px">Phân biệt hoa/thường · 3-20 ký tự</div></div>
-      <div class="fg"><label class="lbl">Tên của bạn</label><input type="text" id="usernameInput" class="inp" autocomplete="off" autocapitalize="words" placeholder="Tên thật..."/></div>
-      <div class="fg" id="passGroup" style="display:none"><label class="lbl">🔒 Mật khẩu</label><input type="password" id="roomPass" class="inp" placeholder="Nhập mật khẩu..."/></div>
-      <button id="joinBtn" class="btn btn-g btn-full btn-lg" style="margin-top:4px;border-radius:14px">Vào phòng</button>
+      <div class="fg"><label class="lbl">Mã phòng</label>
+        <input type="text" id="roomCodeInput" class="inp" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Nhập mã phòng..."/>
+        <div style="font-size:11px;color:var(--text3);margin-top:4px">Phân biệt hoa/thường · 3-20 ký tự</div>
+      </div>
+      <div class="fg"><label class="lbl">Tên của bạn</label>
+        <input type="text" id="usernameInput" class="inp" autocomplete="off" autocapitalize="words" placeholder="Tên thật..."/>
+      </div>
+      <div class="fg" id="passGroup" style="display:none"><label class="lbl">🔒 Mật khẩu</label>
+        <input type="password" id="roomPass" class="inp" placeholder="Nhập mật khẩu..."/>
+      </div>
+      <button id="joinBtn" class="btn btn-blue btn-full btn-lg" style="margin-top:4px;border-radius:14px">Vào phòng</button>
       <div id="joinErr" class="j-err"></div>
     </div>
-    <div class="jdiv" style="max-width:380px;width:100%">hoặc tạo phòng mới</div>
-    <div class="cr-card" style="max-width:380px;width:100%">
-      <button class="cr-hdr" id="crToggle"><span>➕</span><span style="flex:1;text-align:left">Tạo phòng mới</span><span class="arr">▼</span></button>
+    <div class="jdiv" style="width:100%">hoặc tạo mới</div>
+    <div class="cr-card">
+      <button class="cr-hdr" id="crToggle"><i class="fa-solid fa-plus" style="color:var(--blue)"></i><span style="flex:1;text-align:left">Tạo phòng mới</span><span class="arr">▼</span></button>
       <div class="cr-body" id="crBody">
-        <div class="fg"><label class="lbl">Mã phòng mới</label><input type="text" id="newCode" class="inp" autocomplete="off" autocapitalize="off" placeholder="Vd: NhomPhuot2026"/></div>
-        <div class="fg"><label class="lbl">Tên của bạn</label><input type="text" id="newName" class="inp" autocomplete="off" autocapitalize="words" placeholder="Tên thật..."/></div>
+        <div class="fg"><label class="lbl">Mã phòng</label><input type="text" id="newCode" class="inp" autocomplete="off" autocapitalize="off" placeholder="Vd: TeamAlpha2026"/></div>
+        <div class="fg"><label class="lbl">Tên bạn</label><input type="text" id="newName" class="inp" autocomplete="off" autocapitalize="words" placeholder="Tên thật..."/></div>
         <div class="fg"><label class="lbl">Mật khẩu (tuỳ chọn)</label><input type="password" id="newPass" class="inp" placeholder="Để trống nếu không cần"/></div>
-        <div class="fg"><label class="lbl">Mô tả</label><input type="text" id="newDesc" class="inp" placeholder="Vd: Nhóm phượt Hà Giang..." maxlength="80"/></div>
+        <div class="fg"><label class="lbl">Mô tả</label><input type="text" id="newDesc" class="inp" placeholder="Nhóm phượt Hà Giang..." maxlength="80"/></div>
         <div class="trow"><div><div class="tl">Phòng công khai</div><div class="ts">Hiện trong danh sách</div></div><button class="tog on" id="newPublic"></button></div>
-        <div class="trow"><div><div class="tl">Duyệt thành viên</div><div class="ts">Chủ phòng phê duyệt</div></div><button class="tog" id="newApproval"></button></div>
-        <button id="crBtn" class="btn btn-g btn-full" style="border-radius:12px">🏠 Tạo và vào phòng</button>
+        <div class="trow"><div><div class="tl">Duyệt thành viên</div><div class="ts">Phê duyệt tay</div></div><button class="tog" id="newApproval"></button></div>
+        <button id="crBtn" class="btn btn-blue btn-full" style="border-radius:12px;margin-top:8px"><i class="fa-solid fa-house-chimney"></i> Tạo và vào phòng</button>
       </div>
     </div>
-    <div style="width:100%;max-width:380px"><button id="discoverBtn" class="btn btn-s btn-full" style="border-radius:12px">🔍 Khám phá phòng đang hoạt động</button></div>
+    <button id="discoverBtn" class="btn btn-s btn-full" style="border-radius:12px"><i class="fa-solid fa-magnifying-glass"></i> Khám phá phòng đang hoạt động</button>
   </div>
 </div>
 
-<!-- ── DISCOVER ──────────────────────────────────────── -->
+<!-- ══ DISCOVER SCREEN ══════════════════════════════════ -->
 <div id="discoverScreen" class="screen">
-  <div class="topbar"><button class="ib" id="dBack">←</button><h2>🔍 Khám phá phòng</h2><button class="ib" id="dRefresh">↻</button></div>
-  <div class="page"><div class="sw" style="margin-top:4px"><span class="si">🔍</span><input type="text" class="inp" id="dSearch" placeholder="Tìm theo tên phòng..." style="padding-left:32px"/></div><div id="roomListEl"></div></div>
+  <div class="topbar"><button class="ib" id="dBack"><i class="fa-solid fa-arrow-left fa-sm"></i></button><h2>Khám phá phòng</h2><button class="ib" id="dRefresh"><i class="fa-solid fa-rotate-right fa-sm"></i></button></div>
+  <div class="page"><div style="position:relative;margin-bottom:12px"><span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:13px;pointer-events:none"><i class="fa-solid fa-magnifying-glass"></i></span><input type="text" class="inp" id="dSearch" placeholder="Tìm tên phòng..." style="padding-left:36px"/></div><div id="roomListEl"></div></div>
 </div>
 
-<!-- ── WAITING ───────────────────────────────────────── -->
+<!-- ══ WAIT SCREEN ══════════════════════════════════════ -->
 <div id="waitScreen" class="screen">
-  <div class="wi">⏳</div>
+  <div style="font-size:52px;text-align:center;animation:wP 2s ease-in-out infinite">⏳</div>
   <div class="wt">Đang chờ duyệt...</div>
   <div class="ws" id="waitSub">Chủ phòng cần phê duyệt yêu cầu của bạn.</div>
-  <button class="btn btn-s" id="waitCancel">Huỷ yêu cầu</button>
+  <button class="btn btn-s" id="waitCancel" style="margin-top:8px">Huỷ yêu cầu</button>
 </div>
+@keyframes wP{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
 
-
-<!-- ── ROOM ──────────────────────────────────────────── -->
+<!-- ══ ROOM SCREEN ══════════════════════════════════════ -->
 <div id="roomScreen">
 
-  <!-- Full-screen Leaflet map -->
-  <div id="mapFull"></div>
-  <div id="mapFullEmpty">
-    <span style="font-size:36px">🗺️</span>
-    <span style="font-size:12px;color:rgba(255,255,255,.35);font-weight:700">Chưa có vị trí thành viên</span>
-  </div>
-
-  <!-- Gradient overlays -->
-  <div class="map-top-fade"></div>
-  <div class="map-bottom-fade"></div>
-
-  <!-- SPEEDOMETER -->
-  <div id="speedoWrap"><div id="speedo">
-    <div class="spd-val" id="spdVal">--</div>
-    <div class="spd-unit">km/h</div>
-    <div class="spd-limit-row" id="spdLimitRow" style="display:none">
-      <div class="spd-limit-circle" id="spdLimitCircle">--</div>
+  <!-- DESKTOP: Left icon sidebar -->
+  <aside id="deskSidebar" style="display:none">
+    <div class="dsk-logo"><span>C</span></div>
+    <nav class="dsk-nav">
+      <button class="dsk-nav-btn active" id="dskTabMap" data-tab="map" title="Bản đồ"><i class="fa-solid fa-map-location-dot"></i></button>
+      <button class="dsk-nav-btn" id="dskTabChat" data-tab="chat" title="Trò chuyện"><i class="fa-solid fa-comments"></i></button>
+      <button class="dsk-nav-btn" id="dskTabTeam" data-tab="team" title="Đội nhóm"><i class="fa-solid fa-users"></i></button>
+      <button class="dsk-nav-btn" id="dskTabSettings" data-tab="settings" title="Cài đặt"><i class="fa-solid fa-sliders"></i></button>
+    </nav>
+    <div class="dsk-avatar" id="dskAvatar" style="margin-top:auto">
+      <span id="dskAvatarTxt">?</span>
     </div>
-  </div></div>
+  </aside>
 
-  <!-- POI PANEL -->
-  <div id="poiPanel">
-    <button class="poi-btn" id="poiBtnGas"  onclick="kPOI('gas')"  title="Trạm xăng">⛽<span class="poi-count" id="poiCntGas"></span></button>
-    <button class="poi-btn" id="poiBtnEv"   onclick="kPOI('ev')"   title="Sạc EV">🔋<span class="poi-count" id="poiCntEv"></span></button>
-    <button class="poi-btn" id="poiBtnRest" onclick="kPOI('rest')" title="Trạm dừng">🍽️<span class="poi-count" id="poiCntRest"></span></button>
-    <button class="poi-btn" id="poiBtnCam"  onclick="kPOI('cam')"  title="Camera">📷<span class="poi-count" id="poiCntCam"></span></button>
-    <button class="poi-btn" id="poiBtnSign" onclick="kPOI('sign')" title="Biển báo">🚦<span class="poi-count" id="poiCntSign"></span></button>
-  </div>
+  <!-- MAP AREA -->
+  <div id="mapArea" style="flex:1;position:relative;overflow:hidden">
+    <div id="mapFull"></div>
+    <div id="mapFullEmpty"><i class="fa-solid fa-map-location-dot" style="font-size:32px;margin-bottom:8px"></i><span>Chưa có vị trí thành viên</span></div>
+    <div class="map-top-fade"></div>
+    <div class="map-bottom-fade"></div>
 
-  <!-- POI ALERT -->
-  <div id="poiAlert">
-    <span class="pai-ico" id="paiIco">⚠️</span>
-    <div class="pai-body">
-      <div class="pai-title" id="paiTitle">Phía trước</div>
-      <div class="pai-sub"   id="paiSub">--</div>
-    </div>
-    <button class="pai-close" onclick="document.getElementById('poiAlert').classList.remove('show')">✕</button>
-  </div>
-
-  <!-- TOPBAR -->
-  <div id="roomTopbar">
-    <div class="rtb-left">
-      <div class="rtb-room" id="roomLabel">CASAROOM</div>
-      <div class="rtb-status">
-        <div class="rtb-dot" id="connDot"></div>
-        <span class="rtb-sub" id="memberCountLbl">0 thành viên</span>
+    <!-- HEADER (floating, mobile + desktop) -->
+    <div id="roomTopbar" style="position:absolute;top:0;left:0;right:0;z-index:30;padding:calc(10px + var(--st)) 14px 10px;display:flex;align-items:center;gap:8px">
+      <!-- Room info chip -->
+      <div class="glass2" style="display:flex;align-items:center;gap:8px;padding:7px 12px;border-radius:12px;flex:1;min-width:0;max-width:220px">
+        <div id="connDot" style="width:8px;height:8px;border-radius:50%;background:var(--green);flex-shrink:0"></div>
+        <span id="roomLabel" style="font-size:14px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:-.01em">--</span>
+        <span style="font-size:10px;color:var(--text3);flex-shrink:0" id="memberCountLbl">0</span>
       </div>
-    </div>
 
-    <!-- Status dropdown -->
-    <div class="status-wrap">
-      <button class="status-btn" id="statusBtn">
-        <span class="status-dot-btn" id="statusDotBtn"></span>
-        <span id="statusLbl">Online</span>
-        <span class="status-arr">▾</span>
-      </button>
-      <div id="statusDrop">
-        <div class="sdrop-title">Trạng thái</div>
-        <button class="sopt" data-s="online">
-          <span class="sopt-ico">🟢</span>
-          <div><div class="sopt-lbl">Online</div><div class="sopt-sub">Sẵn sàng nhận tín hiệu</div></div>
+      <!-- Status -->
+      <div id="statusWrap">
+        <button id="statusBtn" class="glass2" style="border-radius:10px;padding:7px 10px;font-size:11px;font-weight:700;display:flex;align-items:center;gap:5px">
+          <i class="fa-solid fa-circle" style="font-size:8px;color:var(--green)" id="statusIco"></i>
+          <span id="statusLbl">Online</span>
+          <i class="fa-solid fa-chevron-down" style="font-size:8px;color:var(--text3)"></i>
         </button>
-        <button class="sopt" data-s="busy">
-          <span class="sopt-ico">🔴</span>
-          <div><div class="sopt-lbl">Bận</div><div class="sopt-sub">Không làm phiền</div></div>
-        </button>
-        <button class="sopt" data-s="away">
-          <span class="sopt-ico">🌙</span>
-          <div><div class="sopt-lbl">Vắng mặt</div><div class="sopt-sub">Tạm thời rời đi</div></div>
-        </button>
+        <div id="statusDrop">
+          <div class="sdrop-title">Trạng thái</div>
+          <button class="sopt active-s" data-s="online"><span class="sopt-ico">🟢</span><div><div class="sopt-lbl">Online</div><div class="sopt-sub">Sẵn sàng</div></div></button>
+          <button class="sopt" data-s="busy"><span class="sopt-ico">🔴</span><div><div class="sopt-lbl">Bận</div><div class="sopt-sub">Không làm phiền</div></div></button>
+          <button class="sopt" data-s="away"><span class="sopt-ico">🌙</span><div><div class="sopt-lbl">Vắng mặt</div><div class="sopt-sub">Tạm thời rời đi</div></div></button>
+          <button class="sopt" data-s="offline"><span class="sopt-ico">⚫</span><div><div class="sopt-lbl">Offline</div><div class="sopt-sub">Không thông báo</div></div></button>
+        </div>
+      </div>
+
+      <!-- Action buttons -->
+      <div style="display:flex;gap:5px;margin-left:auto">
+        <button class="glass2" id="shareChip" title="Chia sẻ" style="width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--text2)"><i class="fa-solid fa-share-nodes"></i></button>
+        <button class="glass2" id="waTTS" title="Đọc chat" style="width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--text2)"><i class="fa-solid fa-volume-high"></i></button>
+        <button class="glass2" id="waNoti" title="Thông báo" style="width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--text2)"><i class="fa-solid fa-bell"></i></button>
+        <button class="glass2" id="waLeave" title="Rời phòng" style="width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--red);background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.2)"><i class="fa-solid fa-right-from-bracket"></i></button>
       </div>
     </div>
 
-    <!-- Header action buttons -->
-    <button class="rha" id="shareChip" title="Chia sẻ phòng">📤</button>
-    <button class="rha" id="waTTS" title="Đọc chat">🔊</button>
-    <button class="rha" id="waNoti" title="Thông báo">🔔</button>
-    <button class="rha" id="waLeave" style="color:var(--red)" title="Rời phòng">🚪</button>
-  </div>
-
-  <!-- Map controls (right side) -->
-  <div class="map-ctrl">
-    <button class="mc-btn" id="mcLoc" title="Vị trí của tôi">📍</button>
-    <button class="mc-btn" id="mcZoomIn" title="Phóng to">＋</button>
-    <button class="mc-btn" id="mcZoomOut" title="Thu nhỏ">－</button>
-    <button class="mc-btn" id="mcWake" title="Giữ màn hình sáng">☀️</button>
-  </div>
-
-  <!-- Banners -->
-  <div class="banners" style="top:calc(60px + var(--st))">
-    <div id="aprvBan">
-      <span>⏳ Có người chờ duyệt vào phòng</span>
-      <div id="aprvBanList"></div>
+    <!-- Map controls -->
+    <div class="map-ctrl" style="top:calc(60px + var(--st))">
+      <button class="glass2" id="mcLocate" style="width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--blue)" title="Vị trí"><i class="fa-solid fa-location-crosshairs"></i></button>
+      <div class="glass2" style="border-radius:12px;overflow:hidden;display:flex;flex-direction:column">
+        <button id="mcZoomIn" style="width:42px;height:42px;display:flex;align-items:center;justify-content:center;font-size:14px;border-bottom:1px solid var(--border)"><i class="fa-solid fa-plus"></i></button>
+        <button id="mcZoomOut" style="width:42px;height:42px;display:flex;align-items:center;justify-content:center;font-size:14px"><i class="fa-solid fa-minus"></i></button>
+      </div>
+      <button class="glass2" id="mcWake" style="width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--text2)" title="Màn hình"><i class="fa-solid fa-sun"></i></button>
     </div>
-    <div class="req-ban req-cam" id="camReqBan">
-      <div class="req-inner">
-        <div class="req-icon">📷</div>
-        <div class="req-body">
-          <div class="req-title">Yêu cầu bật camera</div>
-          <div class="req-sub" id="camReqSub">Chủ phòng yêu cầu</div>
-        </div>
-        <div class="req-btns">
-          <button class="btn btn-sm" style="background:rgba(255,255,255,.2);color:#fff" id="camAccept">Bật</button>
-          <button class="btn btn-sm" style="background:rgba(0,0,0,.2);color:rgba(255,255,255,.7)" id="camDecline">Bỏ</button>
-        </div>
+
+    <!-- Banners -->
+    <div class="banners" style="top:calc(56px + var(--st))">
+      <div id="aprvBan"><span>⏳ Có người chờ duyệt</span><div id="aprvBanList"></div></div>
+      <div class="req-ban" id="camReqBan"><div class="req-inner"><div class="req-icon"><i class="fa-solid fa-camera"></i></div><div class="req-body"><div class="req-title">Yêu cầu bật camera</div><div class="req-sub" id="camReqSub">Chủ phòng yêu cầu</div></div><div class="req-btns"><button class="btn btn-sm" style="background:rgba(255,255,255,.1);color:#fff" id="camAccept">Bật</button><button class="btn btn-sm" style="background:rgba(0,0,0,.2);color:rgba(255,255,255,.6)" id="camDecline">Bỏ</button></div></div></div>
+      <div class="req-ban" id="micReqBan"><div class="req-inner"><div class="req-icon"><i class="fa-solid fa-microphone"></i></div><div class="req-body"><div class="req-title">Yêu cầu mở mic</div><div class="req-sub" id="micReqSub">Chủ phòng yêu cầu</div></div><div class="req-btns"><button class="btn btn-sm" style="background:rgba(255,255,255,.1);color:#fff" id="micAccept">Mở</button><button class="btn btn-sm" style="background:rgba(0,0,0,.2);color:rgba(255,255,255,.6)" id="micDecline">Bỏ</button></div></div></div>
+      <div class="ban ban-recon" id="reconBan"><i class="fa-solid fa-bolt"></i> Đang kết nối lại...</div>
+      <div class="ban ban-ios" id="iosBan"><i class="fa-brands fa-apple"></i> iOS: Chạm để bật âm thanh<span class="bx" id="iosBanX">✕</span></div>
+      <div class="vmemo" id="vMemoBan"><div class="vmemo-row"><i class="fa-solid fa-microphone" style="font-size:18px"></i><span class="vmemo-info" id="vMemoInfo">Đang ghi âm...</span><button class="vmemo-btn" id="vMemoSend">Gửi</button><button class="vmemo-x" id="vMemoX">✕</button></div></div>
+    </div>
+
+    <!-- Speedometer -->
+    <div id="speedoWrap" style="bottom:360px">
+      <div id="speedo">
+        <div class="spd-val" id="spdVal">--</div>
+        <div class="spd-unit">km/h</div>
+        <div class="spd-limit-row" id="spdLimitRow" style="display:none"><div class="spd-limit-circle" id="spdLimitCircle">--</div></div>
       </div>
     </div>
-    <div class="req-ban req-mic" id="micReqBan">
-      <div class="req-inner">
-        <div class="req-icon">🎙️</div>
-        <div class="req-body">
-          <div class="req-title">Yêu cầu mở mic</div>
-          <div class="req-sub" id="micReqSub">Chủ phòng yêu cầu</div>
-        </div>
-        <div class="req-btns">
-          <button class="btn btn-sm" style="background:rgba(255,255,255,.2);color:#fff" id="micAccept">Mở</button>
-          <button class="btn btn-sm" style="background:rgba(0,0,0,.2);color:rgba(255,255,255,.7)" id="micDecline">Bỏ</button>
-        </div>
-      </div>
-    </div>
-    <div class="ban ban-recon" id="reconBan">⚡ Đang kết nối lại...</div>
-    <div class="ban ban-ios" id="iosBan">
-      📱 iOS: Chạm vào đây để bật âm thanh
-      <span class="bx" id="iosBanX">✕</span>
-    </div>
-    <div class="vmemo" id="vMemoBan">
-      <div class="vmemo-row">
-        <span style="font-size:18px">🎙️</span>
-        <span class="vmemo-info" id="vMemoInfo">Đang ghi âm...</span>
-        <button class="vmemo-btn" id="vMemoSend">Gửi</button>
-        <button class="vmemo-btn" id="vMemoCancel">Huỷ</button>
-        <button class="vmemo-x" id="vMemoX">✕</button>
-      </div>
-    </div>
-  </div>
 
-  <!-- BOTTOM SHEET -->
+    <!-- POI Panel -->
+    <div id="poiPanel" style="top:70px">
+      <button class="poi-btn" id="poiBtnGas"  onclick="kPOI('gas')"  title="Trạm xăng"><i class="fa-solid fa-gas-pump"></i><span class="poi-count" id="poiCntGas"></span></button>
+      <button class="poi-btn" id="poiBtnEv"   onclick="kPOI('ev')"   title="Sạc EV"><i class="fa-solid fa-charging-station"></i><span class="poi-count" id="poiCntEv"></span></button>
+      <button class="poi-btn" id="poiBtnRest" onclick="kPOI('rest')" title="Trạm dừng"><i class="fa-solid fa-utensils"></i><span class="poi-count" id="poiCntRest"></span></button>
+      <button class="poi-btn" id="poiBtnCam"  onclick="kPOI('cam')"  title="Camera tốc độ"><i class="fa-solid fa-camera"></i><span class="poi-count" id="poiCntCam"></span></button>
+      <button class="poi-btn" id="poiBtnSign" onclick="kPOI('sign')" title="Biển báo"><i class="fa-solid fa-road-barrier"></i><span class="poi-count" id="poiCntSign"></span></button>
+    </div>
+
+    <!-- POI Alert -->
+    <div id="poiAlert" style="top:70px;left:68px;right:60px">
+      <span class="pai-ico" id="paiIco">⚠️</span>
+      <div class="pai-body"><div class="pai-title" id="paiTitle">Phía trước</div><div class="pai-sub" id="paiSub">--</div></div>
+      <button class="pai-close" onclick="document.getElementById('poiAlert').classList.remove('show')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+  </div><!-- /mapArea -->
+
+  <!-- ══ BOTTOM SHEET / RIGHT COMMS PANEL ══════════════ -->
   <div id="bottomSheet">
     <div class="bs-handle-wrap" id="bsHandle"><div class="bs-handle"></div></div>
-
-    <!-- Video grid (camera) -->
     <div id="videoGrid"></div>
 
-    <!-- Scroll area: member strip + content panels -->
-    <div id="sheetScrollArea" style="flex:1;position:relative;overflow:hidden;min-height:0;">
-
+    <div id="sheetScrollArea">
       <!-- Member strip header -->
       <div class="bs-members-hdr">
-        <span class="bs-members-title">Thành viên</span>
-        <span class="bs-members-count" id="avOnlineCount">0 online</span>
+        <span class="bs-members-title">Đội ngũ</span>
+        <span class="bs-members-count" id="memberCountBadge">0 online</span>
       </div>
-
-      <!-- Avatar strip -->
+      <!-- Avatar/member strip -->
       <div class="av-strip" id="avStrip"></div>
 
-      <!-- PANEL: Đội nhóm -->
+      <!-- PANEL: Members -->
       <div class="content-panel" id="panelMembers">
-        <div class="cp-hdr">
-          <span style="font-size:18px">👥</span>
-          <span class="cp-title">Đội nhóm</span>
-          <button class="rha" id="waTTS2" title="Đọc chat" style="width:32px;height:32px;font-size:15px">🔊</button>
+        <div style="display:flex;align-items:center;gap:10px;padding:12px 16px 8px;border-bottom:1px solid var(--border);flex-shrink:0">
+          <i class="fa-solid fa-users" style="color:var(--blue);font-size:16px"></i>
+          <span style="font-size:14px;font-weight:800;flex:1">Đội nhóm</span>
+          <button class="glass2" id="waTTS2" style="width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--text2)"><i class="fa-solid fa-volume-high"></i></button>
         </div>
         <div class="mlist" id="memberListEl"></div>
       </div>
 
       <!-- PANEL: Chat -->
       <div class="content-panel" id="panelChat">
-        <div class="cp-hdr">
-          <span style="font-size:18px">💬</span>
-          <span class="cp-title">Trò chuyện</span>
-          <button class="cp-close" id="chatTTSBtn" title="Đọc chat">🔊</button>
+        <div style="display:flex;align-items:center;gap:10px;padding:12px 16px 8px;border-bottom:1px solid var(--border);flex-shrink:0">
+          <i class="fa-solid fa-comments" style="color:var(--blue);font-size:16px"></i>
+          <span style="font-size:14px;font-weight:800;flex:1">Trò chuyện</span>
         </div>
         <div class="chat-msgs" id="chatMsgs"></div>
         <div class="chat-input-row">
-          <button class="cemoji" id="emojiFabBtn">😊</button>
+          <button class="cemoji" id="emojiFabBtn"><i class="fa-regular fa-face-smile"></i></button>
           <input class="chat-inp" id="chatInput" type="text" placeholder="Nhắn tin nhóm..." autocomplete="off"/>
-          <button class="csend" id="chatSend">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-          </button>
+          <button class="csend" id="chatSend"><i class="fa-solid fa-paper-plane fa-sm"></i></button>
         </div>
       </div>
 
-      <!-- PANEL: Cài đặt -->
+      <!-- PANEL: Map (stub) -->
+      <div class="content-panel" id="panelMap" style="display:none"></div>
+
+      <!-- PANEL: Settings -->
       <div class="content-panel" id="panelSettings">
-        <div class="cp-hdr">
-          <span style="font-size:18px">⚙️</span>
-          <span class="cp-title">Cài đặt</span>
+        <div style="display:flex;align-items:center;gap:10px;padding:12px 16px 8px;border-bottom:1px solid var(--border);flex-shrink:0">
+          <i class="fa-solid fa-sliders" style="color:var(--blue);font-size:16px"></i>
+          <span style="font-size:14px;font-weight:800;flex:1">Cài đặt</span>
         </div>
         <div class="set-scroll">
-          <!-- Phòng info -->
-          <div class="sec">Thông tin phòng</div>
+          <div class="sec" id="setAprvSec" style="display:none">⏳ Chờ duyệt vào</div>
+          <div id="setAprvItems"></div>
+          <div id="ownerBlock" style="display:none">
+            <div class="sec">Phòng & Quyền</div>
+            <div class="set-section">
+              <div class="set-item"><span class="set-icon"><i class="fa-solid fa-globe"></i></span><div class="set-body"><div class="set-label">Phòng công khai</div><div class="set-sub">Hiện trong danh sách</div></div><div class="set-ctrl"><button class="tog on" id="setPublic"></button></div></div>
+              <div class="set-item"><span class="set-icon"><i class="fa-solid fa-hand"></i></span><div class="set-body"><div class="set-label">Duyệt thành viên</div><div class="set-sub">Phê duyệt tay</div></div><div class="set-ctrl"><button class="tog" id="setApproval"></button></div></div>
+              <div class="set-inp-wrap"><label class="lbl">Mật khẩu phòng</label><input class="inp" id="setPass" type="password" placeholder="Để trống = không cần..."/></div>
+              <div class="set-inp-wrap"><label class="lbl">Mô tả</label><input class="inp" id="setDesc" type="text" placeholder="Mô tả phòng..." maxlength="80"/></div>
+              <div style="padding:0 13px 13px"><button class="btn btn-blue btn-full" id="setSave" style="border-radius:12px"><i class="fa-solid fa-floppy-disk"></i> Lưu cài đặt</button></div>
+            </div>
+            <div class="sec"><i class="fa-solid fa-volume-high"></i> TTS Provider</div>
+            <div class="set-section"><div id="ttsProviderList"><div style="color:var(--text3);font-size:12px;padding:12px;text-align:center">Đang tải...</div></div></div>
+            <div class="set-section">
+              <div class="set-inp-wrap"><label class="lbl">FPT API Key</label><input class="inp" id="fptApiKey" type="password" placeholder="API key từ console.fpt.ai..."/></div>
+              <div class="set-inp-wrap" style="padding-top:0"><label class="lbl">Giọng FPT</label><input class="inp" id="fptVoice" placeholder="banmai..."/></div>
+              <div style="padding:0 13px 13px;display:flex;gap:8px"><button class="btn btn-blue btn-sm" id="saveFptKey"><i class="fa-solid fa-floppy-disk"></i> Lưu</button><button class="btn btn-s btn-sm" id="refreshTtsBtn"><i class="fa-solid fa-rotate-right"></i> Refresh</button></div>
+            </div>
+            <div id="ttsAdminPanel" style="display:none"></div>
+          </div>
+          <div class="sec">TTS</div>
           <div class="set-section">
-            <div class="set-item">
-              <span class="set-icon">🏠</span>
-              <div class="set-body"><div class="set-label" id="setRoomName">—</div><div class="set-sub">Mã phòng</div></div>
-            </div>
-            <div class="set-item">
-              <span class="set-icon">📝</span>
-              <div class="set-body"><div class="set-label" id="setRoomDesc">Không có mô tả</div><div class="set-sub">Mô tả</div></div>
-            </div>
-            <div class="set-item" id="setPassRow" style="display:none">
-              <span class="set-icon">🔒</span>
-              <div class="set-body"><div class="set-label">Phòng có mật khẩu</div><div class="set-sub">Bảo mật bật</div></div>
-            </div>
+            <div class="set-item"><span class="set-icon"><i class="fa-solid fa-volume-high"></i></span><div class="set-body"><div class="set-label">Đọc chat tự động</div></div><div class="set-ctrl"><button class="tog" id="setTTS"></button></div></div>
+            <div class="set-item"><span class="set-icon"><i class="fa-solid fa-microphone"></i></span><div class="set-body"><div class="set-label">Giọng đọc</div></div><div class="set-ctrl"><button class="btn btn-sm btn-s" id="setVoiceForRoom">Chọn</button></div></div>
           </div>
-
-          <!-- Phê duyệt -->
-          <div class="sec" id="setAprvSec" style="display:none">Phê duyệt thành viên</div>
-          <div class="set-section" id="setAprvSection" style="display:none">
-            <div class="set-scroll" style="padding:8px"><div id="setAprvItems"></div></div>
-          </div>
-
-          <!-- TTS -->
-          <div class="sec">Đọc tin nhắn (TTS)</div>
-          <div class="set-section">
-            <div class="set-item">
-              <span class="set-icon">🔊</span>
-              <div class="set-body"><div class="set-label">Đọc chat tự động</div><div class="set-sub">Text-to-speech</div></div>
-              <div class="set-ctrl"><button class="tog" id="setTTS"></button></div>
-            </div>
-            <div class="set-item">
-              <span class="set-icon">🎤</span>
-              <div class="set-body"><div class="set-label">Giọng đọc</div><div class="set-sub" id="setVoiceLbl">Mặc định</div></div>
-              <div class="set-ctrl"><button class="btn btn-sm btn-s" id="setVoiceForRoom">Chọn</button></div>
-            </div>
-          </div>
-          <div class="sec">🔊 TTS Provider</div>
-          <div class="set-section" style="margin-bottom:8px"><div id="ttsProviderList"><div style="color:var(--text3);font-size:12px;padding:12px;text-align:center">Đang tải...</div></div></div>
-
-          <!-- Hành động -->
           <div class="sec">Hành động</div>
           <div class="set-section">
-            <div class="set-item" style="cursor:pointer" id="setShareBtn">
-              <span class="set-icon">📤</span>
-              <div class="set-body"><div class="set-label">Chia sẻ phòng</div><div class="set-sub">Sao chép link hoặc QR</div></div>
-            </div>
-            <div class="set-item" style="cursor:pointer" id="setLeaveBtn">
-              <span class="set-icon" style="color:var(--red)">🚪</span>
-              <div class="set-body"><div class="set-label" style="color:var(--red)">Rời phòng</div><div class="set-sub">Ngắt kết nối</div></div>
-            </div>
+            <div class="set-item" style="cursor:pointer" id="rdOpenRow"><span class="set-icon"><i class="fa-solid fa-magnifying-glass"></i></span><div class="set-body"><div class="set-label">Khám phá phòng khác</div></div><i class="fa-solid fa-chevron-right" style="color:var(--text3);font-size:11px"></i></div>
+            <div class="set-item" style="cursor:pointer" id="setLeaveBtn"><span class="set-icon" style="color:var(--red)"><i class="fa-solid fa-right-from-bracket"></i></span><div class="set-body"><div class="set-label" style="color:var(--red)">Rời phòng</div></div></div>
           </div>
-
-          <!-- Owner settings block (hidden initially) -->
-          <div id="ownerBlock" style="display:none">
-            <div class="sec">Cài đặt phòng (Chủ phòng)</div>
-            <div class="set-section">
-              <div class="set-item">
-                <span class="set-icon">🌐</span>
-                <div class="set-body"><div class="set-label">Phòng công khai</div><div class="set-sub">Ai cũng có thể tìm thấy</div></div>
-                <div class="set-ctrl"><button class="tog" id="setPublic"></button></div>
-              </div>
-              <div class="set-item">
-                <span class="set-icon">✋</span>
-                <div class="set-body"><div class="set-label">Phê duyệt thành viên</div><div class="set-sub">Duyệt tay trước khi vào</div></div>
-                <div class="set-ctrl"><button class="tog" id="setApproval"></button></div>
-              </div>
-              <div class="set-item">
-                <span class="set-icon">🔒</span>
-                <div class="set-body"><div class="set-label">Mật khẩu phòng</div><div class="set-sub">Để trống = không mật khẩu</div></div>
-                <div class="set-ctrl"><input class="inp" id="setPass" type="password" placeholder="Mật khẩu..." style="width:130px;height:34px;font-size:13px"/></div>
-              </div>
-              <div class="set-inp-wrap">
-                <label class="lbl">Mô tả phòng</label>
-                <input class="inp" id="setDesc" type="text" placeholder="Mô tả ngắn về phòng..."/>
-              </div>
-              <div style="padding:0 13px 13px">
-                <button class="btn btn-g btn-full" id="setSave">💾 Lưu cài đặt</button>
-              </div>
-            </div>
-            <div id="ttsAdminPanel" style="display:none">
-              <div class="sec">TTS Admin</div>
-              <div class="set-section">
-                <div class="set-item">
-                  <span class="set-icon">🔑</span>
-                  <div class="set-body"><div class="set-label">FPT API Key</div></div>
-                  <div class="set-ctrl"><input class="inp" id="fptApiKey" type="password" placeholder="API key..." style="width:130px;height:34px;font-size:12px"/></div>
-                </div>
-                <div class="set-item">
-                  <span class="set-icon">🎙️</span>
-                  <div class="set-body"><div class="set-label">Giọng FPT</div></div>
-                  <div class="set-ctrl"><input class="inp" id="fptVoice" placeholder="banmai..." style="width:100px;height:34px;font-size:12px"/></div>
-                </div>
-                <div style="padding:0 13px 13px;display:flex;gap:8px">
-                  <button class="btn btn-g" id="saveFptKey">Lưu</button>
-                  <button class="btn btn-s" id="refreshTtsBtn">🔄 Làm mới</button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- rdOpenRow: mở danh sách phòng -->
-          <div class="set-section" style="cursor:pointer" id="rdOpenRow">
-            <div class="set-item">
-              <span class="set-icon">🔍</span>
-              <div class="set-body"><div class="set-label">Khám phá phòng</div><div class="set-sub">Tìm phòng đang hoạt động</div></div>
-              <span style="color:var(--text3);font-size:14px">›</span>
-            </div>
-          </div>
-
-          <!-- ttsVoiceSel: select giọng (ẩn, dùng bởi JS) -->
           <select id="ttsVoiceSel" style="display:none"></select>
           <div style="height:16px"></div>
         </div>
       </div>
-
     </div><!-- /sheetScrollArea -->
 
-    <!-- PTT ZONE — luôn hiển thị -->
+    <!-- PTT ZONE -->
     <div class="ptt-zone">
       <div id="reactLayer"></div>
 
-      <!-- Trái: Camera -->
-      <div class="ptt-side">
-        <button class="ptt-side-btn" id="waCam" title="Camera">
-          <span style="font-size:22px">📷</span>
+      <!-- Desktop action grid (hidden on mobile via CSS) -->
+      <div class="ptt-desktop-actions" style="display:none">
+        <button id="waCamDesk" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:14px;border-radius:16px;background:rgba(30,41,59,.6);border:1px solid var(--border);cursor:pointer;transition:all .2s">
+          <i class="fa-solid fa-camera" style="font-size:20px;color:var(--text2)"></i>
+          <span style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase">Camera</span>
         </button>
-        <span class="ptt-side-lbl">Camera</span>
+        <button id="sosBtnDesk" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:14px;border-radius:16px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);cursor:pointer;transition:all .2s">
+          <i class="fa-solid fa-triangle-exclamation" style="font-size:20px;color:var(--red)"></i>
+          <span style="font-size:10px;font-weight:700;color:rgba(239,68,68,.6);text-transform:uppercase">Khẩn cấp SOS</span>
+        </button>
       </div>
 
-      <!-- Giữa: PTT -->
+      <!-- Mobile: left mute -->
+      <button id="waCam"><i class="fa-solid fa-microphone-slash" style="font-size:18px"></i></button>
+
+      <!-- Center PTT -->
       <div class="ptt-center">
         <div class="stat-line" id="statLine">Phòng đang trống</div>
         <div class="ptt-outer" id="pttOuter">
-          <div class="ptt-wave-r" id="pttWaveR"></div>
+          <div id="pttWaveR"></div>
           <button id="pttBtn" class="locked">
-            <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 1a4 4 0 0 1 4 4v6a4 4 0 0 1-8 0V5a4 4 0 0 1 4-4z"/>
-              <path d="M19 10a7 7 0 0 1-14 0H3a9 9 0 0 0 7.999 8.94V21H9v2h6v-2h-2v-2.06A9 9 0 0 0 21 10h-2z"/>
-            </svg>
-            <span class="ptt-txt" id="pttLabel">Nhấn để nói</span>
+            <i class="fa-solid fa-microphone"></i>
+            <span class="ptt-txt">Nhấn để nói</span>
           </button>
         </div>
       </div>
 
-      <!-- Phải: SOS -->
-      <div class="ptt-side">
-        <button class="sos-btn" id="sosBtn">SOS</button>
-        <span class="ptt-side-lbl">Khẩn cấp</span>
+      <!-- Mobile: right LOA + SOS -->
+      <div class="ptt-right">
+        <button class="ptt-r-btn btn-loa" id="speakerBtn">
+          <i class="fa-solid fa-volume-high"></i>
+          <span class="ptt-r-lbl">Loa</span>
+        </button>
+        <button class="ptt-r-btn btn-sos" id="sosBtn">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+          <span class="ptt-r-lbl">SOS</span>
+        </button>
       </div>
     </div>
 
     <!-- TABBAR -->
     <div class="tabbar">
       <button class="ti" id="tabMembers" data-panel="panelMembers">
-        <div class="tdot"></div>
-        <span class="tii">👥</span>
-        <span class="til">Đội nhóm</span>
+        <div class="tdot"></div><span class="tii"><i class="fa-solid fa-users"></i></span><span class="til">Đội nhóm</span>
       </button>
       <button class="ti" id="tabChat" data-panel="panelChat">
-        <div class="tdot"></div>
-        <span class="tii">💬</span>
-        <span class="til">Chat</span>
+        <div class="tdot"></div><span class="tii"><i class="fa-solid fa-comments"></i></span><span class="til">Chat</span>
       </button>
       <button class="ti" id="tabMap" data-panel="">
-        <span class="tii">🗺️</span>
-        <span class="til">Bản đồ</span>
+        <span class="tii"><i class="fa-solid fa-map-location-dot"></i></span><span class="til">Bản đồ</span>
       </button>
       <button class="ti" id="tabSettings" data-panel="panelSettings">
-        <span class="tii">⚙️</span>
-        <span class="til">Cài đặt</span>
+        <span class="tii"><i class="fa-solid fa-sliders"></i></span><span class="til">Cài đặt</span>
       </button>
     </div>
   </div><!-- /bottomSheet -->
 
-  <!-- MODALS -->
-  <!-- QR Share modal -->
-  <div class="mov" id="qrMov">
-    <div class="mbd" id="qrBd"></div>
-    <div class="msheet">
-      <div class="mhandle"></div>
-      <div class="mtitle">Chia sẻ phòng</div>
-      <div class="qr-lr">
-        <a id="qrLink" style="font-size:12px;color:var(--blue);word-break:break-all;flex:1"></a>
-        <button class="btn btn-sm btn-s" id="qrCopy">Sao chép</button>
-      </div>
-      <div class="qr-cw"><canvas id="qrCanvas"></canvas></div>
-      <button class="btn btn-s btn-full" id="qrClose">Đóng</button>
-    </div>
-  </div>
-
-  <!-- Emoji picker modal -->
-  <div class="mov" id="emojiMov">
-    <div class="mbd" id="emojiBd"></div>
-    <div class="msheet">
-      <div class="mhandle"></div>
-      <div class="mtitle">Phản ứng nhanh</div>
-      <div class="egrid" id="emojiGrid"></div>
-      <div style="height:8px"></div>
-      <button class="btn btn-s btn-full" id="emojiClose">Đóng</button>
-    </div>
-  </div>
-
-  <!-- Voice picker modal -->
-  <div class="mov" id="voiceMov">
-    <div class="mbd" id="voiceBd"></div>
-    <div class="msheet">
-      <div class="mhandle"></div>
-      <div class="mtitle">Chọn giọng đọc cho phòng</div>
-      <div id="voiceList" style="margin-bottom:12px;max-height:55vh;overflow-y:auto"></div>
-      <button class="btn btn-g btn-full" id="voiceApply">Áp dụng</button>
-      <div style="height:8px"></div>
-      <button class="btn btn-s btn-full" id="voiceClose">Đóng</button>
-    </div>
-  </div>
-
-  <!-- SOS overlay -->
-  <div id="sosOv">
-    <div class="sos-card">
-      <div class="sos-e">🆘</div>
-      <div class="sos-t">TÍN HIỆU KHẨN CẤP</div>
-      <div class="sos-b" id="sosSub">Đang phát tín hiệu SOS đến toàn nhóm...</div>
-    </div>
-    <button class="sos-dismiss" id="sosDismiss">Huỷ SOS</button>
-  </div>
-
 </div><!-- /roomScreen -->
 
-
-
 <!-- MODALS -->
-<div class="mov" id="qrMov"><div class="mbd" id="qrBd"></div><div class="msheet"><div class="mhandle"></div><div class="mtitle">📤 Chia sẻ phòng</div><div class="qr-cw"><canvas id="qrCanvas" width="200" height="200"></canvas></div><div class="qr-lr"><div class="qr-lb" id="qrLink"></div><button class="btn btn-s btn-sm" id="qrCopy">Sao chép</button></div><button class="btn btn-s btn-full" id="qrClose" style="margin-top:4px">Đóng</button></div></div>
+<div class="mov" id="qrMov"><div class="mbd" id="qrBd"></div><div class="msheet"><div class="mhandle"></div><div class="mtitle"><i class="fa-solid fa-share-nodes" style="color:var(--blue)"></i> Chia sẻ phòng</div><div class="qr-cw"><canvas id="qrCanvas" width="200" height="200"></canvas></div><div class="qr-lr"><div id="qrLink"></div><button class="btn btn-s btn-sm" id="qrCopy"><i class="fa-solid fa-copy"></i> Sao chép</button></div><button class="btn btn-s btn-full" id="qrClose" style="margin-top:4px">Đóng</button></div></div>
 <div class="mov" id="emojiMov"><div class="mbd" id="emojiBd"></div><div class="msheet"><div class="mhandle"></div><div class="mtitle">😄 Gửi cảm xúc</div><div class="egrid" id="emojiGrid"></div><button class="btn btn-s btn-full" style="margin-top:12px" id="emojiClose">Đóng</button></div></div>
-<div class="mov" id="rdMov"><div class="mbd" id="rdBd"></div><div class="msheet"><div class="mhandle"></div><div class="mtitle">🔍 Phòng đang hoạt động</div><div class="sw"><span class="si">🔍</span><input type="text" class="inp" id="rdSearch" placeholder="Tìm phòng..." style="padding-left:32px"/></div><div id="rdList" style="max-height:50dvh;overflow-y:auto"></div><button class="btn btn-s btn-full" style="margin-top:10px" id="rdClose">Đóng</button></div></div>
+<div class="mov" id="rdMov"><div class="mbd" id="rdBd"></div><div class="msheet"><div class="mhandle"></div><div class="mtitle"><i class="fa-solid fa-magnifying-glass" style="color:var(--blue)"></i> Phòng đang hoạt động</div><div style="position:relative;margin-bottom:12px"><span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:13px;pointer-events:none"><i class="fa-solid fa-magnifying-glass"></i></span><input type="text" class="inp" id="rdSearch" placeholder="Tìm phòng..." style="padding-left:36px"/></div><div id="rdList" style="max-height:50dvh;overflow-y:auto"></div><button class="btn btn-s btn-full" style="margin-top:10px" id="rdClose">Đóng</button></div></div>
 <div id="sosOv"><div class="sos-card"><div class="sos-e">🆘</div><div class="sos-t" id="sosTitle">SOS!</div><div class="sos-b" id="sosBody">Thành viên cần hỗ trợ.</div></div><button class="sos-dismiss" id="sosDismiss">✓ Đã biết, đóng lại</button></div>
 <div class="owb-drop" id="owDrop"></div>
 
+<!-- SCRIPTS -->
 <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
 <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
 <script>
 (function(){
+
 // ── V11 TRAILTAK UI OVERRIDES ─────────────────────────
 
 const SRV='https://pushtotalk-anqr.onrender.com';
@@ -1319,10 +1180,21 @@ async function ttsServerSpeak(text,senderName){
 
 function ttsSpeak(text,senderName){
   if(!ttsEnabled)return;
+  // Bận → không đọc gì cả
   if(userStatus==='busy')return;
-  // Trạng thái 'away': vẫn đọc nhưng thêm prefix "Tin nhắn mới:"
+
   const item={text,senderName,ts:Date.now()};
-  // LUÔN đọc ngay dù tab đang ẩn — Web Audio API hoạt động background
+
+  if(document.hidden||userStatus==='away'){
+    // Tab ẩn hoặc xa máy: giữ tối đa TTS_MAX_PENDING tin mới nhất
+    ttsPendingHidden.push(item);
+    if(ttsPendingHidden.length>TTS_MAX_PENDING){
+      // Bỏ tin cũ, chỉ giữ mới nhất
+      ttsPendingHidden.splice(0,ttsPendingHidden.length-TTS_MAX_PENDING);
+    }
+    return;
+  }
+  // Đang online: nếu queue dài → trim bớt
   if(ttsQueue.length>2)ttsQueue.splice(0,ttsQueue.length-2);
   ttsQueue.push(item);
   if(!ttsSpeaking)ttsPlayNext();
@@ -1390,11 +1262,15 @@ async function ttsSpeakOne(text,sender){
 document.addEventListener('visibilitychange',()=>{
   if(document.visibilityState==='visible'){
     if(wakeLockOn&&!wakeLock)enableWake();
-    // Resume AudioContext nếu bị suspend
-    if(audioCtx&&audioCtx.state==='suspended')audioCtx.resume().catch(()=>{});
+    // Nếu bận → không đọc
+    if(!ttsEnabled||userStatus==='busy'){ttsPendingHidden.length=0;return;}
+    // Flush thông minh sau 200ms
+    if(ttsPendingHidden.length>0)setTimeout(ttsFlushPending,200);
+  } else {
+    // Tab ẩn → dừng đọc
+    if(ttsSpeaking){window.speechSynthesis?.cancel();ttsSpeaking=false;}
+    ttsQueue.length=0; // clear queue vì user không nghe được
   }
-  // KHÔNG clear queue, KHÔNG stop TTS khi tab ẩn
-  // TTS vẫn chạy background qua Web Audio API
 });
 
 // ── Service Worker postMessage → đọc ngay khi SW relay lại ──
@@ -1497,24 +1373,7 @@ function sndRequest(){
     });
   }catch(e){}
 }
-function unlockAudio(){
-  if(audioUnlocked)return;
-  try{
-    const C=window.AudioContext||window.webkitAudioContext;
-    audioCtx=new C({latencyHint:'playback'});
-    const b=audioCtx.createBuffer(1,1,22050),src=audioCtx.createBufferSource();
-    src.buffer=b;src.connect(audioCtx.destination);src.start(0);
-    if(audioCtx.state==='suspended')audioCtx.resume();
-    audioUnlocked=true;
-    // Keep AudioContext running kể cả khi tab ẩn
-    document.addEventListener('visibilitychange',()=>{
-      if(audioCtx&&audioCtx.state==='suspended')audioCtx.resume().catch(()=>{});
-    });
-    setInterval(()=>{
-      if(audioCtx&&audioCtx.state==='suspended')audioCtx.resume().catch(()=>{});
-    },8000);
-  }catch(e){}
-}
+function unlockAudio(){if(audioUnlocked)return;try{const C=window.AudioContext||window.webkitAudioContext;audioCtx=new C();const b=audioCtx.createBuffer(1,1,22050),src=audioCtx.createBufferSource();src.buffer=b;src.connect(audioCtx.destination);src.start(0);if(audioCtx.state==='suspended')audioCtx.resume();audioUnlocked=true}catch(e){}}
 function toast(text,type){const el=document.createElement('div');el.className='toast'+(type?' '+type:'');el.textContent=text;toastLayer.appendChild(el);setTimeout(()=>el.remove(),2700)}
 
 // CREATE ROOM
@@ -2202,15 +2061,11 @@ function doLeave(){
 // ── Bottom sheet drag & height ─────────────────────────
 const bottomSheet=document.getElementById('bottomSheet');
 const memberStripView=document.getElementById('memberStripView');
-const BS_MIN=140, BS_MID=340, BS_FULL='72vh';
+const BS_MIN=310, BS_MID=360, BS_FULL='72vh';
 
 function setBSH(h){
-  // Desktop (≥900px): sidebar dùng top/bottom, không set height
-  if(window.innerWidth>=900){
-    setTimeout(()=>{try{leafletFull?.invalidateSize();}catch(e){}},50);
-    return;
-  }
   bottomSheet.style.height=typeof h==='number'?h+'px':h;
+  // Resize map
   setTimeout(()=>{try{leafletFull?.invalidateSize();}catch(e){}},50);
 }
 setBSH(BS_MID);
@@ -2259,15 +2114,13 @@ function openPanel(panelId,tabEl){
     setBSH(BS_FULL);
     activeTabV11=panelId;
   } else {
-    // Tab Bản đồ
+    // Tab Bản đồ → sheet trong suốt hoàn toàn, chỉ ptt+tabbar hiển thị
     bottomSheet.classList.add('map-mode');
     if(videoGrid)videoGrid.classList.remove('vis');
-    if(window.innerWidth<900){
-      bottomSheet.style.height='auto';
-    }
+    setBSH(BS_MIN);
     activeTabV11='map';
     setTimeout(()=>{ if(typeof renderVidGrid==='function') renderVidGrid(); },100);
-    setTimeout(()=>{try{leafletFull?.invalidateSize();}catch(e){}},200);
+    setTimeout(()=>{try{leafletFull?.invalidateSize();}catch(e){}},150);
   }
 }
 
@@ -2371,22 +2224,191 @@ const origST=window.startTalking,origSp=window.stopTalking;
 if(origST){window.startTalking=function(){pttOuter2?.classList.add('talking');origST.call(this);};}
 if(origSp){window.stopTalking=function(){pttOuter2?.classList.remove('talking');origSp.call(this);};}
 
-// Init: desktop mở panel Đội nhóm mặc định, mobile mở bản đồ
+// Init: đảm bảo tất cả panels đóng, bắt đầu với tab bản đồ
 [panelChat,panelMembers,panelSettings].filter(Boolean).forEach(p=>p.classList.remove('active'));
 allTabsV11.forEach(t=>t.classList.remove('active'));
-if(window.innerWidth>=900){
-  // Desktop: hiện panel members mặc định
-  openPanel('panelMembers',tabMembers);
-} else {
-  // Mobile: map tab mặc định
-  bottomSheet.classList.add('map-mode');
-  openPanel(null,tabMap);
-}
+bottomSheet.classList.add('map-mode');
+openPanel(null,tabMap);
 setTimeout(()=>{try{leafletFull?.invalidateSize();}catch(e){}},500);
-// ════════════════════════════════════════════════════════
-// POI + SPEEDOMETER — inject sau IIFE v11.0.9
-// ════════════════════════════════════════════════════════
-var POI_RADIUS=5000,POI_REQUERY=400;
+
+})();
+
+
+// ══ DESKTOP + UI BRIDGE ══════════════════════════════════
+
+// setBSH: desktop = skip height set
+var _origSetBSH = window.setBSH;
+window.setBSH = function(h) {
+  if (window.innerWidth >= 900) {
+    setTimeout(function(){try{leafletFull&&leafletFull.invalidateSize();}catch(e){}},50);
+    return;
+  }
+  bottomSheet.style.height = typeof h === 'number' ? h + 'px' : h;
+  setTimeout(function(){try{leafletFull&&leafletFull.invalidateSize();}catch(e){}},50);
+};
+
+// openPanel: desktop map tab = don't hide sidebar
+var _origOpenPanel = window.openPanel;
+window.openPanel = function(panelId, tabEl) {
+  var allP = [panelChat, panelMembers, panelSettings].filter(Boolean);
+  allP.forEach(function(p){p.classList.remove('active');});
+  var allTabs = [tabMembers, tabChat, tabMap, tabSettings].filter(Boolean);
+  allTabs.forEach(function(t){t.classList.remove('active');});
+  if(tabEl) tabEl.classList.add('active');
+  if(panelId) {
+    bottomSheet.classList.remove('map-mode');
+    var p = document.getElementById(panelId);
+    if(p) p.classList.add('active');
+    if(window.innerWidth < 900) setBSH(BS_FULL);
+    // Update desktop left sidebar active state
+    updateDeskNav(panelId);
+  } else {
+    bottomSheet.classList.add('map-mode');
+    if(videoGrid) videoGrid.classList.remove('vis');
+    if(window.innerWidth < 900) { bottomSheet.style.height = 'auto'; }
+    updateDeskNav(null);
+    setTimeout(function(){try{leafletFull&&leafletFull.invalidateSize();}catch(e){}},200);
+  }
+};
+
+// Desktop left sidebar nav
+function updateDeskNav(panelId) {
+  document.querySelectorAll('.dsk-nav-btn').forEach(function(b){ b.classList.remove('active'); });
+  if(!panelId || panelId === '') {
+    var b = document.getElementById('dskTabMap'); if(b) b.classList.add('active');
+  } else if(panelId === 'panelChat') {
+    var b = document.getElementById('dskTabChat'); if(b) b.classList.add('active');
+  } else if(panelId === 'panelMembers') {
+    var b = document.getElementById('dskTabTeam'); if(b) b.classList.add('active');
+  } else if(panelId === 'panelSettings') {
+    var b = document.getElementById('dskTabSettings'); if(b) b.classList.add('active');
+  }
+}
+
+// Wire desktop sidebar buttons
+document.querySelectorAll('.dsk-nav-btn').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    var tab = btn.dataset.tab;
+    if(tab === 'map')      openPanel(null, tabMap);
+    else if(tab === 'chat')     openPanel('panelChat', tabChat);
+    else if(tab === 'team')     openPanel('panelMembers', tabMembers);
+    else if(tab === 'settings') openPanel('panelSettings', tabSettings);
+  });
+});
+
+// Map controls
+document.getElementById('mcLocate') && document.getElementById('mcLocate').addEventListener('click', function(){
+  if(navigator.geolocation) navigator.geolocation.getCurrentPosition(function(p){
+    try{leafletFull&&leafletFull.setView([p.coords.latitude,p.coords.longitude],16);}catch(e){}
+  });
+});
+document.getElementById('mcZoomIn')  && document.getElementById('mcZoomIn') .addEventListener('click', function(){try{leafletFull&&leafletFull.zoomIn();}catch(e){}});
+document.getElementById('mcZoomOut') && document.getElementById('mcZoomOut').addEventListener('click', function(){try{leafletFull&&leafletFull.zoomOut();}catch(e){}});
+document.getElementById('mcWake')    && document.getElementById('mcWake')   .addEventListener('click', function(){document.getElementById('waWake') && document.getElementById('waWake').click();});
+
+// Header action wires
+document.getElementById('waLeave')   && document.getElementById('waLeave')  .addEventListener('click', function(){document.getElementById('setLeaveBtn') && document.getElementById('setLeaveBtn').click();});
+document.getElementById('shareChip') && document.getElementById('shareChip').addEventListener('click', function(){var m=document.getElementById('qrMov');if(m)m.classList.add('show');});
+document.getElementById('waTTS2')    && document.getElementById('waTTS2')   .addEventListener('click', function(){document.getElementById('waTTS') && document.getElementById('waTTS').click();});
+
+// SOS + Camera wires
+document.getElementById('sosBtn')     && document.getElementById('sosBtn').addEventListener('click', function(){if(typeof sendSOS==='function')sendSOS();else{var o=document.getElementById('sosOv');if(o)o.classList.add('show');}});
+document.getElementById('sosBtnDesk') && document.getElementById('sosBtnDesk').addEventListener('click', function(){if(typeof sendSOS==='function')sendSOS();else{var o=document.getElementById('sosOv');if(o)o.classList.add('show');}});
+document.getElementById('waCamDesk')  && document.getElementById('waCamDesk').addEventListener('click', function(){document.getElementById('waCam') && document.getElementById('waCam').click();});
+
+// Speaker button
+document.getElementById('speakerBtn') && document.getElementById('speakerBtn').addEventListener('click', function(){
+  document.getElementById('mcWake') && document.getElementById('mcWake').click();
+  this.classList.toggle('active');
+});
+
+// Status dropdown
+var statusBtn2 = document.getElementById('statusBtn');
+var statusDrop2 = document.getElementById('statusDrop');
+if(statusBtn2 && statusDrop2) {
+  statusBtn2.addEventListener('click', function(e){
+    e.stopPropagation();
+    var r = statusBtn2.getBoundingClientRect();
+    if(window.innerWidth >= 900) {
+      statusDrop2.style.position = 'absolute';
+      statusDrop2.style.top = (r.bottom + 8) + 'px';
+      statusDrop2.style.left = r.left + 'px';
+      statusDrop2.style.right = 'auto';
+    }
+    statusDrop2.classList.toggle('open');
+  });
+  document.addEventListener('click', function(){statusDrop2.classList.remove('open');});
+  document.querySelectorAll('.sopt').forEach(function(btn){
+    btn.addEventListener('click', function(e){
+      e.stopPropagation();
+      if(typeof setUserStatus==='function') setUserStatus(btn.dataset.s);
+      statusDrop2.classList.remove('open');
+    });
+  });
+}
+
+// Member count update
+function updateMemberUI() {
+  var n = typeof participants !== 'undefined' ? participants.length : 0;
+  var lbl = document.getElementById('memberCountLbl');
+  var badge = document.getElementById('memberCountBadge');
+  if(lbl) lbl.textContent = n + ' người';
+  if(badge) badge.textContent = n + ' online';
+  // Update desktop avatar
+  var av = document.getElementById('dskAvatarTxt');
+  if(av && typeof currentUsername !== 'undefined' && currentUsername) {
+    av.textContent = currentUsername.charAt(0).toUpperCase();
+  }
+}
+var _rm0 = typeof renderMembers === 'function' ? renderMembers : null;
+if(_rm0) window.renderMembers = function(){ _rm0(); updateMemberUI(); };
+
+// pttLabel sync: map to ptt-txt span
+var pttTxtEl = document.querySelector('#pttBtn .ptt-txt');
+var _origSetTalk = window.setTalk;
+if(typeof setTalk === 'function') {
+  window.setTalk = function(s){
+    _origSetTalk && _origSetTalk(s);
+    if(!pttTxtEl) return;
+    if(s==='idle') pttTxtEl.textContent='Nhấn để nói';
+    else if(s==='preparing') pttTxtEl.textContent='Đang chờ...';
+    else if(s==='talking') pttTxtEl.textContent='Bấm để dừng';
+  };
+}
+// pttOuter talking class
+var pttOuter2 = document.getElementById('pttOuter');
+var origST = window.startTalking, origSp = window.stopTalking;
+if(origST){ window.startTalking = function(){ pttOuter2 && pttOuter2.classList.add('talking'); origST.call(this); }; }
+if(origSp){ window.stopTalking  = function(){ pttOuter2 && pttOuter2.classList.remove('talking'); origSp.call(this); }; }
+
+// Desktop layout: show sidebar + mapArea
+function applyDesktopLayout() {
+  var isDesk = window.innerWidth >= 900;
+  var sidebar = document.getElementById('deskSidebar');
+  var mapArea = document.getElementById('mapArea');
+  var pttActions = document.querySelector('.ptt-desktop-actions');
+  var waCam = document.getElementById('waCam');
+  var pttRight = document.querySelector('.ptt-right');
+  if(isDesk) {
+    if(sidebar) sidebar.style.display = 'flex';
+    if(mapArea) mapArea.style.flex = '1';
+    if(pttActions) pttActions.style.display = 'grid';
+    if(waCam) waCam.style.display = 'none';
+    if(pttRight) pttRight.style.display = 'none';
+    // Init with members panel open
+    if(typeof openPanel==='function') openPanel('panelMembers', tabMembers);
+  } else {
+    if(sidebar) sidebar.style.display = 'none';
+    if(pttActions) pttActions.style.display = 'none';
+    if(waCam) waCam.style.display = '';
+    if(pttRight) pttRight.style.display = '';
+  }
+}
+applyDesktopLayout();
+window.addEventListener('resize', applyDesktopLayout);
+
+// POI FEATURES ══════════════════════════════════════════
+var POI_RADIUS=5000, POI_REQUERY=400;
 var POI_ALERT_DIST={cam:300,sign:150,gas:600,ev:600,rest:600};
 var poiState={
   gas: {on:false,data:[],marks:[],icon:'⛽',label:'Trạm xăng'},
@@ -2396,13 +2418,9 @@ var poiState={
   sign:{on:false,data:[],marks:[],icon:'🚦',label:'Biển báo'},
 };
 var poiLastPos=null,poiFetching=false,poiAlerted={},poiAlertTmr=null;
-var spdWatchId=null,spdCurrent=0,spdLimit=0,poiInited=false;
+var spdWatchId=null,poiInited=false;
 
-function poiDist(la1,lo1,la2,lo2){
-  var R=6371000,dLa=(la2-la1)*Math.PI/180,dLo=(lo2-lo1)*Math.PI/180;
-  var a=Math.sin(dLa/2)*Math.sin(dLa/2)+Math.cos(la1*Math.PI/180)*Math.cos(la2*Math.PI/180)*Math.sin(dLo/2)*Math.sin(dLo/2);
-  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
-}
+function poiDist(la1,lo1,la2,lo2){var R=6371000,dLa=(la2-la1)*Math.PI/180,dLo=(lo2-lo1)*Math.PI/180;var a=Math.sin(dLa/2)*Math.sin(dLa/2)+Math.cos(la1*Math.PI/180)*Math.cos(la2*Math.PI/180)*Math.sin(dLo/2)*Math.sin(dLo/2);return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));}
 
 function startSpeedometer(){
   if(spdWatchId||!navigator.geolocation)return;
@@ -2411,10 +2429,10 @@ function startSpeedometer(){
     var spd=pos.coords.speed,kmh=0;
     if(spd!=null&&spd>=0){kmh=Math.round(spd*3.6);}
     else if(lastP){var dt=(pos.timestamp-lastT)/1000;if(dt>0.5)kmh=Math.round(poiDist(lastP.coords.latitude,lastP.coords.longitude,pos.coords.latitude,pos.coords.longitude)/dt*3.6);}
-    lastP=pos;lastT=pos.timestamp;spdCurrent=kmh;
+    lastP=pos;lastT=pos.timestamp;
     var el=document.getElementById('spdVal');
-    if(el){el.textContent=kmh;el.style.color=spdLimit>0&&kmh>spdLimit*1.05?'#f87171':spdLimit>0&&kmh>spdLimit*0.9?'#fbbf24':'#fff';}
-    poiUpdateLayout();
+    if(el){el.textContent=kmh;el.style.color=(kmh>90)?'#f87171':(kmh>70)?'#fbbf24':'#fff';}
+    poiUpdateSpeedoPos();
     poiCheckNear(pos.coords.latitude,pos.coords.longitude);
     if(!poiLastPos||poiDist(pos.coords.latitude,pos.coords.longitude,poiLastPos.lat,poiLastPos.lng)>POI_REQUERY){
       poiLastPos={lat:pos.coords.latitude,lng:pos.coords.longitude};
@@ -2423,125 +2441,62 @@ function startSpeedometer(){
   },null,{enableHighAccuracy:true,maximumAge:2000,timeout:15000});
 }
 
-function poiUpdateLayout(){
-  var isDesktop=window.innerWidth>=900;
+function poiUpdateSpeedoPos(){
   var wrap=document.getElementById('speedoWrap');
-  var panel=document.getElementById('poiPanel');
-  var alertEl=document.getElementById('poiAlert');
-  if(isDesktop){
-    if(wrap){wrap.style.bottom='180px';wrap.style.left='14px';}
-    if(panel){panel.style.top='66px';panel.style.left='14px';}
-    if(alertEl)alertEl.style.top='62px';
-    return;
-  }
-  var bsEl=typeof bottomSheet!=='undefined'?bottomSheet:document.getElementById('bottomSheet');
+  if(!wrap)return;
+  if(window.innerWidth>=900){wrap.style.bottom='180px';return;}
+  var bsEl=document.getElementById('bottomSheet');
   var bsH=bsEl?bsEl.offsetHeight:340;
   if(bsH<100)bsH=340;
-  if(wrap)wrap.style.bottom=(bsH+12)+'px';
-  if(panel){
-    var freeH=(window.innerHeight-bsH-60-8);
-    var ph=panel.offsetHeight||200;
-    var top=60+8+Math.max(0,(freeH-ph)/2);
-    panel.style.top=Math.round(top)+'px';
-  }
-  if(alertEl)alertEl.style.top='calc(58px + var(--st) + 6px)';
+  wrap.style.bottom=(bsH+12)+'px';
 }
 
 function kPOI(type){
   var s=poiState[type];if(!s)return;
   s.on=!s.on;
-  var id='poiBtn'+type.charAt(0).toUpperCase()+type.slice(1);
-  var btn=document.getElementById(id);
+  var btn=document.getElementById('poiBtn'+type.charAt(0).toUpperCase()+type.slice(1));
   if(btn)btn.classList.toggle('active',s.on);
-  if(s.on){if(s.data.length===0&&myLat&&myLng)poiFetch(myLat,myLng);else poiRenderLayer(type);}
+  if(s.on){if(s.data.length===0&&typeof myLat!=='undefined'&&myLat)poiFetch(myLat,myLng);else poiRenderLayer(type);}
   else poiClearLayer(type);
 }
 
-function poiClearLayer(type){
-  var s=poiState[type];
-  s.marks.forEach(function(m){try{leafletFull.removeLayer(m);}catch(e){}});
-  s.marks=[];
-}
+function poiClearLayer(type){var s=poiState[type];s.marks.forEach(function(m){try{leafletFull.removeLayer(m);}catch(e){}});s.marks=[];}
 
 function poiRenderLayer(type){
-  if(!leafletFull)return;
-  var s=poiState[type];poiClearLayer(type);if(!s.on)return;
+  if(!leafletFull)return;var s=poiState[type];poiClearLayer(type);if(!s.on)return;
   s.data.forEach(function(poi){
     if(!poi.lat||!poi.lng)return;
-    var ico=L.divIcon({className:'',
-      html:'<div style="width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:15px;background:rgba(10,9,3,.85);border:1.5px solid rgba(255,255,255,.18);box-shadow:0 3px 10px rgba(0,0,0,.6)">'+s.icon+'</div>',
-      iconSize:[32,32],iconAnchor:[16,16],popupAnchor:[0,-20]});
+    var ico=L.divIcon({className:'',html:'<div style="width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:15px;background:rgba(15,23,42,.88);border:1px solid rgba(255,255,255,.15);box-shadow:0 3px 10px rgba(0,0,0,.5)">'+s.icon+'</div>',iconSize:[32,32],iconAnchor:[16,16],popupAnchor:[0,-20]});
     var m=L.marker([poi.lat,poi.lng],{icon:ico}).addTo(leafletFull);
-    var html='<div style="font-family:system-ui;min-width:150px;font-size:13px">'
-      +'<b>'+s.icon+' '+(poi.name||s.label)+'</b>'
-      +(poi.detail?'<br><small style="color:#666">'+poi.detail+'</small>':'')
-      +(poi.brand?'<br><small style="color:#888">🏷️ '+poi.brand+'</small>':'')
-      +(poi.hours?'<br><small style="color:#888">🕐 '+poi.hours+'</small>':'')
-      +(poi.speed?'<br><b style="color:#ef4444">⚡ Giới hạn '+poi.speed+' km/h</b>':'')
-      +'</div>';
-    m.bindPopup(html,{maxWidth:220});
-    s.marks.push(m);
+    var html='<div style="font-family:system-ui;min-width:150px;font-size:13px"><b>'+s.icon+' '+(poi.name||s.label)+'</b>'+(poi.detail?'<br><small style="color:#666">'+poi.detail+'</small>':'')+(poi.brand?'<br><small style="color:#888">🏷️ '+poi.brand+'</small>':'')+(poi.hours?'<br><small style="color:#888">🕐 '+poi.hours+'</small>':'')+(poi.speed?'<br><b style="color:#ef4444">⚡ Giới hạn '+poi.speed+' km/h</b>':'')+'</div>';
+    m.bindPopup(html,{maxWidth:220});s.marks.push(m);
   });
 }
 
 function poiFetch(lat,lng){
   if(poiFetching)return;poiFetching=true;
   var r=POI_RADIUS;
-  var q='[out:json][timeout:25];('
-    +'node["amenity"="fuel"](around:'+r+','+lat+','+lng+');'
-    +'node["amenity"="charging_station"](around:'+r+','+lat+','+lng+');'
-    +'node["highway"="rest_area"](around:'+r+','+lat+','+lng+');'
-    +'node["amenity"="restaurant"](around:'+r+','+lat+','+lng+');'
-    +'node["amenity"="fast_food"](around:'+r+','+lat+','+lng+');'
-    +'node["highway"="speed_camera"](around:'+r+','+lat+','+lng+');'
-    +'node["enforcement"="maxspeed"](around:'+r+','+lat+','+lng+');'
-    +'node["traffic_sign"](around:'+r+','+lat+','+lng+');'
-    +'node["highway"="stop"](around:'+r+','+lat+','+lng+');'
-    +'node["highway"="give_way"](around:'+r+','+lat+','+lng+');'
-    +');out body;';
-  fetch('https://overpass-api.de/api/interpreter?data='+encodeURIComponent(q))
-    .then(function(res){return res.json();})
-    .then(function(data){
-      poiFetching=false;
-      Object.keys(poiState).forEach(function(k){poiState[k].data=[];});
-      data.elements.forEach(function(el){
-        if(!el.lat&&el.center){el.lat=el.center.lat;el.lon=el.center.lon;}
-        if(!el.lat)return;
-        var t=el.tags||{};
-        var b={lat:el.lat,lng:el.lon,name:t.name||t['name:vi']||'',brand:t.brand||'',hours:t.opening_hours||''};
-        if(t.amenity==='fuel')
-          poiState.gas.data.push(Object.assign({},b,{detail:(t['fuel:octane_95']==='yes'?'RON 95 ':'')+(t['fuel:diesel']==='yes'?'Diesel':'').trim()||'Trạm xăng'}));
-        else if(t.amenity==='charging_station')
-          poiState.ev.data.push(Object.assign({},b,{detail:(t.capacity?t.capacity+' cổng ':'')+(t.socket||'')||'Sạc điện'}));
-        else if(t.highway==='rest_area'||t.amenity==='restaurant'||t.amenity==='fast_food')
-          poiState.rest.data.push(Object.assign({},b,{detail:t.highway==='rest_area'?'Trạm dừng nghỉ':(t.cuisine||t.amenity||'Ăn uống')}));
-        else if(t.highway==='speed_camera'||t.enforcement==='maxspeed')
-          poiState.cam.data.push(Object.assign({},b,{name:b.name||'Camera tốc độ',speed:t.maxspeed||'',detail:t.direction?'Hướng '+t.direction:''}));
-        else if(t.traffic_sign||t.highway==='stop'||t.highway==='give_way'){
-          var sn=t.highway==='stop'?'Biển DỪNG':t.highway==='give_way'?'Nhường đường':poiSignName(t.traffic_sign);
-          poiState.sign.data.push(Object.assign({},b,{name:b.name||sn,detail:t.traffic_sign||''}));
-        }
-      });
-      // Update count badges
-      ['gas','ev','rest','cam','sign'].forEach(function(type){
-        var cid='poiCnt'+type.charAt(0).toUpperCase()+type.slice(1);
-        var bid='poiBtn'+type.charAt(0).toUpperCase()+type.slice(1);
-        var n=poiState[type].data.length;
-        var cnt=document.getElementById(cid);if(cnt)cnt.textContent=n>0?n:'';
-        var btn=document.getElementById(bid);if(btn)btn.classList.toggle('has-data',n>0);
-        if(poiState[type].on)poiRenderLayer(type);
-      });
-    })
-    .catch(function(){poiFetching=false;});
-}
-
-function poiSignName(s){
-  if(!s)return 'Biển báo';
-  var m={stop:'Biển DỪNG',give_way:'Nhường đường',maxspeed:'Giới hạn tốc độ',
-         no_entry:'Cấm vào',no_overtaking:'Cấm vượt',no_parking:'Cấm đỗ',
-         no_stopping:'Cấm dừng',school_zone:'Khu vực trường học'};
-  for(var k in m)if(s.indexOf(k)>=0)return m[k];
-  return 'Biển báo';
+  var q='[out:json][timeout:25];(node["amenity"="fuel"](around:'+r+','+lat+','+lng+');node["amenity"="charging_station"](around:'+r+','+lat+','+lng+');node["highway"="rest_area"](around:'+r+','+lat+','+lng+');node["amenity"="restaurant"](around:'+r+','+lat+','+lng+');node["amenity"="fast_food"](around:'+r+','+lat+','+lng+');node["highway"="speed_camera"](around:'+r+','+lat+','+lng+');node["enforcement"="maxspeed"](around:'+r+','+lat+','+lng+');node["traffic_sign"](around:'+r+','+lat+','+lng+');node["highway"="stop"](around:'+r+','+lat+','+lng+');node["highway"="give_way"](around:'+r+','+lat+','+lng+'););out body;';
+  fetch('https://overpass-api.de/api/interpreter?data='+encodeURIComponent(q)).then(function(res){return res.json();}).then(function(data){
+    poiFetching=false;Object.keys(poiState).forEach(function(k){poiState[k].data=[];});
+    data.elements.forEach(function(el){
+      if(!el.lat&&el.center){el.lat=el.center.lat;el.lon=el.center.lon;}if(!el.lat)return;
+      var t=el.tags||{},b={lat:el.lat,lng:el.lon,name:t.name||t['name:vi']||'',brand:t.brand||'',hours:t.opening_hours||''};
+      if(t.amenity==='fuel')poiState.gas.data.push(Object.assign({},b,{detail:(t['fuel:octane_95']==='yes'?'RON 95 ':'')+(t['fuel:diesel']==='yes'?'Diesel':'')||'Trạm xăng'}));
+      else if(t.amenity==='charging_station')poiState.ev.data.push(Object.assign({},b,{detail:(t.capacity?t.capacity+' cổng ':'')+(t.socket||'')||'Sạc điện'}));
+      else if(t.highway==='rest_area'||t.amenity==='restaurant'||t.amenity==='fast_food')poiState.rest.data.push(Object.assign({},b,{detail:t.highway==='rest_area'?'Trạm dừng nghỉ':(t.cuisine||t.amenity||'Ăn uống')}));
+      else if(t.highway==='speed_camera'||t.enforcement==='maxspeed')poiState.cam.data.push(Object.assign({},b,{name:b.name||'Camera tốc độ',speed:t.maxspeed||'',detail:t.direction?'Hướng '+t.direction:''}));
+      else if(t.traffic_sign||t.highway==='stop'||t.highway==='give_way'){var sn=t.highway==='stop'?'Biển DỪNG':t.highway==='give_way'?'Nhường đường':'Biển báo';poiState.sign.data.push(Object.assign({},b,{name:b.name||sn,detail:t.traffic_sign||''}));}
+    });
+    ['gas','ev','rest','cam','sign'].forEach(function(type){
+      var cid='poiCnt'+type.charAt(0).toUpperCase()+type.slice(1);
+      var bid='poiBtn'+type.charAt(0).toUpperCase()+type.slice(1);
+      var n=poiState[type].data.length;
+      var cnt=document.getElementById(cid);if(cnt)cnt.textContent=n>0?n:'';
+      var btn=document.getElementById(bid);if(btn)btn.classList.toggle('has-data',n>0);
+      if(poiState[type].on)poiRenderLayer(type);
+    });
+  }).catch(function(){poiFetching=false;});
 }
 
 function poiCheckNear(lat,lng){
@@ -2554,44 +2509,57 @@ function poiCheckNear(lat,lng){
       var key=type+'_'+poi.lat+'_'+poi.lng;
       if(poiAlerted[key]&&now-poiAlerted[key]<90000)return;
       poiAlerted[key]=now;
-      poiShowAlert(type,poi,Math.round(d));
-      var msg=(poi.name||poiState[type].label)+' phía trước '+Math.round(d)+' mét'
-              +(poi.speed?'. Giới hạn tốc độ '+poi.speed+' kilômét giờ':'')
-              +(type==='cam'?'. Chú ý camera tốc độ':'');
-      if(typeof ttsSpeak==='function')ttsSpeak(msg,'');
+      var el=document.getElementById('poiAlert'),ico=document.getElementById('paiIco'),title=document.getElementById('paiTitle'),sub=document.getElementById('paiSub');
+      if(!el)return;
+      if(ico)ico.textContent=poiState[type].icon;
+      if(title)title.textContent=poi.name||poiState[type].label;
+      var s=Math.round(d)+'m phía trước';if(poi.speed)s+=' · '+poi.speed+' km/h';if(poi.detail)s+=' · '+poi.detail;
+      if(sub)sub.textContent=s;
+      el.classList.add('show');clearTimeout(poiAlertTmr);poiAlertTmr=setTimeout(function(){el.classList.remove('show');},8000);
+      if(typeof ttsSpeak==='function')ttsSpeak((poi.name||poiState[type].label)+' phía trước '+Math.round(d)+' mét'+(type==='cam'?'. Chú ý camera tốc độ':''),'');
     });
   });
 }
 
-function poiShowAlert(type,poi,distM){
-  var el=document.getElementById('poiAlert');
-  var ico=document.getElementById('paiIco');
-  var title=document.getElementById('paiTitle');
-  var sub=document.getElementById('paiSub');
-  if(!el)return;
-  if(ico)ico.textContent=poiState[type].icon;
-  if(title)title.textContent=poi.name||poiState[type].label;
-  var s=distM+'m phía trước';
-  if(poi.speed)s+=' · '+poi.speed+' km/h';
-  if(poi.detail)s+=' · '+poi.detail;
-  if(sub)sub.textContent=s;
-  el.classList.add('show');
-  clearTimeout(poiAlertTmr);
-  poiAlertTmr=setTimeout(function(){el.classList.remove('show');},8000);
-}
-
 function poiInit(){
   if(poiInited)return;poiInited=true;
-  startSpeedometer();poiUpdateLayout();
-  var bsEl=typeof bottomSheet!=='undefined'?bottomSheet:document.getElementById('bottomSheet');
-  if(bsEl){new MutationObserver(poiUpdateLayout).observe(bsEl,{attributes:true,attributeFilter:['style','class']});}
-  window.addEventListener('resize',poiUpdateLayout);
+  startSpeedometer();poiUpdateSpeedoPos();
+  var bsEl=document.getElementById('bottomSheet');
+  if(bsEl){new MutationObserver(poiUpdateSpeedoPos).observe(bsEl,{attributes:true,attributeFilter:['style','class']});}
+  window.addEventListener('resize',poiUpdateSpeedoPos);
 }
 
-var _poiOldShowRoom=window.showRoom;
-window.showRoom=function(rc){if(_poiOldShowRoom)_poiOldShowRoom(rc);setTimeout(poiInit,800);};
+// Hook showRoom
+var _oldShowRoom = window.showRoom;
+window.showRoom = function(rc){
+  if(_oldShowRoom) _oldShowRoom(rc);
+  setTimeout(poiInit, 800);
+  setTimeout(applyDesktopLayout, 100);
+};
 
-})();
+// Background TTS fix (keep AudioContext alive)
+var _origUnlockAudio = window.unlockAudio;
+window.unlockAudio = function(){
+  if(_origUnlockAudio) _origUnlockAudio();
+  if(window.audioCtx && window.audioCtx.state==='suspended') window.audioCtx.resume().catch(function(){});
+};
+setInterval(function(){
+  if(window.audioCtx && window.audioCtx.state==='suspended') window.audioCtx.resume().catch(function(){});
+}, 8000);
+
+// TTS: always play even when tab hidden
+if(typeof ttsSpeak === 'function') {
+  var _origTtsSpeak = ttsSpeak;
+  window.ttsSpeak = function(text, senderName){
+    if(!ttsEnabled) return;
+    if(userStatus==='busy') return;
+    var item={text:text,senderName:senderName,ts:Date.now()};
+    if(ttsQueue.length>2) ttsQueue.splice(0,ttsQueue.length-2);
+    ttsQueue.push(item);
+    if(!ttsSpeaking) ttsPlayNext();
+  };
+}
+
 </script>
 </body>
 </html>
