@@ -22,6 +22,33 @@ app.use((req,res,next)=>{
   next();
 });
 app.use(express.static(__dirname));
+
+// ── OVERPASS API PROXY (tránh CORS từ browser) ────────────
+const https = require('https');
+app.get('/api/overpass', (req, res) => {
+  const query = req.query.data;
+  if (!query) return res.status(400).json({ error: 'Missing data param' });
+
+  // Rate limit đơn giản
+  const ip = req.ip || req.connection.remoteAddress;
+  const now = Date.now();
+
+  const overpassUrl = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`;
+  const mirrorUrl  = `https://overpass.kumi.systems/api/interpreter?data=${encodeURIComponent(query)}`;
+
+  const doFetch = (url, fallback) => {
+    https.get(url, { timeout: 25000 }, (upstream) => {
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader('Cache-Control', 'public, max-age=120'); // cache 2 phút
+      upstream.pipe(res);
+    }).on('error', (err) => {
+      if (fallback) doFetch(fallback, null);
+      else res.status(502).json({ error: 'Overpass unavailable', msg: err.message });
+    });
+  };
+  doFetch(overpassUrl, mirrorUrl);
+});
+
 const server = http.createServer(app);
 
 // ── DATABASE ──────────────────────────────────────────────

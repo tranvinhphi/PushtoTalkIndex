@@ -2646,7 +2646,22 @@ function poiFetch(lat,lng){
   if(poiFetching)return;poiFetching=true;
   var r=POI_RADIUS;
   var q='[out:json][timeout:25];(node["amenity"="fuel"](around:'+r+','+lat+','+lng+');node["amenity"="charging_station"](around:'+r+','+lat+','+lng+');node["highway"="rest_area"](around:'+r+','+lat+','+lng+');node["amenity"="restaurant"](around:'+r+','+lat+','+lng+');node["amenity"="fast_food"](around:'+r+','+lat+','+lng+');node["highway"="speed_camera"](around:'+r+','+lat+','+lng+');node["enforcement"="maxspeed"](around:'+r+','+lat+','+lng+');node["traffic_sign"](around:'+r+','+lat+','+lng+');node["highway"="stop"](around:'+r+','+lat+','+lng+');node["highway"="give_way"](around:'+r+','+lat+','+lng+'););out body;';
-  fetch('https://overpass-api.de/api/interpreter?data='+encodeURIComponent(q)).then(function(res){return res.json();}).then(function(data){
+  (function(){
+    // Try server proxy first (no CORS), fallback to direct mirrors
+    var mirrors=[
+      '/api/overpass',  // server proxy
+      'https://overpass.kumi.systems/api/interpreter',
+      'https://overpass-api.de/api/interpreter'
+    ];
+    var url=mirrors[0]+'?data='+encodeURIComponent(q);
+    return fetch(url).catch(function(){
+      url=mirrors[1]+'?data='+encodeURIComponent(q);
+      return fetch(url,{mode:'cors'}).catch(function(){
+        url=mirrors[2]+'?data='+encodeURIComponent(q);
+        return fetch(url,{mode:'cors'});
+      });
+    });
+  }()).then(function(res){return res.json();}).then(function(data){
     poiFetching=false;Object.keys(poiState).forEach(function(k){poiState[k].data=[];});
     data.elements.forEach(function(el){
       if(!el.lat&&el.center){el.lat=el.center.lat;el.lon=el.center.lon;}if(!el.lat)return;
